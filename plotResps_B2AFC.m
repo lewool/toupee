@@ -13,7 +13,6 @@
 
 % close all;
 clear all;
-cd('C:\Users\Wool\Documents\MATLAB\expPipeline\expPipeline');
 
 mouseName = 'LEW005';
 expDate = '2018-06-10';
