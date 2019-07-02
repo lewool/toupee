@@ -86,7 +86,7 @@ pastMovementDir = {'all','all'};
 pastResponseType = {'all','all'};
 
 %% select cells with the properties you want
-propType = chooseCellType('mov', mouseName, expDate, expNum, expSeries, block, allFcell, eventTimes, ops);
+plotAll = chooseCellType('mov', mouseName, expDate, expNum, expSeries, block, allFcell, eventTimes, ops);
 
 %% grand mean plot
 
