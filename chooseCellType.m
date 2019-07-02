@@ -6,7 +6,7 @@ clear allCells;
 clear visCells;
 clear movCells;
 
-contrasts = unique(block.events.contrastValues);
+propContrasts = unique(block.events.contrastValues);
 
 switch propType
     case 'all'
@@ -39,31 +39,39 @@ switch propType
 
         % stim_eventIdx = 3;
         %stimulus response index
-        stim_crfTime = .2;
+        stim_crfTime = .3;
         stim_vPreIdx = stim_eventIdx - 3 : stim_eventIdx - 1;
         stim_vPeriIdx = stim_eventIdx : stim_eventIdx + ceil(stim_crfTime*Fs);
+        sdTestIdx = stim_eventIdx : stim_eventIdx + 6;
 
         % cursory test for stimulus responsiveness
-        % is response to -100% contrast trials statistically significantly different from
-        % the response to +100% contrast trials?
+        % is response to left (or right) contrast trials statistically significantly different from
+        % the response to 0% contrast trials?
 
-        [~, condIdx_left100] = selectCondition(block, contrasts(contrasts < 0), eventTimes, 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all');
-        [~, condIdx_right100] = selectCondition(block, contrasts(contrasts > 0), eventTimes, 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all');
+        [~, condIdx_left] = selectCondition(block, (propContrasts(propContrasts < 0)), eventTimes, 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all');
+        [~, condIdx_right] = selectCondition(block, (propContrasts(propContrasts > 0)), eventTimes, 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all');
+        [~, condIdx_zero] = selectCondition(block, 0, eventTimes, 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all', 'all');
 
         for iPlane = 1:numPlanes
             v = [];
             for iCell = 1:size(stim_alignedTraces{iPlane}.eventSpikes,3)
 
                 %compare at a timepoint after stimulus onset
-                leftStimResp = mean(stim_alignedTraces{iPlane}.eventSpikes(condIdx_left100,stim_vPeriIdx,iCell),2);
-                rightStimResp = mean(stim_alignedTraces{iPlane}.eventSpikes(condIdx_right100,stim_vPeriIdx,iCell),2);
-                if ~isnan(mean(leftStimResp)) && ~isnan(mean(rightStimResp))
-                    [~,p] = kstest2(leftStimResp,rightStimResp);
+                leftStimResp = mean(stim_alignedTraces{iPlane}.eventSpikes(condIdx_left,stim_vPeriIdx,iCell),2);
+                rightStimResp = mean(stim_alignedTraces{iPlane}.eventSpikes(condIdx_right,stim_vPeriIdx,iCell),2);
+                zeroStimResp = mean(stim_alignedTraces{iPlane}.eventSpikes(condIdx_zero,stim_vPeriIdx,iCell),2);
+                if ~isnan(mean(leftStimResp)) && ~isnan(mean(zeroStimResp)) && ~isnan(mean(rightStimResp))
+                    [~,pL] = kstest2(leftStimResp,zeroStimResp);
+                    [~,pR] = kstest2(rightStimResp,zeroStimResp);
                 end
+                
+                %check if the response is >0.25 SD in the perievent window
+                sdCheck = sum(mean(stim_alignedTraces{iPlane}.eventSpikes(condIdx_left,sdTestIdx,iCell),1) > .25) > 1;
 
                 % if it a. passes the statistical test and b. left-stim responses
-                % are larger than right-stim responses (classical CRF shape)
-                if  p < 0.01 && (mean(leftStimResp) > mean(rightStimResp))
+                % are larger than zero-stim responses (classical CRF
+                % shape) and c. sdCheck = true
+                if  (pL < 0.01 && sdCheck) || (pR < 0.01 && sdCheck)
                     v = [v; iCell];
                 end
                 visCells{iPlane} = v;
@@ -91,30 +99,35 @@ switch propType
 
         % stim_eventIdx = 3;
         %stimulus response index
-        mov_crfTime = .2;
-        mov_vPreIdx = mov_eventIdx - 2 : mov_eventIdx ;
-        mov_vPeriIdx = mov_eventIdx + 1: mov_eventIdx + 3;
+        mov_window = 5;
+        mov_vPreIdx = mov_eventIdx - mov_window : mov_eventIdx - 1;
+        mov_vPeriIdx = mov_eventIdx + 1: mov_eventIdx + mov_window;
+        sdTestIdx = mov_eventIdx : mov_eventIdx + 6;
 
         % cursory test for movement responsiveness
-        % is response to -100% contrast trials statistically significantly different from
-        % the response to +100% contrast trials?
+        % is response during 0% contrast trials significantly different
+        % between pre- and post-movement onset?
 
-        [~, condIdx_mov] = selectCondition(block, contrasts, eventTimes, 'all', 'all', 'all', 'all', 'all',  'all', 'all', 'all', 'all');
+        [~, condIdx_mov] = selectCondition(block, 0, eventTimes, 'all', 'all', 'all', 'all', 'all',  'all', 'all', 'all', 'all');
 
         for iPlane = 1:numPlanes
             m = [];
             for iCell = 1:size(mov_alignedTraces{iPlane}.eventSpikes,3)
 
-                %compare at a timepoint after stimulus onset
+                %compare at a timepoint after movement onset
                 preMovResp = nanmean(mov_alignedTraces{iPlane}.eventSpikes(condIdx_mov,mov_vPreIdx,iCell),2);
                 periMovResp = nanmean(mov_alignedTraces{iPlane}.eventSpikes(condIdx_mov,mov_vPeriIdx,iCell),2);
                 if ~isnan(nanmean(preMovResp)) && ~isnan(nanmean(periMovResp))
-                    [~,p] = kstest2(preMovResp,periMovResp);
+                    [~,p] = ttest2(preMovResp,periMovResp);
                 end
+                
+                %check if the response is >0.25 SD in the perievent window
+                sdCheck = sum(mean(mov_alignedTraces{iPlane}.eventSpikes(condIdx_mov,sdTestIdx,iCell),1) > 0.25) > 1;
 
-                % if it a. passes the statistical test and b. left-stim responses
-                % are larger than right-stim responses (classical CRF shape)
-                if  p < 0.05 && (nanmean(preMovResp) < nanmean(periMovResp))
+                % if it a. passes the statistical test and b. post-move responses
+                % are larger than pre-move responses (classical CRF shape)
+                % and c. sdCheck = true
+                if  p < 0.01 && (nanmean(preMovResp) < nanmean(periMovResp)) && sdCheck
                     m = [m; iCell];
                 end
                 movCells{iPlane} = m;
