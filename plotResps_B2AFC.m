@@ -8,6 +8,8 @@
 % 2018-11-20: LEW created (plotCRF_stimulusHistory.m)
 % 2019-05-20: Changed name; modified to more easily change condition comparison
 % and adapt to varied contrast conditions across subjects 
+% 2019-07-02: moved to git repository 'toupee'; extracted cell type chooser
+% to separate function call
 
 %% load experiment details
 
