@@ -2,6 +2,11 @@ function [eventTimes, wheelTrajectories] = getEventTimes(block, Timeline, signal
 % for signalsNames, use the exact fieldnames from the block file or you'll get an error
 % e.g. signalsNames = {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'};
 
+% 2018 Nov 21: Now collects feedback times (as well as a rough estimate of when,
+% on incorrect trials, the valve would have fired)
+% 2019 May 09: Collects feedback times for biased-likelihood exps when
+% valve didn't fire
+
 %% DETECT PHD FLIPS
 % since the photodiode doesn't always register a WHITE or BLACK signal
 % during wheel movement, but also GRAY, we can use departures from GRAY to 
@@ -45,7 +50,7 @@ end
 eventTimes = struct('event',signalsNames);
 
 for i = 1:length(signalsUpdates)
-    updateTimes = signalsUpdates{i};
+    updateTimes = signalsUpdates{i}(1:numCompleteTrials);
     
     for j = 1:numel(updateTimes)
 
@@ -63,6 +68,7 @@ for i = 1:length(signalsUpdates)
     
     % save signals event times wrt to stimWindowUpdate times...
     eventTimes(i).signalsTime = getfield(block.events,signalsNames{i});
+    eventTimes(i).signalsTime = eventTimes(i).signalsTime(1:numCompleteTrials);
     eventTimes(i).updateTime = updateTimes;
     
     % ... and also phd flip times
@@ -98,7 +104,22 @@ feedbackRewards = block.events.feedbackValues.*feedbackRewards;
 feedbackRewards(feedbackRewards == 0) = NaN;
 
 [~,rewardTrialIdx]=find(block.events.feedbackValues == 1);
-% rewardTrialIdx(find(rewardTrialIdx > numCompleteTrials)) = [];
+
+% --------- if a likelihood experiment
+allBlockRewardValues = block.outputs.rewardValues;
+blockKeyboardRewards = interp1(block.outputs.rewardTimes,block.outputs.rewardTimes,block.inputs.keyboardTimes,'nearest');
+[~,bkIdx] = intersect(block.outputs.rewardTimes, blockKeyboardRewards);
+allBlockRewardValues(bkIdx) = [];
+try 
+    isProbExp = block.paramsValues(1).rewardProbability(1) > 0;
+    if exist('isProbExp')
+        rewardTrialIdx(allBlockRewardValues == 0) = []; %if biased likelihood experiment, take out 'rewards' of 0
+        rewardTrialIdx(find(rewardTrialIdx > numCompleteTrials)) = [];
+    end
+catch
+end
+% ---------
+
 rewardTrialTimes = nan(1,numCompleteTrials);
 rewardTrialTimes(rewardTrialIdx) = realRewardTimes;
 
@@ -108,11 +129,23 @@ eventTimes(l+1).event = 'rewardOnTimes';
 eventTimes(l+1).signalsTime = feedbackRewards(1:numCompleteTrials);
 eventTimes(l+1).daqTime = rewardTrialTimes(1:numCompleteTrials);
 
+% compute average valve delay
+meanRewDiff = nanmean(eventTimes(l+1).daqTime - eventTimes(l+1).signalsTime);
+
+% record the feedback timings so you can compare timepoints between
+% rewarded and unrewarded trials
+eventTimes(l+2).event = 'feedbackTimes';
+eventTimes(l+2).signalsTime = block.events.feedbackTimes(1:numCompleteTrials);
+%a rough guess at when the mouse would expect the valve to fire, based on
+%the mean valve delay
+eventTimes(l+2).daqTime = block.events.feedbackTimes(1:numCompleteTrials) + meanRewDiff; 
+
 %% RAW WHEEL TRACES
 
 rawPos = block.inputs.wheelValues;
 rawPos = wheel.correctCounterDiscont(rawPos); % correction because sometimes negative wheel positions wrap around
-rawTimes = block.inputs.wheelTimes;
+rawPos = rawPos(2:end); %the first timestamp seems to be messed up, so ignore it
+rawTimes = block.inputs.wheelTimes(2:end);
 
 % sample/interpolate the trace
 Fs = 1000;
@@ -129,9 +162,6 @@ rawPos = rawPos./(rotaryEncoderResolution)*2*pi*wheelRadius; % convert to mm
 
 deg = pos.*wheelGain;
 rawDeg = rawPos.*wheelGain;
-
-%compute wheel velocity
-[vel, ~] = wheel.computeVelocity(pos, 100, Fs);
 
 %% WHEEL TRAJECTORIES
 
@@ -162,8 +192,7 @@ for i = 1:numCompleteTrials
     
     % record the raw times in their own struct
     wheelTrajectories(i).signalsTimes = trialWheelTimes;
-    wheelTrajectories(i).pos = deg(trialIdx);
-    wheelTrajectories(i).vel = vel(trialIdx);
+    wheelTrajectories(i).values = deg(trialIdx);
     
     % this offset value lets us zero the wheel position at the
     % start of the interactive period
@@ -172,10 +201,13 @@ end
 
 %% DETERMINE MOVEMENT PERIODS
 
+%compute wheel velocity
+[vel, ~] = wheel.computeVelocity(pos, 100, Fs);
+
 %threshold the velocity to determine when movements started and stopped
 vel(isnan(vel)) = 0; %weird
 env = envelope(vel,100);
-isMoving = env > block.paramsValues(1).quiescenceThreshold * 5; %?
+isMoving = env > 50; %?
 timesStartedMovement = t(2:end) .* (diff(isMoving) > 0);
 timesStartedMovement(timesStartedMovement == 0) = [];
 timesEndedMovement = t(2:end) .* (diff(isMoving) < 0);
@@ -186,6 +218,7 @@ for iTime = 1:numCompleteTrials
     timepoint = block.events.stimulusOnTimes(iTime);
     try 
         firstMove = timesStartedMovement(find(timesStartedMovement > (timepoint-.5)));
+        firstMove = firstMove(firstMove -eventTimes(1).daqTime(iTime) > 0);
         firstMove = firstMove(1);
         prestimulusQuiescenceEnded(iTime) = firstMove;
     catch
@@ -222,21 +255,6 @@ eventTimes(l+1).event = 'prestimulusQuiescenceStartTimes';
 eventTimes(l+1).daqTime = prestimulusQuiescenceStarted;
 eventTimes(l+2).event = 'prestimulusQuiescenceEndTimes';
 eventTimes(l+2).daqTime = prestimulusQuiescenceEnded;
-
-%% MAX VELOCITY PER TRIAL
-
-for iTrial = 1:length(eventTimes(strcmp({eventTimes.event},'feedbackTimes')).daqTime)
-    startMove = interp1(wheelTrajectories(iTrial).signalsTimes, wheelTrajectories(iTrial).signalsTimes, eventTimes(strcmp({eventTimes.event},'prestimulusQuiescenceEndTimes')).daqTime(iTrial), 'nearest', 'extrap');
-    endMove = interp1(wheelTrajectories(iTrial).signalsTimes, wheelTrajectories(iTrial).signalsTimes, eventTimes(strcmp({eventTimes.event},'feedbackTimes')).daqTime(iTrial), 'nearest', 'extrap');
-    mvIdx = find(endMove == wheelTrajectories(iTrial).signalsTimes);
-    try
-        [~,maxIdx] = find(abs(wheelTrajectories(iTrial).vel) == max(abs(wheelTrajectories(iTrial).vel(mvIdx-50:mvIdx))));
-        wheelTrajectories(iTrial).maxVel = wheelTrajectories(iTrial).vel(maxIdx);
-    catch
-        wheelTrajectories(iTrial).maxVel = NaN;
-    end
-end
-
 
 
 end
