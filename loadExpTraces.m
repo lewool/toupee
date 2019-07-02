@@ -2,7 +2,7 @@ function [allFcell,ops] = loadExpTraces(mouseName, expDate, expSeries)
 %Load the calcium, neuropil, and spike data for curated ROIs across
 %a series of experiments processed together in Suite2P
 
-%% NEUROPIL CORRECTION
+%% 
 seriesChar = strrep(num2str(expSeries),'  ',' ');
 seriesChar = strrep(num2str(seriesChar),'  ',' ');
 seriesChar = strrep(num2str(seriesChar),' ','_');
@@ -33,9 +33,7 @@ for iPlane = 1:ops.numPlanes
 
         % Compute corrected cell trace (after neuropil subtraction)
         % Fcorrected = Fcell - (FcellNeu*NeuCoeff)
-        for i = 1:size(Fcell,1)
-            FcellCorrected(i,:) = Fcell(i,:) - (neuropilCoeff(i) .* FcellNeu(i,:));
-        end
+        FcellCorrected = Fcell - (neuropilCoeff .* FcellNeu);
         
         % compute dF/F for each ROI trace/neuropil, plus all neuropil
         for j = 1:size(Fcell,1)
