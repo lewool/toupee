@@ -63,6 +63,9 @@ switch propType
                 if ~isnan(mean(leftStimResp)) && ~isnan(mean(zeroStimResp)) && ~isnan(mean(rightStimResp))
                     [~,pL] = kstest2(leftStimResp,zeroStimResp);
                     [~,pR] = kstest2(rightStimResp,zeroStimResp);
+                else
+                    pL = 1;
+                    pR = 1;
                 end
                 
                 %check if the response is >0.25 SD in the perievent window
@@ -140,3 +143,6 @@ switch propType
             plotAll = [plotAll; vv];
         end
 end
+
+% remove the flyback plane cells from analyses
+plotAll(plotAll(:,1)==1,:)=[];
