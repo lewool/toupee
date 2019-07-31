@@ -11,7 +11,7 @@ load(fullfile('D:\Data\F\',mouseName,expDate,seriesChar,strcat('F_',mouseName,'_
 ops.numPlanes = dat.ops.nplanes;
 ops.numChannels = dat.ops.nchannels;
 
-for iPlane = 2:ops.numPlanes
+for iPlane = 1:ops.numPlanes
     load(fullfile('D:\Data\F\',mouseName,expDate,seriesChar,strcat('F_',mouseName,'_',expDate,'_plane',num2str(iPlane),'_proc.mat')))
     for iExp = 1:numel(dat.Fcell)
 
@@ -64,3 +64,4 @@ for iPlane = 2:ops.numPlanes
     allFcell(iPlane) = planeTraces;
     clear planeTraces;
 end
+
