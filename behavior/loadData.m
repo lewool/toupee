@@ -22,24 +22,31 @@ elseif nargin == 1
 	expRef = varargin{1};
 end 
 
-oldDataFolder = '\\zserver.cortexlab.net\Data2\Subjects'; 
+oldDataFolder = '\\zserver.cortexlab.net\Data\Subjects'; 
 newDataFolder = '\\zubjects.cortexlab.net\Subjects'; 
 
 try
     blockFilePath = dat.expFilePath(expRef, 'block', 'master');
     load(blockFilePath);
-    tlFilePath = dat.expFilePath(expRef, 'timeline', 'master');
-    load(tlFilePath);
     
 catch
     try
-        block = load(strrep(blockFilePath, oldDataFolder, newDataFolder));
-        Timeline = load(strrep(tlFilePath, oldDataFolder, newDataFolder));
+        load(strrep(blockFilePath, oldDataFolder, newDataFolder));
     catch %if no TL file
-        block = block;
-        Timeline = [];
+        block = [];
     end
 
+end
+
+try 
+    tlFilePath = dat.expFilePath(expRef, 'timeline', 'master');
+    load(tlFilePath);
+catch
+    try
+        load(strrep(tlFilePath, oldDataFolder, newDataFolder));
+    catch %if no TL file
+        Timeline = [];
+    end
 end
 
 end
