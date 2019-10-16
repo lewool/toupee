@@ -14,12 +14,13 @@
 %% load experiment details
 
 % close all;
-clear all;
+% clear all;
+clearvars -except allCRFs allCRFs_L allCRFs_R
 
-mouseName = 'LEW005';
-expDate = '2018-06-10';
-expNum = 2;
-expSeries = [2 3];
+mouseName = 'LEW008';
+expDate = '2019-01-29';
+expNum = 1;
+expSeries = [1];
 
 %% load data
 
@@ -30,20 +31,21 @@ expSeries = [2 3];
 signalsNames = {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'};
 [eventTimes, wheelTrajectories] = getEventTimes(block, Timeline, signalsNames);
 
-%% load traces
+ %% load traces
 [allFcell, ops] = loadExpTraces(mouseName, expDate, expSeries);
 
 %% align calcium traces to the event you want
 
 % cut the trace into trial-by-trial traces, aligned to a particular event
-% event = 'prestimulusQuiescenceEndTimes';
-event = 'stimulusOnTimes';
+event = 'prestimulusQuiescenceEndTimes';
+% event = 'stimulusOnTimes';
 % event = 'rewardOnTimes';
 [alignedTraces, eventWindow] = getExpTraces(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
 % [alignedTraces, alignedSpikes, eventWindow] = alignSpikes(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
 
 %% select cells with the properties you want
-plotAll = chooseCellType('vis', mouseName, expDate, expNum, expSeries, block, allFcell, eventTimes, ops);
+cd('C:\Users\Wool\Documents\GitHub\toupee')
+plotAll = chooseCellType('movright', mouseName, expDate, expNum, expSeries, block, allFcell, eventTimes, ops);
 
 %% initialize some plot values
 
@@ -61,7 +63,7 @@ vPeriIdx = eventIdx + ceil(crfTime*Fs);
 
 % contrasts to plot
 contrasts = unique(block.events.contrastValues);
-% contrasts = contrasts(sign(contrasts)~=1);
+% contrasts = unique(sign(contrasts));
 dirs = [-1 1];
 
 zeroIdx = find(contrasts == 0);
@@ -82,7 +84,7 @@ legend2 = 'ipsi';
 
 repeatType = {'all','all'};
 movementDir = {'all','all'};
-movementTime = {'early','early'};
+movementTime = {'all','all'};
 highRewardSide = {'left','right'};
 responseType = {'all','all'};
 rewardOutcome = {'all','all'};
@@ -97,6 +99,8 @@ set(gcf,'Position',[114   400   1080   315])
 
 allRTs = eventTimes(7).daqTime - eventTimes(1).daqTime;
 shortRTs = find(allRTs >= 0 & allRTs <= 5);
+beforeSwitchTrials = [126:175,301:350];
+afterSwitchTrials = [176:225,351:400];
 
 subplot(1,3,1);cla
 subplot(1,3,2);cla
@@ -111,7 +115,7 @@ for c = 1:length(contrasts)
     [~, condIdx_1] = selectCondition(block, contrasts(c), eventTimes, ...
         repeatType{1}, movementDir{1}, movementTime{1}, highRewardSide{1}, responseType{1}, rewardOutcome{1}, ...
         pastStimulus{1}, pastMovementDir{1}, pastResponseType{1});
-    condIdx_1 = intersect(shortRTs, condIdx_1);
+%     condIdx_1 = intersect(afterSwitchTrials, condIdx_1);
     
     grandValues = [];
     for iCell = 1:length(plotAll)
@@ -151,7 +155,7 @@ for c = 1:length(contrasts)
     [~, condIdx_2] = selectCondition(block, contrasts(c), eventTimes, ...
         repeatType{2}, movementDir{2}, movementTime{2}, highRewardSide{2}, responseType{2}, rewardOutcome{2}, ...
         pastStimulus{2}, pastMovementDir{2}, pastResponseType{2});
-    condIdx_2 = intersect(shortRTs, condIdx_2);
+%     condIdx_2 = intersect(afterSwitchTrials, condIdx_2);
     % retrieve calcium
     grandValues = [];
     for iCell = 1:length(plotAll)
