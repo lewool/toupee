@@ -1,5 +1,6 @@
 function [block, Timeline] = loadData(varargin)
-% This shit was written by LEW on 30 Jan 2018
+% 30 Jan 2018: This shit was written by LEW
+% 14 Nov 2019: Updated to remove rigbox dat dependencies
 
 %%
 
@@ -12,41 +13,51 @@ if nargin >= 3
 		expNum = str2double(expNum);
 	end 
 
-	expRef = dat.constructExpRef(mouseName,expDate,expNum);
-    
-elseif nargin == 2
-	expRef = varargin{1};
-    mouseName = varargin{2};
-
-elseif nargin == 1
-	expRef = varargin{1};
+    [expRef, expLog] = constructExpRef(mouseName,expDate,expNum);
+else
+    error('Check your inputs: mouseName, expDate, expNum')
 end 
 
-currentDataFolder = '\\znas.cortexlab.net\Subjects';
-oldDataFolder = '\\zserver.cortexlab.net\Data\Subjects'; 
-oldDataFolder2 = '\\zubjects.cortexlab.net\Subjects'; 
+% add as many data locations to this list as you want. put your primary one
+% first to break the search-loop faster
+dataLocations = {...
+    {'\\znas.cortexlab.net\Subjects'},...
+    {'\\zserver.cortexlab.net\Data\Subjects'},... 
+    {'\\zubjects.cortexlab.net\Subjects'}}; 
 
-try
-    blockFilePath = dat.expFilePath(expRef, 'block', 'master');
-    load(blockFilePath);
-    tlFilePath = dat.expFilePath(expRef, 'timeline', 'master');
-    load(tlFilePath);
-    
-catch
+% load the block file
+for i = 1:length(dataLocations)
+    blockFilePath = makeExpFilePath(expRef, expLog, dataLocations{i}, 'block');
     try
-        block = load(strrep(blockFilePath, currentDataFolder, oldDataFolder));
-        Timeline = load(strrep(tlFilePath, currentDataFolder, oldDataFolder));
-    catch
-        try
-        block = load(strrep(blockFilePath, currentDataFolder, oldDataFolder2));
-        Timeline = load(strrep(tlFilePath, currentDataFolder, oldDataFolder2));
-        
-        catch %if no TL file
-            block = block;
-            Timeline = [];
+        load(blockFilePath);
+        if exist('block')
+            break
         end
+    catch
     end
+end
+
+% load the timeline file
+for i = 1:length(dataLocations)
+    timelineFilePath = makeExpFilePath(expRef, expLog, dataLocations{i}, 'timeline');
+    try
+        load(timelineFilePath);
+        if exist('Timeline')
+            break
+        end
+    catch
+    end
+end
 
 end
 
+function [expRef, expLog] = constructExpRef(mouseName,expDate,expNum)
+    expRef = strcat(expDate,'_',num2str(expNum),'_',mouseName);
+    expLog = {{mouseName};{expDate};{num2str(expNum)}};
+end
+
+function expFilePath = makeExpFilePath(expRef, expLog, dataFolder, fileType)
+    fileType(1) = upper(fileType(1));
+    suffix = strcat('_',fileType,'.mat');
+    expFilePath = char(fullfile(dataFolder,expLog{1},expLog{2},expLog{3},strcat(expRef,suffix)));
 end
