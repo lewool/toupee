@@ -23,7 +23,7 @@ expNum = 1;
 expSeries = [1];
 
 %% load data
-
+cd('C:\Users\Wool\Documents\GitHub\toupee')
 [block, Timeline] = loadData(mouseName, expDate, expNum);
 
 %% get event timings and wheel trajectories
