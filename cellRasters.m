@@ -3,10 +3,10 @@
 % close all;
 clear all;
 
-mouseName = 'LEW005';
-expDate = '2018-06-10';
-expNum = 2;
-expSeries = [2 3];
+mouseName = 'LEW008';
+expDate = '2019-02-07';
+expNum = 1;
+expSeries = [1];
 
 %% load data
 
@@ -35,7 +35,7 @@ fig = figure(203);
 hold on
 set(fig,'Position',[290   100   380   1220])
 startIdx = find(eventWindow == -1);
-endIdx = find(eventWindow == 2);
+endIdx = find(eventWindow == 3);
 
 if ~exist('k') == 1
     k = 1;
@@ -45,15 +45,15 @@ max_k = length(plotAll);
 % select the conditions
 contrasts = unique(block.events.contrastValues);
 
-[~, condIdx_hitL_highL] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'all', 'all', 'left', 'correct', 'all', 'all', 'all', 'all');
-[~, condIdx_hitL_highR] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'all', 'all', 'right', 'correct', 'all', 'all', 'all', 'all');
-[~, condIdx_errorL_highL] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'all', 'all', 'left', 'incorrect', 'all', 'all', 'all', 'all');
-[~, condIdx_errorL_highR] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'all', 'all', 'right', 'incorrect', 'all', 'all', 'all', 'all');
+[~, condIdx_hitL_highL] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'correct', 'all', 'left', 'correct', 'all', 'all', 'all', 'all');
+[~, condIdx_hitL_highR] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'correct', 'all', 'right', 'correct', 'all', 'all', 'all', 'all');
+[~, condIdx_errorL_highL] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'incorrect', 'all', 'left', 'incorrect', 'all', 'all', 'all', 'all');
+[~, condIdx_errorL_highR] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'incorrect', 'all', 'right', 'incorrect', 'all', 'all', 'all', 'all');
 
-[~, condIdx_hitR_highL] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'all', 'all', 'left', 'correct', 'all', 'all', 'all', 'all');
-[~, condIdx_hitR_highR] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'all', 'all', 'right', 'correct', 'all', 'all', 'all', 'all');
-[~, condIdx_errorR_highL] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'all', 'all', 'left', 'incorrect', 'all', 'all', 'all', 'all');
-[~, condIdx_errorR_highR] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'all', 'all', 'right', 'incorrect', 'all', 'all', 'all', 'all');
+[~, condIdx_hitR_highL] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'correct', 'all', 'left', 'correct', 'all', 'all', 'all', 'all');
+[~, condIdx_hitR_highR] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'correct', 'all', 'right', 'correct', 'all', 'all', 'all', 'all');
+[~, condIdx_errorR_highL] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'incorrect', 'all', 'left', 'incorrect', 'all', 'all', 'all', 'all');
+[~, condIdx_errorR_highR] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'incorrect', 'all', 'right', 'incorrect', 'all', 'all', 'all', 'all');
 
 % set up the subplot sizes based on trial numbers
 maxLength_hitL = max([length(condIdx_hitL_highL) length(condIdx_hitL_highR)]);
