@@ -18,7 +18,8 @@ else
 end 
 
 % load all possible data locations
-dataLocations = data.dataPaths();
+paths = data.dataPaths();
+dataLocations = paths.server;
 
 % load the block file
 for i = 1:length(dataLocations)
