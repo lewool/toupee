@@ -32,6 +32,11 @@ for i = 1:length(dataLocations)
     end
 end
 
+if ~exist('block')
+    warning('No block file was found')
+    block = [];
+end
+
 % load the timeline file
 for i = 1:length(dataLocations)
     timelineFilePath = data.makeExpFilePath(expRef, expLog, dataLocations{i}, 'timeline');
@@ -44,4 +49,10 @@ for i = 1:length(dataLocations)
     end
 end
 
+if ~exist('Timeline')
+    warning('No timeline file was found')
+    Timeline = [];
 end
+
+end
+
