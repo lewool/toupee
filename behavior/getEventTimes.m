@@ -1,4 +1,4 @@
-function [eventTimes, wheelTrajectories] = getEventTimes(block, Timeline, signalsNames)
+function [eventTimes, wheelTrajectories] = getEventTimes(expInfo, signalsNames)
 % for signalsNames, use the exact fieldnames from the block file or you'll get an error
 % e.g. signalsNames = {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'};
 
@@ -6,6 +6,12 @@ function [eventTimes, wheelTrajectories] = getEventTimes(block, Timeline, signal
 % on incorrect trials, the valve would have fired)
 % 2019 May 09: Collects feedback times for biased-likelihood exps when
 % valve didn't fire
+% 2019 Nov 18: expInfo struct input arg
+
+%% PULL OUT EXPINFO VARIABLES
+
+block = expInfo.block;
+Timeline = expInfo.Timeline;
 
 %% DETECT PHD FLIPS
 % since the photodiode doesn't always register a WHITE or BLACK signal

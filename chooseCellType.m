@@ -1,4 +1,14 @@
-function plotAll = chooseCellType(propType, mouseName, expDate, expNum, expSeries, block, allFcell, eventTimes, ops)
+function plotAll = chooseCellType(propType, expInfo, allFcell, eventTimes)
+%% LOAD DATA FROM EXPINFO
+
+mouseName = expInfo.mouseName;
+expDate = expInfo.expDate;
+expNum = expInfo.expNum;
+expSeries = expInfo.expSeries;
+block = expInfo.block;
+Timeline = expInfo.Timeline;
+numPlanes = expInfo.numPlanes;
+
 %% select cells with the properties you want
 % propType = 'all'; % 'all' or 'vis' or 'mov'
 
@@ -6,12 +16,14 @@ clear allCells;
 clear visCells;
 clear movCells;
 
+
+
 propContrasts = unique(block.events.contrastValues);
 
 switch propType
     case 'all'
         
-        for iPlane = 1:ops.numPlanes
+        for iPlane = 1:numPlanes
             v = [];
             for iCell = 1:size(allFcell(iPlane).spikes{1,1},1)
                 v = [v; iCell];
@@ -20,7 +32,7 @@ switch propType
         end
         
         plotAll = [];
-        for iPlane = 1:ops.numPlanes
+        for iPlane = 1:numPlanes
             vv = [ones(length(allCells{iPlane}),1)*iPlane allCells{iPlane}];
             plotAll = [plotAll; vv];
         end
@@ -28,7 +40,7 @@ switch propType
     case 'vis'
         % align traces to stim onset for testing visual responsiveness
         event = 'stimulusOnTimes';
-        [stim_alignedTraces, stim_eventWindow] = getExpTraces(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
+        [stim_alignedTraces, stim_eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, event);
 
         %imaging rate
         numPlanes = length(stim_alignedTraces);
@@ -91,7 +103,7 @@ switch propType
 
         % align traces to stim onset for testing movement responsiveness
         event = 'prestimulusQuiescenceEndTimes';
-        [mov_alignedTraces, mov_eventWindow] = getExpTraces(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
+        [mov_alignedTraces, mov_eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, event);
 
         %imaging rate
         numPlanes = length(mov_alignedTraces);
@@ -147,7 +159,7 @@ switch propType
 
         % align traces to stim onset for testing movement responsiveness
         event = 'prestimulusQuiescenceEndTimes';
-        [mov_alignedTraces, mov_eventWindow] = getExpTraces(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
+        [mov_alignedTraces, mov_eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, event);
 
         %imaging rate
         numPlanes = length(mov_alignedTraces);
@@ -209,7 +221,7 @@ switch propType
 
         % align traces to stim onset for testing movement responsiveness
         event = 'prestimulusQuiescenceEndTimes';
-        [mov_alignedTraces, mov_eventWindow] = getExpTraces(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
+        [mov_alignedTraces, mov_eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, event);
 
         %imaging rate
         numPlanes = length(mov_alignedTraces);

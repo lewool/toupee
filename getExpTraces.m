@@ -1,4 +1,4 @@
-function [alignedTraces, eventWindow] = getExpTraces(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event, cellIdx, day)
+function [alignedTraces, eventWindow] = getExpTraces(expInfo, allFcell, eventTimes, event, cellIdx, day)
 %Extract the trial-by-trial activity for ROIs in each imaging plane
 %and align to a particular trial event (stim on, movement on, etc.)
 %
@@ -25,13 +25,20 @@ function [alignedTraces, eventWindow] = getExpTraces(mouseName, expDate, expNum,
 
 
 
-%% LOAD DATA
+%% LOAD DATA FROM EXPINFO
 
-[block, Timeline] = loadData(mouseName, expDate, expNum);
+mouseName = expInfo.mouseName;
+expDate = expInfo.expDate;
+expNum = expInfo.expNum;
+expSeries = expInfo.expSeries;
+block = expInfo.block;
+Timeline = expInfo.Timeline;
+numPlanes = expInfo.numPlanes;
+
 
 %% GET FRAME TIMES
  
-planeInfo = getPlaneFrameTimes(Timeline, ops.numPlanes);
+planeInfo = getPlaneFrameTimes(Timeline, numPlanes);
 
 %% SPLIT THE CA TRACES BY PLANE / TRIAL / CELL
 
@@ -57,7 +64,7 @@ eventWindow = -framesBefore/Fs:1/Fs:framesAfter/Fs;
 periEventTimes = bsxfun(@plus,eventTimes(strcmp({eventTimes.event},event)).daqTime',eventWindow);
 periEventTimes = periEventTimes(1:numCompleteTrials,:);
 
-for iPlane = 1:ops.numPlanes
+for iPlane = 1:numPlanes
     % retrieve the relevant plane's cell traces
     planeTraces = zscore(double(allFcell(iPlane).FcellCorrected{1,find(expSeries == expNum)})')';
     planeNeuropil = zscore(double(allFcell(iPlane).FcellNeuAvg{1,find(expSeries == expNum)})')';

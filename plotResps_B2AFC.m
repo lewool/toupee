@@ -17,22 +17,20 @@
 % clear all;
 clearvars -except allCRFs allCRFs_L allCRFs_R
 
-mouseName = 'LEW008';
-expDate = '2019-01-29';
-expNum = 1;
-expSeries = [1];
+expInfo.mouseName = 'LEW008';
+expInfo.expDate = '2019-01-29';
+expInfo.expNum = 1;
+expInfo.expSeries = [1];
 
 %% load data
-cd('C:\Users\Wool\Documents\GitHub\toupee')
-[block, Timeline] = data.loadData(mouseName, expDate, expNum);
+expInfo = data.loadExpData(expInfo);
 
 %% get event timings and wheel trajectories
 
-signalsNames = {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'};
-[eventTimes, wheelTrajectories] = getEventTimes(block, Timeline, signalsNames);
+[eventTimes, wheelTrajectories] = getEventTimes(expInfo, {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'});
 
  %% load traces
-[allFcell, ops] = loadExpTraces(mouseName, expDate, expSeries);
+[allFcell, ops] = loadCellData(expInfo);
 
 %% align calcium traces to the event you want
 
@@ -40,18 +38,17 @@ signalsNames = {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'};
 event = 'prestimulusQuiescenceEndTimes';
 % event = 'stimulusOnTimes';
 % event = 'rewardOnTimes';
-[alignedTraces, eventWindow] = getExpTraces(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
+[alignedTraces, eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, event);
+
 % [alignedTraces, alignedSpikes, eventWindow] = alignSpikes(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
 
 %% select cells with the properties you want
 cd('C:\Users\Wool\Documents\GitHub\toupee')
-plotAll = chooseCellType('movright', mouseName, expDate, expNum, expSeries, block, allFcell, eventTimes, ops);
+plotAll = chooseCellType('movleft', expInfo, allFcell, eventTimes);
+%% initialize some data values
+block = expInfo.block;
 
-%% initialize some plot values
-
-%imaging rate
-numPlanes = length(alignedTraces);
-Fs = 15;%/ numPlanes;
+Fs = 15;
 
 %event window
 eventIdx = find(eventWindow == 0);
@@ -66,6 +63,18 @@ contrasts = unique(block.events.contrastValues);
 % contrasts = unique(sign(contrasts));
 dirs = [-1 1];
 
+repeatType = {'all','all'};
+movementDir = {'all','all'};
+movementTime = {'all','all'};
+highRewardSide = {'left','right'};
+responseType = {'all','all'};
+rewardOutcome = {'all','all'};
+pastStimulus = {'all','all'};
+pastMovementDir = {'all','all'};
+pastResponseType = {'all','all'};
+
+
+%% initialize some plot values
 zeroIdx = find(contrasts == 0);
 walkup = length(contrasts) - zeroIdx;
 walkback = zeroIdx - 1;
@@ -82,15 +91,6 @@ title2 = 'high ipsi';
 legend1 = 'contra';
 legend2 = 'ipsi';
 
-repeatType = {'all','all'};
-movementDir = {'all','all'};
-movementTime = {'all','all'};
-highRewardSide = {'left','right'};
-responseType = {'all','all'};
-rewardOutcome = {'all','all'};
-pastStimulus = {'all','all'};
-pastMovementDir = {'all','all'};
-pastResponseType = {'all','all'};
 
 %% grand mean plot
 

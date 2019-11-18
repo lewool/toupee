@@ -27,7 +27,7 @@ function [alignedTraces, eventWindow] = getExpTraces_noUpsample(mouseName, expDa
 
 %% LOAD DATA
 
-[block, Timeline] = loadData(mouseName, expDate, expNum);
+[block, Timeline] = data.loadData(mouseName, expDate, expNum);
 
 %% GET FRAME TIMES
  

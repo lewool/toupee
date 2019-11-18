@@ -1,4 +1,4 @@
-function expInfo = loadData(expInfo)
+function expInfo = loadExpData(expInfo)
 % 30 Jan 2018: This shit was written by LEW
 % 14 Nov 2019: Updated to remove rigbox dat dependencies
 
