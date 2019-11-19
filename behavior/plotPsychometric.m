@@ -27,7 +27,12 @@ for d = 1:length(expList)
         mouseList = repelem(mouseList,length(expList));
     end
     
-    [block, ~] = data.loadData(mouseList{d}{:},expList{d}{1},expList{d}{2});
+    expInfo.mouseName = mouseList{d}{:};
+    expInfo.expDate = expList{d}{1};
+    expInfo.expNum = expList{d}{2};
+    
+    expInfo = data.loadExpData(expInfo);
+    block = expInfo.block;
 
     contrastValues = block.events.contrastValues;
     trialLimit = length(block.events.endTrialValues);
