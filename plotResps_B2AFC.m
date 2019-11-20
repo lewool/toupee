@@ -30,7 +30,7 @@ expInfo = data.loadExpData(expInfo);
 [eventTimes, wheelTrajectories] = getEventTimes(expInfo, {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'});
 
  %% load traces
-[allFcell, ops] = loadCellData(expInfo);
+[allFcell, expInfo] = loadCellData(expInfo);
 
 %% align calcium traces to the event you want
 

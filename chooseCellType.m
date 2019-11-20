@@ -1,4 +1,8 @@
 function plotAll = chooseCellType(propType, expInfo, allFcell, eventTimes)
+% Chooses the types of cells you want to analyze based on their responses 
+% propType = 'all', 'vis', 'movleft', or 'movright'
+
+% 20 Nov 2019 Takes new trialCondition struct for selectCondition.m
 %% LOAD DATA FROM EXPINFO
 
 mouseName = expInfo.mouseName;
@@ -10,13 +14,10 @@ Timeline = expInfo.Timeline;
 numPlanes = expInfo.numPlanes;
 
 %% select cells with the properties you want
-% propType = 'all'; % 'all' or 'vis' or 'mov'
 
 clear allCells;
 clear visCells;
 clear movCells;
-
-
 
 propContrasts = unique(block.events.contrastValues);
 
@@ -59,10 +60,11 @@ switch propType
         % cursory test for stimulus responsiveness
         % is response to left (or right) contrast trials statistically significantly different from
         % the response to 0% contrast trials?
-
-        [~, condIdx_left] = selectCondition(block, (propContrasts(propContrasts < 0)), eventTimes, 'all', 'all', 'late', 'all', 'all', 'all', 'all', 'all', 'all');
-        [~, condIdx_right] = selectCondition(block, (propContrasts(propContrasts > 0)), eventTimes, 'all', 'all', 'late', 'all', 'all', 'all', 'all', 'all', 'all');
-        [~, condIdx_zero] = selectCondition(block, 0, eventTimes, 'all', 'all', 'late', 'all', 'all', 'all', 'all', 'all', 'all');
+        
+        trialConditions_late = initTrialConditions('movementTime','late');
+        [~, condIdx_left] = selectCondition(block, (propContrasts(propContrasts < 0)), eventTimes, trialConditions_late);
+        [~, condIdx_right] = selectCondition(block, (propContrasts(propContrasts > 0)), eventTimes, trialConditions_late);
+        [~, condIdx_zero] = selectCondition(block, 0, eventTimes, trialConditions_late);
 
         for iPlane = 1:numPlanes
             v = [];
@@ -122,8 +124,9 @@ switch propType
         % cursory test for movement responsiveness
         % is response during 0% contrast trials significantly different
         % between pre- and post-movement onset?
-
-        [~, condIdx_mov] = selectCondition(block, 0, eventTimes, 'all', 'all', 'all', 'all', 'all',  'all', 'all', 'all', 'all');
+        
+        trialConditions_default = initTrialConditions;
+        [~, condIdx_mov] = selectCondition(block, 0, eventTimes, trialConditions_default);
 
         for iPlane = 1:numPlanes
             m = [];
@@ -178,9 +181,11 @@ switch propType
         % cursory test for movement responsiveness
         % is response during 0% contrast trials significantly different
         % between pre- and post-movement onset?
-
-        [~, condIdx_movleft] = selectCondition(block, propContrasts, eventTimes, 'all', 'cw', 'late', 'all', 'correct', 'all', 'all', 'all', 'all');
-        [~, condIdx_movright] = selectCondition(block, propContrasts, eventTimes, 'all', 'ccw', 'late', 'all', 'correct', 'all', 'all', 'all', 'all');
+        
+        trialConditions_movLeft = initTrialConditions('movementTime','late','movementDir','cw');
+        trialConditions_movRight = initTrialConditions('movementTime','late','movementDir','ccw');
+        [~, condIdx_movleft] = selectCondition(block, propContrasts, eventTimes, trialConditions_movLeft);
+        [~, condIdx_movright] = selectCondition(block, propContrasts, eventTimes, trialConditions_movRight);
 
         for iPlane = 1:numPlanes
             v = [];
@@ -241,9 +246,11 @@ switch propType
         % is response during 0% contrast trials significantly different
         % between pre- and post-movement onset?
 
-        [~, condIdx_movleft] = selectCondition(block, propContrasts, eventTimes, 'all', 'cw', 'late', 'all', 'correct', 'all', 'all', 'all', 'all');
-        [~, condIdx_movright] = selectCondition(block, propContrasts, eventTimes, 'all', 'ccw', 'late', 'all', 'correct', 'all', 'all', 'all', 'all');
-
+        trialConditions_movLeft = initTrialConditions('movementTime','late','movementDir','cw');
+        trialConditions_movRight = initTrialConditions('movementTime','late','movementDir','ccw');
+        [~, condIdx_movleft] = selectCondition(block, propContrasts, eventTimes, trialConditions_movLeft);
+        [~, condIdx_movright] = selectCondition(block, propContrasts, eventTimes, trialConditions_movRight);
+        
         for iPlane = 1:numPlanes
             v = [];
             for iCell = 1:size(mov_alignedTraces{iPlane}.eventSpikes,3)

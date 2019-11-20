@@ -1,37 +1,21 @@
-function browseRasters_movement(mouseName, expDate, expNum, expSeries, cellLabel)
-
-% %% load experiment details
-% 
-% % close all;
-% clear all;
-% 
-% mouseName = 'LEW008';
-% expDate = '2019-02-07';
-% expNum = 1;
-% expSeries = [1];
-
+function browseRasters_movement(cellLabel, response, expInfo, allFcell, eventTimes)
+% 20 Nov 2019 LEW
+% Plots four pseudoraster plots based on four trial conditions: left stim
+% with left high reward, left stim with high right reward, right stim with
+% high left reward, and right stim with high right reward
+% cellLabel = the types of cells you want to look at; 'all', 'vis', 'movleft', or 'movright'
+% response = filter trials by animal response; 'correct', 'incorrect', or 'all'
 %% load data
 
-% [block, Timeline] = data.loadData(mouseName, expDate, expNum);
-global block
-global Timeline
-%% get event timings and wheel trajectories
+block = expInfo.block;
 
-signalsNames = {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'};
-[eventTimes, wheelTrajectories] = getEventTimes(block, Timeline, signalsNames);
+%% align traces to both stimulus onset and movement onset (to be compared later)
 
-%% load traces
-[allFcell, ops] = loadExpTraces(mouseName, expDate, expSeries);
-
-%%
-stimEvent = 'stimulusOnTimes';
-[stim_alignedTraces, eventWindow] = getExpTraces_noUpsample(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, stimEvent);
-
-movEvent = 'prestimulusQuiescenceEndTimes';
-[mov_alignedTraces, eventWindow] = getExpTraces_noUpsample(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, movEvent);
+[stim_alignedTraces, eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, 'stimulusOnTimes', 0);
+[mov_alignedTraces, eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, 'prestimulusQuiescenceEndTimes', 0);
 
 %% select cells with the properties you want
-plotAll = chooseCellType(cellLabel, mouseName, expDate, expNum, expSeries, block, allFcell, eventTimes, ops);
+plotAll = chooseCellType(cellLabel, expInfo, allFcell, eventTimes);
 
 %% plot raster browser - equal size subplots, move-aligned
 fig = figure;
@@ -47,12 +31,22 @@ max_k = length(plotAll);
 
 % select the conditions
 contrasts = unique(block.events.contrastValues);
+if strcmp(response, 'correct') == 1
+    trialConditions_hiL = initTrialConditions('highRewardSide','left','responseType','correct');
+    trialConditions_hiR = initTrialConditions('highRewardSide','right','responseType','correct');
+elseif strcmp(response, 'incorrect') == 1
+    trialConditions_hiL = initTrialConditions('highRewardSide','left','responseType','incorrect');
+    trialConditions_hiR = initTrialConditions('highRewardSide','right','responseType','incorrect');
+elseif strcmp(response, 'all') == 1
+    trialConditions_hiL = initTrialConditions('highRewardSide','left');
+    trialConditions_hiR = initTrialConditions('highRewardSide','right');
+end
 
-[~, condIdx_highStimL_highL] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'all', 'all', 'left', 'correct', 'all', 'all', 'all', 'all');
-[~, condIdx_highStimL_highR] = selectCondition(block, contrasts(contrasts<0), eventTimes, 'all', 'all', 'all', 'right', 'correct', 'all', 'all', 'all', 'all');
+[~, condIdx_highStimL_highL] = selectCondition(block, contrasts(contrasts<0), eventTimes, trialConditions_hiL);
+[~, condIdx_highStimL_highR] = selectCondition(block, contrasts(contrasts<0), eventTimes, trialConditions_hiR);
 
-[~, condIdx_highStimR_highL] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'all', 'all', 'left', 'correct', 'all', 'all', 'all', 'all');
-[~, condIdx_highStimR_highR] = selectCondition(block, contrasts(contrasts>0), eventTimes, 'all', 'all', 'all', 'right', 'correct', 'all', 'all', 'all', 'all');
+[~, condIdx_highStimR_highL] = selectCondition(block, contrasts(contrasts>0), eventTimes, trialConditions_hiL);
+[~, condIdx_highStimR_highR] = selectCondition(block, contrasts(contrasts>0), eventTimes, trialConditions_hiR);
 
 highStimLHighL_axes = subplot(1,4,1);
 highStimLHighR_axes = subplot(1,4,2);
