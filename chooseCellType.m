@@ -1,6 +1,6 @@
 function plotAll = chooseCellType(propType, expInfo, allFcell, eventTimes)
 % Chooses the types of cells you want to analyze based on their responses 
-% propType = 'all', 'vis', 'movleft', or 'movright'
+% propType = 'all', 'vis', 'mov', 'movleft', or 'movright'
 
 % 20 Nov 2019 Takes new trialCondition struct for selectCondition.m
 %% LOAD DATA FROM EXPINFO

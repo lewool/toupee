@@ -1,4 +1,4 @@
-function plotPsychometric(mouseList, expList)
+function plotPsychometric(varargin)
 % 15 Nov 2019: LEW adapted to take inputs from either 2AFC or B2AFC experiments
 
 % This function takes a list of mice/exps and generates a psychometric
@@ -11,6 +11,8 @@ function plotPsychometric(mouseList, expList)
 % 2. plotPsychometric(mouseList, expList), where
 %       mouseList = {{'Mouse1'}} or {{'Mouse1'},{'Mouse2'},{MouseN'}} 
 %       expList = {{'2018-06-10',2,[2 3]},{'2019-03-27',1,[1]}}
+% 3. plotPsychometric(expInfo), where expInfo is a struct of one/many
+%       experiments (see initExpInfo.m)
 
 
 %%%% get data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,41 +24,73 @@ allHitValues = [];
 allChoiceValues = [];
 rs = [];
 
-for d = 1:length(expList)
-    if length(mouseList) == 1
-        mouseList = repelem(mouseList,length(expList));
-    end
-    
-    expInfo.mouseName = mouseList{d}{:};
-    expInfo.expDate = expList{d}{1};
-    expInfo.expNum = expList{d}{2};
-    
-    expInfo = data.loadExpData(expInfo);
-    block = expInfo.block;
-
-    contrastValues = block.events.contrastValues;
-    trialLimit = length(block.events.endTrialValues);
-%     trialLimit = 500;
-    allContrastValues = [allContrastValues, contrastValues(1:trialLimit)];
-    try
-        allRewardSideValues = [allRewardSideValues, block.events.likelyRewardSideValues(1:trialLimit)];
-    catch
+if nargin == 1
+    for s = 1:length(varargin{1})
+        expInfo = varargin{1}(s);
+        expInfo = data.loadExpData(expInfo);
+        block = expInfo.block;
+        
+        contrastValues = block.events.contrastValues;
+        trialLimit = length(block.events.endTrialValues);
+        allContrastValues = [allContrastValues, contrastValues(1:trialLimit)];
         try
-            allRewardSideValues = [allRewardSideValues, block.events.highRewardSideValues(1:trialLimit)];
+            allRewardSideValues = [allRewardSideValues, block.events.likelyRewardSideValues(1:trialLimit)];
         catch
             try
-                rs(mod(block.events.contingencyPeriodValues,2) == 0) = -1;
-                rs(mod(block.events.contingencyPeriodValues,2) == 1) = 1;
-                allRewardSideValues = [allRewardSideValues, rs(1:trialLimit)];
+                allRewardSideValues = [allRewardSideValues, block.events.highRewardSideValues(1:trialLimit)];
             catch
-            end   
+                try
+                    rs(mod(block.events.contingencyPeriodValues,2) == 0) = -1;
+                    rs(mod(block.events.contingencyPeriodValues,2) == 1) = 1;
+                    allRewardSideValues = [allRewardSideValues, rs(1:trialLimit)];
+                catch
+                end   
+            end
         end
-    end
-    
-    allRepeatValues = [allRepeatValues, block.events.repeatNumValues(1:trialLimit)];
-    allHitValues = [allHitValues, block.events.feedbackValues(1:trialLimit)];
-    allChoiceValues = [allChoiceValues, block.events.responseValues(1:trialLimit)];
 
+        allRepeatValues = [allRepeatValues, block.events.repeatNumValues(1:trialLimit)];
+        allHitValues = [allHitValues, block.events.feedbackValues(1:trialLimit)];
+        allChoiceValues = [allChoiceValues, block.events.responseValues(1:trialLimit)];
+    end
+
+elseif nargin > 1
+    for d = 1:length(varargin{2})
+        expList = varargin{2};
+        mouseList = varargin{1};
+        if length(mouseList) == 1
+            mouseList = repelem(mouseList,length(expList));
+        end
+
+        expInfo.mouseName = mouseList{d}{:};
+        expInfo.expDate = expList{d}{1};
+        expInfo.expNum = expList{d}{2};
+
+        expInfo = data.loadExpData(expInfo);
+        block = expInfo.block;
+
+        contrastValues = block.events.contrastValues;
+        trialLimit = length(block.events.endTrialValues);
+        allContrastValues = [allContrastValues, contrastValues(1:trialLimit)];
+        try
+            allRewardSideValues = [allRewardSideValues, block.events.likelyRewardSideValues(1:trialLimit)];
+        catch
+            try
+                allRewardSideValues = [allRewardSideValues, block.events.highRewardSideValues(1:trialLimit)];
+            catch
+                try
+                    rs(mod(block.events.contingencyPeriodValues,2) == 0) = -1;
+                    rs(mod(block.events.contingencyPeriodValues,2) == 1) = 1;
+                    allRewardSideValues = [allRewardSideValues, rs(1:trialLimit)];
+                catch
+                end   
+            end
+        end
+
+        allRepeatValues = [allRepeatValues, block.events.repeatNumValues(1:trialLimit)];
+        allHitValues = [allHitValues, block.events.feedbackValues(1:trialLimit)];
+        allChoiceValues = [allChoiceValues, block.events.responseValues(1:trialLimit)];
+
+    end
 end
 
 %%%% plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
