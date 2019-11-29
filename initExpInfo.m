@@ -1,4 +1,9 @@
-function expInfo = initExpInfo()
+function expInfo = initExpInfo(varargin)
+
+if nargin == 2
+    mouseList = varargin{1};
+    expList = varargin{2};
+else
 %% single exp
 
 % mouseList = {{'LEW007'}};
@@ -63,6 +68,7 @@ expList = ...
 % 
 
 %% assemble expInfo struct
+end
 
 if length(mouseList) == 1
     mouseList = repelem(mouseList,length(expList));

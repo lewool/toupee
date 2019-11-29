@@ -17,10 +17,7 @@
 % clear all;
 clearvars -except allCRFs allCRFs_L allCRFs_R
 
-expInfo.mouseName = 'LEW008';
-expInfo.expDate = '2019-01-29';
-expInfo.expNum = 1;
-expInfo.expSeries = [1];
+expInfo = initExpInfo({{'LEW008'}},{{'2019-01-29',1,[1]}});
 
 %% load data
 expInfo = data.loadExpData(expInfo);
@@ -43,8 +40,9 @@ event = 'prestimulusQuiescenceEndTimes';
 % [alignedTraces, alignedSpikes, eventWindow] = alignSpikes(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
 
 %% select cells with the properties you want
-cd('C:\Users\Wool\Documents\GitHub\toupee')
+
 plotAll = chooseCellType('movleft', expInfo, allFcell, eventTimes);
+
 %% initialize some data values
 block = expInfo.block;
 
@@ -63,15 +61,8 @@ contrasts = unique(block.events.contrastValues);
 % contrasts = unique(sign(contrasts));
 dirs = [-1 1];
 
-repeatType = {'all','all'};
-movementDir = {'all','all'};
-movementTime = {'all','all'};
-highRewardSide = {'left','right'};
-responseType = {'all','all'};
-rewardOutcome = {'all','all'};
-pastStimulus = {'all','all'};
-pastMovementDir = {'all','all'};
-pastResponseType = {'all','all'};
+trialConditions_left = initTrialConditions('highRewardSide','left','responseType','correct');
+trialConditions_right = initTrialConditions('highRewardSide','right','responseType','correct');
 
 
 %% initialize some plot values
@@ -112,9 +103,7 @@ for c = 1:length(contrasts)
 
     % select all the correct trials where the left side had a
     % higher reward
-    [~, condIdx_1] = selectCondition(block, contrasts(c), eventTimes, ...
-        repeatType{1}, movementDir{1}, movementTime{1}, highRewardSide{1}, responseType{1}, rewardOutcome{1}, ...
-        pastStimulus{1}, pastMovementDir{1}, pastResponseType{1});
+    [~, condIdx_1] = selectCondition(block, contrasts(c), eventTimes, trialConditions_left);
 %     condIdx_1 = intersect(afterSwitchTrials, condIdx_1);
     
     grandValues = [];
@@ -152,9 +141,7 @@ for c = 1:length(contrasts)
 
     % select all the correct trials where the right side had a
     % higher reward
-    [~, condIdx_2] = selectCondition(block, contrasts(c), eventTimes, ...
-        repeatType{2}, movementDir{2}, movementTime{2}, highRewardSide{2}, responseType{2}, rewardOutcome{2}, ...
-        pastStimulus{2}, pastMovementDir{2}, pastResponseType{2});
+    [~, condIdx_2] = selectCondition(block, contrasts(c), eventTimes, trialConditions_right);
 %     condIdx_2 = intersect(afterSwitchTrials, condIdx_2);
     % retrieve calcium
     grandValues = [];
@@ -265,9 +252,7 @@ while k <= max_k
 %             end
             % select all the correct trials where the left side had a
             % higher reward
-            [~, condIdx_1] = selectCondition(block, contrasts(c), eventTimes, ...
-                repeatType{1}, movementDir{1}, movementTime{1}, highRewardSide{1}, responseType{1}, rewardOutcome{1}, ...
-                pastStimulus{1}, pastMovementDir{1}, pastResponseType{1});
+            [~, condIdx_1] = selectCondition(block, contrasts(c), eventTimes, trialConditions_left);
             condIdx_1 = intersect(shortRTs, condIdx_1);
 
             % retrieve calcium
@@ -298,9 +283,7 @@ while k <= max_k
 
             % select all the correct trials where the right side had a
             % higher reward
-            [~, condIdx_2] = selectCondition(block, contrasts(c), eventTimes, ...
-                repeatType{2}, movementDir{2}, movementTime{2}, highRewardSide{2}, responseType{2}, rewardOutcome{2}, ...
-                pastStimulus{2}, pastMovementDir{2}, pastResponseType{2});
+            [~, condIdx_2] = selectCondition(block, contrasts(c), eventTimes, trialConditions_right);
             condIdx_2 = intersect(shortRTs, condIdx_2);
             
             % retrieve calcium
@@ -378,12 +361,12 @@ while k <= max_k
     
     for s = 1:length(dirs)
             movementDir_dirs = {'cw','ccw'};
+            
 
             % select all the correct trials where the left side had a
             % higher reward
-            [~, condIdx_1] = selectCondition(block, contrasts, eventTimes, ...
-                repeatType{1}, movementDir_dirs{s}, movementTime{1}, highRewardSide{1}, 'correct', rewardOutcome{1}, ...
-                pastStimulus{1}, pastMovementDir{1}, pastResponseType{1});
+            trialConditions1 = initTrialConditions('highRewardSide','left','movementDir',movementDir_dirs{s});
+            [~, condIdx_1] = selectCondition(block, contrasts, eventTimes, trialConditions1);
 
             % retrieve calcium
             meanCellCalcium_sign = nanmean((alignedTraces{plotAll(k,1)}.eventSpikes(condIdx_1,:,plotAll(k,2))),1);
@@ -413,9 +396,8 @@ while k <= max_k
 
             % select all the correct trials where the right side had a
             % higher reward
-            [~, condIdx_2] = selectCondition(block, contrasts, eventTimes, ...
-                repeatType{2}, movementDir_dirs{s}, movementTime{2}, highRewardSide{2}, 'correct', rewardOutcome{2}, ...
-                pastStimulus{2}, pastMovementDir{2}, pastResponseType{2});
+            trialConditions2 = initTrialConditions('highRewardSide','right','movementDir',movementDir_dirs{s});
+            [~, condIdx_2] = selectCondition(block, contrasts, eventTimes, trialConditions2);
             
             % retrieve calcium
             meanCellCalcium_sign = nanmean((alignedTraces{plotAll(k,1)}.eventSpikes(condIdx_2,:,plotAll(k,2))),1);
