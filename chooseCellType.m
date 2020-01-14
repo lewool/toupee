@@ -1,4 +1,4 @@
-function plotAll = chooseCellType(propType, expInfo, cellResps, respTimes, eventTimes, Fs)
+function plotCells = chooseCellType(propType, expInfo, cellResps, respTimes, eventTimes, Fs)
 % Chooses the types of cells you want to analyze based on their responses 
 % propType = 'all', 'vis', 'mov', 'movleft', or 'movright'
 
@@ -15,12 +15,12 @@ clear visCells;
 clear movCells;
 
 propContrasts = unique(block.events.contrastValues);
-plotAll = [];
+plotCells = [];
 
 switch propType
     case 'all'
         
-        plotAll = 1:size(cellResps,2);
+        plotCells = 1:size(cellResps,2);
         
     case 'vis'
         % align traces to stim onset for testing visual responsiveness
@@ -69,7 +69,7 @@ switch propType
             % are larger than zero-stim responses (classical CRF
             % shape) and c. sdCheck = true
             if  (pL < 0.01 && sdCheck) || (pR < 0.01 && sdCheck)
-                plotAll = [plotAll; iCell];
+                plotCells = [plotCells; iCell];
             end
         end
         
@@ -112,7 +112,7 @@ switch propType
             % are larger than pre-move responses (classical CRF shape)
             % and c. sdCheck = true
             if  p < 0.01 && (nanmean(preMovResp) < nanmean(periMovResp)) && sdCheck
-                plotAll = [plotAll; iCell];
+                plotCells = [plotCells; iCell];
             end
         end
         
@@ -163,7 +163,7 @@ switch propType
             % are larger than zero-stim responses (classical CRF
             % shape) and c. sdCheck = true
             if  (p < 0.01 && pL < 0.01 && sdCheck && mean(rightMovResp) < mean(leftMovResp))
-                plotAll = [plotAll; iCell];
+                plotCells = [plotCells; iCell];
             end
         end
     
@@ -213,7 +213,7 @@ switch propType
             % are larger than zero-stim responses (classical CRF
             % shape) and c. sdCheck = true
             if  (p < 0.01 && pR < 0.01 && sdCheck && mean(rightMovResp) > mean(leftMovResp))
-                plotAll = [plotAll; iCell];
+                plotCells = [plotCells; iCell];
             end
         end
 end

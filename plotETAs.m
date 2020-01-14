@@ -37,7 +37,7 @@ end
 
 %% select cells with the properties you want
 
-plotAll = chooseCellType('all', expInfo, allFcell, eventTimes);
+plotCells = chooseCellType('vis', expInfo, cellResps, respTimes, eventTimes, 0.1);
 
 %% initialize some data values
 
@@ -71,8 +71,8 @@ colors = allColors(zeroGray-walkback:zeroGray + walkup,:);
 titles = {'stimOn' 'moveOn' 'rewardOn'};
 
 %initialize figure shape & duration
-k = 1;
-max_k = size(cellResps,2);
+m = 1;
+max_m = length(plotCells);
 s1 = length(trialConditions);
 s2 = length(alignedResps);
 
@@ -82,13 +82,14 @@ fig = figure(201);
 hold on
 set(fig,'Position',[114   400   1080   630])
 
-while k <= max_k
+while m <= max_m
     %clear subplots
     for s = 1:s1*s2
         subplot(s1,s2,s);
         cla;
     end
-    
+    k = plotCells(m);
+     
     %for each ETA matrix
     for r = 1:length(alignedResps)
         
@@ -145,9 +146,9 @@ while k <= max_k
     %press arrow keys to browse through cells
     was_a_key = waitforbuttonpress;
     if was_a_key && strcmp(get(fig, 'CurrentKey'), 'leftarrow')
-      k = max(1, k - 1);
+      m = max(1, m - 1);
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'rightarrow')
-      k = min(max_k, k + 1);
+      m = min(max_m, m + 1);
     end
     
 end
