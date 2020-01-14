@@ -95,9 +95,15 @@ end
 
 %%%% plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% 2AFC EXPERIMENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if isempty(allRewardSideValues)
-    lineColor = [0 0 0];
+% 2AFC EXPERIMENT OR ONE-SIDED B2AFC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if length(unique(allRewardSideValues)) < 2
+    if mean(allRewardSideValues) > 0
+        lineColor = [1 0 0];
+    elseif mean(allRewardSideValues) < 0
+        lineColor = [0 .4 1];
+    else
+        lineColor = [0 0 0];
+    end
     cc = unique(allContrastValues);
     pp = nan(size(cc));
     nn = nan(size(cc));

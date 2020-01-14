@@ -222,6 +222,7 @@ timesEndedMovement(timesEndedMovement == 0) = [];
 for iTime = 1:numCompleteTrials
     % find when quiescence ends (usually after stimulus onset)
     timepoint = block.events.stimulusOnTimes(iTime);
+    outcomePoint = block.events.feedbackTimes(iTime);
     try 
         firstMove = timesStartedMovement(find(timesStartedMovement > (timepoint-.5)));
         firstMove = firstMove(firstMove -eventTimes(1).daqTime(iTime) > 0);

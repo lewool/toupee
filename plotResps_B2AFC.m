@@ -37,11 +37,11 @@ event = 'prestimulusQuiescenceEndTimes';
 % event = 'rewardOnTimes';
 [alignedTraces, eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, event);
 
-% [alignedTraces, alignedSpikes, eventWindow] = alignSpikes(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event);
+[alignedTraces, alignedSpikes, eventWindow] = alignSpikes(expInfo, allFcell, eventTimes, event);
 
 %% select cells with the properties you want
 
-plotAll = chooseCellType('movleft', expInfo, allFcell, eventTimes);
+plotAll = chooseCellType('all', expInfo, allFcell, eventTimes);
 
 %% initialize some data values
 block = expInfo.block;
@@ -61,8 +61,8 @@ contrasts = unique(block.events.contrastValues);
 % contrasts = unique(sign(contrasts));
 dirs = [-1 1];
 
-trialConditions_left = initTrialConditions('highRewardSide','left','responseType','correct');
-trialConditions_right = initTrialConditions('highRewardSide','right','responseType','correct');
+trialConditions_left = initTrialConditions('highRewardSide','left','responseType','all');
+trialConditions_right = initTrialConditions('highRewardSide','right','responseType','all');
 
 
 %% initialize some plot values
@@ -234,7 +234,7 @@ set(fig,'Position',[114   400   1080   630])
 allRTs = eventTimes(7).daqTime - eventTimes(1).daqTime;
 shortRTs = find(allRTs <= 2);
 
-k = 1;
+k = 169;
 max_k = length(plotAll);
 
 while k <= max_k
