@@ -24,8 +24,11 @@ expInfo = data.loadExpData(expInfo);
 
 [eventTimes, wheelTrajectories] = getEventTimes(expInfo, {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'});
 
- %% load traces
+%% load traces
+
 [allFcell, expInfo] = loadCellData(expInfo);
+[cellResps, respTimes] = getCellResps(expInfo, allFcell);
+cellResps = zscore(cellResps);
 
 %% align calcium traces to the event you want
 
@@ -37,9 +40,11 @@ end
 
 %% select cells with the properties you want
 
-plotCells = chooseCellType('vis', expInfo, cellResps, respTimes, eventTimes, 0.1);
+plotCells = chooseCellType('all', expInfo, cellResps, respTimes, eventTimes, 0.1);
 
 %% initialize some data values
+
+contrasts = unique(expInfo.block.events.contrastValues);
 
 %set up trial conditions for hi-L and hi-R blocks
 trialConditions{1} = initTrialConditions('highRewardSide','left','responseType','all');
@@ -60,7 +65,7 @@ lowerCI = zeros(length(contrasts),length(eventWindow),s1,s2);
 % set color for each contrast
 allColors = [0 0 .5; 0 0 1; 0 .4 1; .6 .8 1; .75 .75 .75; .8 .45 .45; 1 0 0; .5 0 0; .25 0 0];
 
-contrasts = unique(expInfo.block.events.contrastValues);
+
 zeroIdx = find(contrasts == 0);
 walkup = length(contrasts) - zeroIdx;
 walkback = zeroIdx - 1;
@@ -115,8 +120,8 @@ while m <= max_m
                 alpha(0.2);
                 set(plotResp, 'LineStyle', '-', 'LineWidth',1.5,'Color',colors(c,:));
                 eventOn = line([0 0],[-1 15]);
-                uistack(eventOn,'bottom');
-                set(eventOn,'LineStyle', '--', 'LineWidth',1,'Marker','none','Color',[.5 .5 .5]);
+%                 uistack(eventOn,'bottom');
+%                 set(eventOn,'LineStyle', '--', 'LineWidth',1,'Marker','none','Color',[.5 .5 .5]);
                 
                 if tcon == 1
                     title(titles{r});
