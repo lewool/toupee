@@ -1,4 +1,4 @@
-function [alignedTraces, alignedSpikes, eventWindow] = alignSpikes(mouseName, expDate, expNum, expSeries, allFcell, eventTimes, ops, event, cellIdx, day)
+function [alignedTraces, alignedSpikes, eventWindow] = alignSpikes(expInfo, allFcell, eventTimes, event)
 %Extract the trial-by-trial activity for ROIs in each imaging plane
 %and align to a particular trial event (stim on, movement on, etc.)
 %
@@ -24,25 +24,13 @@ function [alignedTraces, alignedSpikes, eventWindow] = alignSpikes(mouseName, ex
 % 7 Dec 2018 Edited interpolation computation
 % 10 June 2019 Stripped out everything but session spike alignment
 
-
-
-%% LOAD DATA
-try
-    cd('C:\Users\Wool\Documents\MATLAB\expPipeline\expPipeline');
-    [block, Timeline] = loadData(mouseName, expDate, expNum);
-catch
-    cd('C:\Users\Wool\Documents\GitHub\toupee\behavior')
-    [block, Timeline] = loadData(mouseName, expDate, expNum);
-end
-
-
 %% GET FRAME TIMES
  
-planeInfo = getPlaneFrameTimes(Timeline, ops.numPlanes);
+planeInfo = getPlaneFrameTimes(expInfo.Timeline, expInfo.numPlanes);
 
 %% SPLIT THE CA TRACES BY PLANE / TRIAL / CELL
 
-numCompleteTrials = numel(block.events.endTrialTimes);
+numCompleteTrials = numel(expInfo.block.events.endTrialTimes);
 
 %Upsampling rate
 Fs = 15;
@@ -64,9 +52,9 @@ eventWindow = -framesBefore/Fs:1/Fs:framesAfter/Fs;
 periEventTimes = bsxfun(@plus,eventTimes(strcmp({eventTimes.event},event)).daqTime',eventWindow);
 periEventTimes = periEventTimes(1:numCompleteTrials,:);
 
-for iPlane = 1:ops.numPlanes
+for iPlane = 1:expInfo.numPlanes
     % retrieve the relevant plane's cell traces
-    planeSpikes = zscore(double(allFcell(iPlane).spikes{1,find(expSeries == expNum)})')';
+    planeSpikes = zscore(double(allFcell(iPlane).spikes{1,find(expInfo.expSeries == expInfo.expNum)})')';
 
     % retrieve the frame times for this plane's cells
     planeFrameTimes = planeInfo(iPlane).frameTimes;
@@ -81,58 +69,6 @@ for iPlane = 1:ops.numPlanes
 end
 
 alignedSpikes = [];
-for iPlane = 2:ops.numPlanes
+for iPlane = 2:expInfo.numPlanes
     alignedSpikes = cat(3,alignedSpikes,alignedTraces{iPlane}.eventSpikes);
 end
-
-%% NORMALIZE THE TRACES TRIAL BY TRIAL
-
-
-% for iPlane = 1:ops.numPlanes
-%     normNeuropil = zeros(size(alignedTraces{iPlane}.eventNeuropil));
-%     normCellCalcium = zeros(size(alignedTraces{iPlane}.eventCalcium));
-%     
-%     for iTrial = 1:size(alignedTraces{iPlane}.preStimulusCalcium,1)
-%         %normalize neuropil
-%         singleTrialNeuropil = alignedTraces{iPlane}.eventNeuropil(iTrial,:);
-%         baselineNeuropil = mean(mean(alignedTraces{iPlane}.preStimulusNeuropil(iTrial,:),1));
-%         normNeuropil(iTrial,:) = (singleTrialNeuropil - baselineNeuropil)/baselineNeuropil;
-%         
-%         %normalize cell calcium
-%         for iCell = 1:size(alignedTraces{iPlane}.preStimulusCalcium,3)
-%             singleTrialCalcium = alignedTraces{iPlane}.eventCalcium(iTrial,:,iCell);
-%             baselineCalcium = mean(mean(alignedTraces{iPlane}.preStimulusCalcium(iTrial,:,iCell),1));
-%             normCellCalcium(iTrial,:,iCell) = (singleTrialCalcium - baselineCalcium)/baselineCalcium;
-%         end
-%     end
-% 
-%     alignedTraces{iPlane}.normEventNeuropil = normNeuropil;
-%     alignedTraces{iPlane}.normEventCalcium = normCellCalcium;
-% end
-
-%% WORKBENCH
-
-% this is the old way to retrieve plane frame time information, but it's
-% very slow and generates huge files. see line 8 for the replacement
-% function 'getPlaneFrameTimes'
-% 
-% infoLoc = fullfile('D:\Data\2P\',mouseName,expDate,num2str(expNum));
-% infoFile = fullfile(infoLoc,'allPlaneInfo.mat');
-% 
-% try 
-%     cd(infoLoc);
-%     load(infoFile);
-% catch
-%     try 
-%         %catch legacy filename 'allinfo'
-%         cd(infoLoc);
-%         allPlaneInfo = load(fullfile(infoLoc,'allinfo.mat'),'allinfo');
-%         allPlaneInfo = allPlaneInfo.allinfo;
-%     catch
-%         %generate new file if none exists
-%         fprintf('File does not yet exist for this experiment. Generating it now: \n\n');
-%         allPlaneInfo = getPlaneFrames(mouseName, expDate, expNum, numPlanes, numChannels);
-%         cd(infoLoc);
-%         load(infoFile);
-%     end
-% end

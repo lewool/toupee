@@ -1,4 +1,4 @@
-function [alignedTraces, eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, event, cellIdx, day)
+function [alignedTraces, eventWindow] = getAlignedTraces(expInfo, allFcell, eventTimes, event, upsamplingRate, cellIdx, day)
 %Extract the trial-by-trial activity for ROIs in each imaging plane
 %and align to a particular trial event (stim on, movement on, etc.)
 %
@@ -40,12 +40,22 @@ numPlanes = expInfo.numPlanes;
  
 planeInfo = getPlaneFrameTimes(Timeline, numPlanes);
 
+%% UPSAMPLING
+
+if nargin < 5
+    Fs = 15;
+elseif upsamplingRate == 0
+    Fs = 30/expInfo.numPlanes;
+else
+    Fs = upsamplingRate;
+end
+
+
 %% SPLIT THE CA TRACES BY PLANE / TRIAL / CELL
 
 numCompleteTrials = numel(block.events.endTrialTimes);
 
-%Upsampling rate
-Fs = 15;%/ops.numPlanes;
+
 
 % prestimulus quiescence window
 framesBefore = 15; %seconds
@@ -87,7 +97,7 @@ for iPlane = 1:numPlanes
     % for each cell (calcium & spikes)
     
     %if additional arguments, collect only the cell traces collected over multiple days
-    if nargin > 8
+    if nargin > 5
         cc = 1;
         for c = 1:length(cellIdx{iPlane}(:,day)) 
             iCell = cellIdx{iPlane}(c,day);

@@ -1,24 +1,28 @@
-function [condLogical, condIdx] = selectCondition(block, contrast, eventTimes, repeatType, movementDir, movementTime, highRewardSide, responseType, rewardOutcome, pastStimulus, pastMovementDir, pastResponseType)
+function [condLogical, condIdx] = selectCondition(block, contrast, eventTimes, trialConditions)
 % A wee function for picking the trial types you want to look at when analyzing your cells
-% INPUTS: block struct, a contrast/side (this can be a vector), and some flags for
-% the types of trials you want to include. If you don't care about a flag,
-% choose 'all'. Both 'block' and eventTimes' can be nx1 structs containing
-% exp data from multiple days for concatenation
+% INPUTS: block struct, a contrast/side (this can be a vector), and trialConditions, a struct
+% that specifies the types of trials you want to include. Both 'block' and eventTimes' can 
+% be nx1 structs containing exp data from multiple days for concatenation
 % OUTPUT: an index of all the relevant trials from the experiment(s)
 
 % 8 March 2018 Written by LEW
 % 23 July 2018 Updated to accept multiple blocks/eventTimes
 % 19 November 2018 Added optional trial-history selections
 % 13 May 2019 Added rewarded/unrewarded outcome selection (likelihood experiments)
+% 20 Nov 2019 Changed so that trial conditions are input from a single
+% struct, initialized in 'initTrialConditions.m'
 
-trialsBack = 1;
-
-if nargin < 10
-    warning('1-trial-back history was not analyzed');
-    pastStimulus = 'all';
-    pastMovementDir = 'all';
-    pastResponseType = 'all';
-end
+% unpack trialConditions struct
+repeatType = trialConditions.repeatType;
+movementDir = trialConditions.movementDir;
+movementTime = trialConditions.movementTime;
+highRewardSide = trialConditions.highRewardSide;
+responseType = trialConditions.responseType;
+rewardOutcome = trialConditions.rewardOutcome;
+pastStimulus = trialConditions.pastStimulus;
+pastMovementDir = trialConditions.pastMovementDir;
+pastResponseType = trialConditions.pastResponseType;
+trialsBack = trialConditions.trialsBack;
 
 condLogical = [];
 for iBlock = 1:length(block)
@@ -161,7 +165,7 @@ for iBlock = 1:length(block)
         case 'all'
             idxPastStimulus = true(1,nt);
         otherwise
-            error('Choose a valid movementType: "ccw", "cw", or "all"');
+            error('Choose a valid pastStimulus: "right", "left", "zero", or "all"');
     end
     
     %track the choice 1 trial in the past
@@ -175,7 +179,7 @@ for iBlock = 1:length(block)
         case 'all'
             idxPastDirection = true(1,nt);
         otherwise
-            error('Choose a valid movementType: "ccw", "cw", or "all"');
+            error('Choose a valid pastMovementDir: "ccw", "cw", or "all"');
     end
     
     %track the outcome 1 trial in the past
@@ -189,7 +193,7 @@ for iBlock = 1:length(block)
         case 'all'
             idxPastCorrect = true(1,nt);
         otherwise
-            error('Choose a valid responseType: "correct", "incorrect", or "all"');
+            error('Choose a valid pastResponseType: "correct", "incorrect", or "all"');
     end     
 
     cl = ismember(contrastVal, contrast).* idxRepeat .* idxDirection .* idxMovement .* idxRewardSide .* idxCorrect .*idxRewarded .* idxPastStimulus .* idxPastDirection .* idxPastCorrect;
