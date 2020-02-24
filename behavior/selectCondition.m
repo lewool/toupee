@@ -23,6 +23,7 @@ pastStimulus = trialConditions.pastStimulus;
 pastMovementDir = trialConditions.pastMovementDir;
 pastResponseType = trialConditions.pastResponseType;
 trialsBack = trialConditions.trialsBack;
+switchBlocks = trialConditions.switchBlocks;
 
 condLogical = [];
 for iBlock = 1:length(block)
@@ -194,9 +195,48 @@ for iBlock = 1:length(block)
             idxPastCorrect = true(1,nt);
         otherwise
             error('Choose a valid pastResponseType: "correct", "incorrect", or "all"');
-    end     
+    end 
+    
+    switch switchBlocks
+        case 'beforeLeft'
+            bl = [];
+            switchLength = 50;
+            switchPoints = find(diff(b.events.highRewardSideValues) < 0) + 1;
+            for s = 1:length(switchPoints)
+                bl = [bl (switchPoints(s) - switchLength):(switchPoints(s) - 1)];
+            end
+            idxSwitch = ismember(1:nt,bl);
+        case 'afterLeft'
+            al = [];
+            switchLength = 50;
+            switchPoints = find(diff(b.events.highRewardSideValues) < 0) + 1;
+            for s = 1:length(switchPoints)
+                al = [al switchPoints(s):(switchPoints(s) + switchLength)];
+            end
+            idxSwitch = ismember(1:nt,al);
+        case 'beforeRight'
+            br = [];
+            switchLength = 50;
+            switchPoints = find(diff(b.events.highRewardSideValues) > 0) + 1;
+            for s = 1:length(switchPoints)
+                br = [br (switchPoints(s) - switchLength):(switchPoints(s) - 1)];
+            end
+            idxSwitch = ismember(1:nt,br);
+        case 'afterRight'
+            ar = [];
+            switchLength = 50;
+            switchPoints = find(diff(b.events.highRewardSideValues) > 0) + 1;
+            for s = 1:length(switchPoints)
+                ar = [ar switchPoints(s):(switchPoints(s) + switchLength)];
+            end
+            idxSwitch = ismember(1:nt,ar);    
+        case 'all'
+            idxSwitch = true(1,nt);
+        otherwise
+            error('Choose a valid switchType: "before", "after", or "all"');
+    end
 
-    cl = ismember(contrastVal, contrast).* idxRepeat .* idxDirection .* idxMovement .* idxRewardSide .* idxCorrect .*idxRewarded .* idxPastStimulus .* idxPastDirection .* idxPastCorrect;
+    cl = ismember(contrastVal, contrast).* idxRepeat .* idxDirection .* idxMovement .* idxRewardSide .* idxCorrect .*idxRewarded .* idxPastStimulus .* idxPastDirection .* idxPastCorrect .*idxSwitch;
     condLogical = [condLogical,cl];
     
 end

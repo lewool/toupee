@@ -1,4 +1,4 @@
-function [cellResps, respTimes] = interpCellTimes(expInfo, allFcell, Fs)
+function [cellResps, respTimes] = getCellResps(expInfo, allFcell, Fs)
 
 %% LOAD DATA FROM EXPINFO
 

@@ -1,4 +1,4 @@
-function plotPsychometricEpochs(mouseList, expList)
+function plotPsychometricEpochs(mouseList, expList, epochLength)
 % 15 Nov 2019: LEW adapted to take inputs from either 2AFC or B2AFC experiments
 
 % This function takes a list of mice/exps and generates a psychometric
@@ -59,11 +59,18 @@ for d = 1:length(expList)
 
 end
 
-epochLength = 100;
 numEpochs = ceil(trialLimit/epochLength);
 figure;
+set(gcf, 'Position', [520 920 1500 420]);
+if numEpochs > 5
+    subx = 2;
+    suby = ceil(numEpochs/2);
+else 
+    subx = 1;
+    suby = numEpochs;
+end
 for e = 1:numEpochs
-    subplot(1,numEpochs,e)
+    subplot(subx,suby,e)
     start = epochLength*(e-1)+1;
     finish = epochLength*e;
     if finish > trialLimit
@@ -111,11 +118,14 @@ for e = 1:numEpochs
         parstart = [mean(cc), 3, 0.05, 0.05 ]; %threshold, slope, gamma1, gamma2
         parmin = [min(cc) 0 0 0];
         parmax = [max(cc) 30 0.40 0.40];
-        [pars, L] = mle_fit_psycho([cc; nn; pp],'erf_psycho_2gammas', parstart, parmin, parmax);
+        [pars, ~] = mle_fit_psycho([cc; nn; pp],'erf_psycho_2gammas', parstart, parmin, parmax);
         c = -max(cc):max(cc);
         plot(c, erf_psycho_2gammas(pars, c), 'Color', lineColor, 'LineWidth', 1,'LineStyle','-')
-        xlabel('Left Contrast (%)       Right Contrast (%)')
-        ylabel('P(rightward choice)')
+        xlabel('contrast (%)')
+        if e == 1
+            ylabel('P(right)')
+        end
+        title(num2str(e));
         hold on;
 
         % compute CIs
@@ -131,8 +141,8 @@ for e = 1:numEpochs
 
     end
     axis([cc(1)*1.05 cc(end)*1.05 -0.05 1.05])
-    set(gca, 'XTick', [-100, -50, -25, 0, 25, 50, 100])
-    set(gca, 'XTickLabels', {'100', '50', '25', '0', '25', '50', '100'})
+    set(gca, 'XTick', [-100, 0, 100])
+    set(gca, 'XTickLabels', {'-100', '0', '100'})
     set(gca, 'YTick', [0, 0.5, 1])
     set(gca, 'YTickLabels', {'0', '0.5', '1.0'})
     ax3 = gca;

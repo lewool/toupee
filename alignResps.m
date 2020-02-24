@@ -13,7 +13,7 @@ if nargin < 6
 end
 
 % get event time window for each trial
-timeBefore = 1; %seconds
+timeBefore = 2; %seconds
 timeAfter = 2;
 eventWindow = -timeBefore:Fs:timeAfter;
 periEventTimes = bsxfun(@plus,eventTimes(strcmp({eventTimes.event},event)).daqTime',eventWindow);

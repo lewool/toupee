@@ -123,21 +123,23 @@ end
 %%
 
 h =  findobj('type','figure');
-n = 2;%length(h);
+n = length(h);
 
 cd('C:\Users\Wool\Documents\GitHub\toupee\behavior');
-[condLogical, condIdxLeftHigh] = selectCondition(block,contrasts, eventTimes,'all','all','all','left','correct','all','all','all','all');
-[condLogical, condIdxRightHigh] = selectCondition(block,contrasts, eventTimes,'all','all','all','right','correct','all','all','all','all');
-[condLogical, condIdxLeftStim] = selectCondition(block,contrasts(contrasts<0), eventTimes,'all','all','all','all','correct','all','all','all','all');
-[condLogical, condIdxRightStim] = selectCondition(block,contrasts(contrasts>0), eventTimes,'all','all','all','all','correct','all','all','all','all');
+block = expInfo.block;
+numCompleteTrials = size(onsetResps,1);
+[condLogical, condIdxLeftHigh] = selectCondition(block,contrasts, eventTimes,trialConditions{1});
+[condLogical, condIdxRightHigh] = selectCondition(block,contrasts, eventTimes,trialConditions{2});
+[condLogical, condIdxLeftStim] = selectCondition(block,contrasts(contrasts<0), eventTimes,trialConditions{3});
+[condLogical, condIdxRightStim] = selectCondition(block,contrasts(contrasts>0), eventTimes,trialConditions{3});
 
-[condLogical, condIdxStimL_highL] = selectCondition(block,contrasts(contrasts<0), eventTimes,'all','all','all','left','correct','all','all','all','all');
-[condLogical, condIdxStimR_highL] = selectCondition(block,contrasts(contrasts>0), eventTimes,'all','all','all','left','correct','all','all','all','all');
-[condLogical, condIdxStimL_highR] = selectCondition(block,contrasts(contrasts<0), eventTimes,'all','all','all','right','correct','all','all','all','all');
-[condLogical, condIdxStimR_highR] = selectCondition(block,contrasts(contrasts>0), eventTimes,'all','all','all','right','correct','all','all','all','all');
+[condLogical, condIdxStimL_highL] = selectCondition(block,contrasts(contrasts<0), eventTimes,trialConditions{1});
+[condLogical, condIdxStimR_highL] = selectCondition(block,contrasts(contrasts>0), eventTimes,trialConditions{1});
+[condLogical, condIdxStimL_highR] = selectCondition(block,contrasts(contrasts<0), eventTimes,trialConditions{2});
+[condLogical, condIdxStimR_highR] = selectCondition(block,contrasts(contrasts>0), eventTimes,trialConditions{2});
 
-[condLogical, condIdxStim0_highL] = selectCondition(block,contrasts(contrasts==0), eventTimes,'all','all','all','left','correct','all','all','all','all');
-[condLogical, condIdxStim0_highR] = selectCondition(block,contrasts(contrasts==0), eventTimes,'all','all','all','right','correct','all','all','all','all');
+% [condLogical, condIdxStim0_highL] = selectCondition(block,contrasts(contrasts==0), eventTimes,'all','all','all','left','correct','all','all','all','all');
+% [condLogical, condIdxStim0_highR] = selectCondition(block,contrasts(contrasts==0), eventTimes,'all','all','all','right','correct','all','all','all','all');
 
 
 trainTrials = 2:2:numCompleteTrials;
@@ -413,6 +415,8 @@ stL_histoValues{length(stL_histoValues)+1} = [LLdotsL;LRdotsL]-[LLdotsR;LRdotsR]
 
 %% trajectories
 cd('C:\Users\Wool\Documents\GitHub\toupee\behavior');
+block = expInfo.block;
+numCompleteTrials = size(onsetResps,1);
 
 colorLightRed = [1 0 0];
 colorLightBlue = [0 .4 1];
@@ -420,16 +424,20 @@ colorDarkRed = [.5 0 0];
 colorDarkBlue = [0 0 1];
 
 % 1. get trial-type indices 
+trialConditions{1} = initTrialConditions('highRewardSide','left','responseType','correct','movementTime','all');
+trialConditions{2} = initTrialConditions('highRewardSide','right','responseType','correct','movementTime','all');
+trialConditions{3} = initTrialConditions('responseType','correct','movementTime','all');
 
-[condLogical, condIdxLeftHigh] = selectCondition(block,contrasts, eventTimes,'all','all','all','left','correct','all','all','all','all');
-[condLogical, condIdxRightHigh] = selectCondition(block,contrasts, eventTimes,'all','all','all','right','correct','all','all','all','all');
-[condLogical, condIdxLeftStim] = selectCondition(block,contrasts(contrasts<0), eventTimes,'all','all','all','all','correct','all','all','all','all');
-[condLogical, condIdxRightStim] = selectCondition(block,contrasts(contrasts>0), eventTimes,'all','all','all','all','correct','all','all','all','all');
 
-[condLogical, condIdxStimL_highL] = selectCondition(block,contrasts(contrasts<0), eventTimes,'all','all','all','left','correct','all','all','all','all');
-[condLogical, condIdxStimR_highL] = selectCondition(block,contrasts(contrasts>0), eventTimes,'all','all','all','left','correct','all','all','all','all');
-[condLogical, condIdxStimL_highR] = selectCondition(block,contrasts(contrasts<0), eventTimes,'all','all','all','right','correct','all','all','all','all');
-[condLogical, condIdxStimR_highR] = selectCondition(block,contrasts(contrasts>0), eventTimes,'all','all','all','right','correct','all','all','all','all');
+[condLogical, condIdxLeftHigh] = selectCondition(block,contrasts(contrasts~=0), eventTimes,trialConditions{1});
+[condLogical, condIdxRightHigh] = selectCondition(block,contrasts(contrasts~=0), eventTimes,trialConditions{2});
+[condLogical, condIdxLeftStim] = selectCondition(block,contrasts(contrasts<0), eventTimes,trialConditions{3});
+[condLogical, condIdxRightStim] = selectCondition(block,contrasts(contrasts>0), eventTimes,trialConditions{3});
+
+[condLogical, condIdxStimL_highL] = selectCondition(block,contrasts(contrasts<0), eventTimes,trialConditions{1});
+[condLogical, condIdxStimR_highL] = selectCondition(block,contrasts(contrasts>0), eventTimes,trialConditions{1});
+[condLogical, condIdxStimL_highR] = selectCondition(block,contrasts(contrasts<0), eventTimes,trialConditions{2});
+[condLogical, condIdxStimR_highR] = selectCondition(block,contrasts(contrasts>0), eventTimes,trialConditions{2});
 
 trainTrials = 2:2:numCompleteTrials;
 testTrials = 1:2:numCompleteTrials;
@@ -437,14 +445,14 @@ testTrials = 1:2:numCompleteTrials;
 
 % 2. first pick a 'mother time' amd report the mean response of each cell @it, per trial
 % output is a matrix of size trials x cells
-eventIdx = find(eventWindow == 0);
-motherTime = 1.3;
-motherIdx = eventIdx + ceil(motherTime*Fs);
+% eventIdx = find(eventWindow == 0);
+% motherTime = 1.3;
+% motherIdx = eventIdx + ceil(motherTime*Fs);
 
-numCompleteTrials = size(alignedTraces{1}.eventSpikes,1);
-motherResps = zeros(numCompleteTrials,size(plotAll,1));
-for k = 1:size(plotAll,1)
-    motherResps(:,k) = squeeze(nanmean(alignedTraces{plotAll(k,1)}.eventSpikes(:,motherIdx,plotAll(k,2)),2));
+numCompleteTrials = size(alignedResps{1},1);
+motherResps = zeros(numCompleteTrials,size(plotCells,2));
+for k = 1:size(plotCells,2)
+    motherResps(:,k) = squeeze(nanmean(alignedResps{2}(:,motherIdx,plotCells(k)),2));
 end
 
 someNaNs = find(isnan(motherResps));
@@ -462,80 +470,76 @@ motherResps_stim = nanmean(motherResps(intersect(trainTrials,condIdxLeftStim),:)
 
 % 4a. plot a few time points as scatterplots
 
-indices = [1 5 10 15 20];
-figure;
-set(gcf,'Position',[100 100 1795 645]);
-set(gcf,'renderer','Painters')
-hold on
-for p = 1:length(indices)
-    projIdx = eventIdx + indices(p);
-
-projResps = zeros(numCompleteTrials,size(plotAll,1));
-for k = 1:size(plotAll,1)
-    projResps(:,k) = squeeze(nanmean(alignedTraces{plotAll(k,1)}.eventSpikes(:,projIdx,plotAll(k,2)),2));
-end
-someNaNs = find(isnan(projResps));
-badCells = unique(ceil(someNaNs/numCompleteTrials));
-for r = fliplr(badCells)
-    projResps(:,r) = [];
-end
-
-for iTrial = testTrials
-    projDotReward(iTrial,:) = dot(projResps(iTrial,:),motherResps_reward)/(norm(projResps(iTrial,:))*norm(motherResps_reward));
-    projDotStim(iTrial,:) = dot(projResps(iTrial,:),motherResps_stim)/(norm(projResps(iTrial,:))*norm(motherResps_stim));
-end
-
-subplot(2,5,p)
-hold on
-plotStimLTrials = scatter(projDotStim(intersect(testTrials,condIdxLeftStim)),projDotReward(intersect(testTrials,condIdxLeftStim)));
-set(plotStimLTrials,'MarkerEdgeColor',colorLightBlue, 'Marker','o','MarkerFaceColor',colorLightBlue,'MarkerFaceAlpha',.4)
-plotStimRTrials = scatter(projDotStim(intersect(testTrials,condIdxRightStim)),projDotReward(intersect(testTrials,condIdxRightStim)));
-set(plotStimRTrials,'MarkerEdgeColor',colorLightRed, 'Marker','o','MarkerFaceColor',colorLightRed,'MarkerFaceAlpha',.4)
-xlim([-.4 .4]);
-ylim([-.4 .4]);
-yticks([-.4 -.2 0 .2 .4])
-xticks([-.4 -.2 0 .2 .4])
-axis square
-if p == 1
-    ylabel('highL - highR')
-    legend({'left stim','right stim'})
-end
-xlabel('stimL - stimR')
-
-subplot(2,5,p+5)
-hold on
-plotStimLTrials = scatter(projDotStim(intersect(testTrials,condIdxLeftHigh)),projDotReward(intersect(testTrials,condIdxLeftHigh)));
-set(plotStimLTrials,'MarkerEdgeColor',colorLightBlue, 'Marker','o','MarkerFaceColor',colorLightBlue,'MarkerFaceAlpha',.4)
-plotStimRTrials = scatter(projDotStim(intersect(testTrials,condIdxRightHigh)),projDotReward(intersect(testTrials,condIdxRightHigh)));
-set(plotStimRTrials,'MarkerEdgeColor',colorLightRed, 'Marker','o','MarkerFaceColor',colorLightRed,'MarkerFaceAlpha',.4)
-xlim([-.4 .4]);
-ylim([-.4 .4]);
-yticks([-.4 -.2 0 .2 .4])
-xticks([-.4 -.2 0 .2 .4])
-axis square
-if p == 1
-    ylabel('highL - highR')
-    legend({'left high','right high'})
-end
-xlabel('stimL - stimR')
-
-clear projDotReward projDotStim
-end
+% indices = [1 5 10 15 20];
+% figure;
+% set(gcf,'Position',[100 100 1795 645]);
+% set(gcf,'renderer','Painters')
+% hold on
+% for p = 1:length(indices)
+%     projIdx = eventIdx + indices(p);
+% 
+% projResps = zeros(numCompleteTrials,size(plotCells,2));
+% for k = 1:size(plotCells,2)
+%     projResps(:,k) = squeeze(nanmean(alignedResps{2}(:,projIdx,plotCells(k)),2));
+% end
+% someNaNs = find(isnan(projResps));
+% badCells = unique(ceil(someNaNs/numCompleteTrials));
+% for r = fliplr(badCells)
+%     projResps(:,r) = [];
+% end
+% 
+% for iTrial = testTrials
+%     projDotReward(iTrial,:) = dot(projResps(iTrial,:),motherResps_reward)/(norm(projResps(iTrial,:))*norm(motherResps_reward));
+%     projDotStim(iTrial,:) = dot(projResps(iTrial,:),motherResps_stim)/(norm(projResps(iTrial,:))*norm(motherResps_stim));
+% end
+% 
+% subplot(2,5,p)
+% hold on
+% plotStimLTrials = scatter(projDotStim(intersect(testTrials,condIdxLeftStim)),projDotReward(intersect(testTrials,condIdxLeftStim)));
+% set(plotStimLTrials,'MarkerEdgeColor',colorLightBlue, 'Marker','o','MarkerFaceColor',colorLightBlue,'MarkerFaceAlpha',.4)
+% plotStimRTrials = scatter(projDotStim(intersect(testTrials,condIdxRightStim)),projDotReward(intersect(testTrials,condIdxRightStim)));
+% set(plotStimRTrials,'MarkerEdgeColor',colorLightRed, 'Marker','o','MarkerFaceColor',colorLightRed,'MarkerFaceAlpha',.4)
+% xlim([-.4 .4]);
+% ylim([-.4 .4]);
+% yticks([-.4 -.2 0 .2 .4])
+% xticks([-.4 -.2 0 .2 .4])
+% axis square
+% if p == 1
+%     ylabel('highL - highR')
+%     legend({'left stim','right stim'})
+% end
+% xlabel('stimL - stimR')
+% 
+% subplot(2,5,p+5)
+% hold on
+% plotStimLTrials = scatter(projDotStim(intersect(testTrials,condIdxLeftHigh)),projDotReward(intersect(testTrials,condIdxLeftHigh)));
+% set(plotStimLTrials,'MarkerEdgeColor',colorLightBlue, 'Marker','o','MarkerFaceColor',colorLightBlue,'MarkerFaceAlpha',.4)
+% plotStimRTrials = scatter(projDotStim(intersect(testTrials,condIdxRightHigh)),projDotReward(intersect(testTrials,condIdxRightHigh)));
+% set(plotStimRTrials,'MarkerEdgeColor',colorLightRed, 'Marker','o','MarkerFaceColor',colorLightRed,'MarkerFaceAlpha',.4)
+% xlim([-.4 .4]);
+% ylim([-.4 .4]);
+% yticks([-.4 -.2 0 .2 .4])
+% xticks([-.4 -.2 0 .2 .4])
+% axis square
+% if p == 1
+%     ylabel('highL - highR')
+%     legend({'left high','right high'})
+% end
+% xlabel('stimL - stimR')
+% 
+% clear projDotReward projDotStim
+% end
 
 
 % 4b. plot every timepoint and collect a trajectory vector
 
 for p = 1:length(eventWindow)
 
-projResps = zeros(numCompleteTrials,size(plotAll,1));
-for k = 1:size(plotAll,1)
-    projResps(:,k) = squeeze(nanmean(alignedTraces{plotAll(k,1)}.eventSpikes(:,p,plotAll(k,2)),2));
-end
+projResps =  squeeze(alignedResps{2}(:,p,plotCells));
+
 someNaNs = find(isnan(projResps));
 badCells = unique(ceil(someNaNs/numCompleteTrials));
-for r = fliplr(badCells)
-    projResps(:,r) = [];
-end
+projResps(:,badCells) = [];
 
 for iTrial = testTrials
     projDotReward(iTrial,:) = dot(projResps(iTrial,:),motherResps_reward)/(norm(projResps(iTrial,:))*norm(motherResps_reward));
@@ -555,45 +559,151 @@ rightStimsTrajectory(p,1) = mean(projDotStim(intersect(testTrials,condIdxRightSt
 rightStimsTrajectory(p,2) = mean(projDotReward(intersect(testTrials,condIdxRightStim)));
 
 end
-
+%
 figure;
 hold on
 set(gcf,'Position',[100 100 1025 420]);
 set(gcf,'renderer','Painters');
 subplot(1,2,1)
 hold on;
-plot(leftStimsTrajectory(:,1),leftStimsTrajectory(:,2),'Color',colorLightBlue,'LineWidth',1);
+plot(leftStimsTrajectory(:,1),leftStimsTrajectory(:,2),'Color',colors(1,:),'LineWidth',1);
 plot(rightStimsTrajectory(:,1),rightStimsTrajectory(:,2),'Color','r','LineWidth',1);
-plot(leftStimsTrajectory(1,1),leftStimsTrajectory(1,2),'ko','MarkerFaceColor','k')
-plot(leftStimsTrajectory(eventIdx,1),leftStimsTrajectory(eventIdx,2),'ko','MarkerFaceColor',[0 .6 .12])
-plot(leftStimsTrajectory(end,1),leftStimsTrajectory(end,2),'ko','MarkerFaceColor',colorDarkRed)
-plot(rightStimsTrajectory(1,1),rightStimsTrajectory(1,2),'ko','MarkerFaceColor','k')
-plot(rightStimsTrajectory(eventIdx,1),rightStimsTrajectory(eventIdx,2),'ko','MarkerFaceColor',[0 .6 .12])
-plot(rightStimsTrajectory(end,1),rightStimsTrajectory(end,2),'ko','MarkerFaceColor',colorDarkRed)
-xlim([-.15 .15]);
-xlim([-.15 .15]);
-ylim([-.15 .15]);
+% plot(leftStimsTrajectory(1,1),leftStimsTrajectory(1,2),'ko','MarkerFaceColor','k')
+% plot(leftStimsTrajectory(eventIdx,1),leftStimsTrajectory(eventIdx,2),'ko','MarkerFaceColor',[0 .6 .12])
+% plot(leftStimsTrajectory(end,1),leftStimsTrajectory(end,2),'ko','MarkerFaceColor',colorDarkRed)
+% plot(rightStimsTrajectory(1,1),rightStimsTrajectory(1,2),'ko','MarkerFaceColor','k')
+% plot(rightStimsTrajectory(eventIdx,1),rightStimsTrajectory(eventIdx,2),'ko','MarkerFaceColor',[0 .6 .12])
+% plot(rightStimsTrajectory(end,1),rightStimsTrajectory(end,2),'ko','MarkerFaceColor',colorDarkRed)
+xlim([-.25 .25]);
+xlim([-.25 .25]);
+ylim([-.25 .25]);
 axis square
 ylabel('highL - highR')
-legend({'left stim','right stim'})
+% legend({'left stim','right stim'})
 xlabel('stimL - stimR')
 
 subplot(1,2,2);
 hold on;
-plot(leftRewardsTrajectory(:,1),leftRewardsTrajectory(:,2),'Color',colorLightBlue,'LineWidth',1);
-plot(rightRewardsTrajectory(:,1),rightRewardsTrajectory(:,2),'Color','r','LineWidth',1);
-plot(leftRewardsTrajectory(1,1),leftRewardsTrajectory(1,2),'ko','MarkerFaceColor','k')
-plot(leftRewardsTrajectory(eventIdx,1),leftRewardsTrajectory(eventIdx,2),'ko','MarkerFaceColor',[0 .6 .12])
-plot(leftRewardsTrajectory(end,1),leftRewardsTrajectory(end,2),'ko','MarkerFaceColor',colorDarkRed)
-plot(rightRewardsTrajectory(1,1),rightRewardsTrajectory(1,2),'ko','MarkerFaceColor','k')
-plot(rightRewardsTrajectory(eventIdx,1),rightRewardsTrajectory(eventIdx,2),'ko','MarkerFaceColor',[0 .6 .12])
-plot(rightRewardsTrajectory(end,1),rightRewardsTrajectory(end,2),'ko','MarkerFaceColor',colorDarkRed)
-xlim([-.15 .15]);
-xlim([-.15 .15]);
-ylim([-.15 .15]);
+plot(leftRewardsTrajectory(:,1),leftRewardsTrajectory(:,2),'Color',colors(3,:),'LineWidth',1);
+plot(rightRewardsTrajectory(:,1),rightRewardsTrajectory(:,2),'Color',colors(4,:),'LineWidth',1);
+% plot(leftRewardsTrajectory(1,1),leftRewardsTrajectory(1,2),'ko','MarkerFaceColor','k')
+% plot(leftRewardsTrajectory(eventIdx,1),leftRewardsTrajectory(eventIdx,2),'ko','MarkerFaceColor',[0 .6 .12])
+% plot(leftRewardsTrajectory(end,1),leftRewardsTrajectory(end,2),'ko','MarkerFaceColor',colorDarkRed)
+% plot(rightRewardsTrajectory(1,1),rightRewardsTrajectory(1,2),'ko','MarkerFaceColor','k')
+% plot(rightRewardsTrajectory(eventIdx,1),rightRewardsTrajectory(eventIdx,2),'ko','MarkerFaceColor',[0 .6 .12])
+% plot(rightRewardsTrajectory(end,1),rightRewardsTrajectory(end,2),'ko','MarkerFaceColor',colorDarkRed)
+xlim([-.25 .25]);
+xlim([-.25 .25]);
+ylim([-.25 .25]);
 axis square
 ylabel('highL - highR')
-legend({'left high','right high'})
+% legend({'left high','right high'})
 xlabel('stimL - stimR')
+
+%%
+
+colors = [0 .4 1; 1 0 0; 0.1 0.7 0.1; 1 .6 0];
+
+leftRewardsTrajectory_int(:,1) = interp1(eventWindow, leftRewardsTrajectory(:,1)', linspace(eventWindow(1),eventWindow(end), 50));
+leftRewardsTrajectory_int(:,2) = interp1(eventWindow, leftRewardsTrajectory(:,2)', linspace(eventWindow(1),eventWindow(end), 50));
+rightRewardsTrajectory_int(:,1) = interp1(eventWindow, rightRewardsTrajectory(:,1)', linspace(eventWindow(1),eventWindow(end), 50));
+rightRewardsTrajectory_int(:,2) = interp1(eventWindow, rightRewardsTrajectory(:,2)', linspace(eventWindow(1),eventWindow(end), 50));
+leftStimsTrajectory_int(:,1) = interp1(eventWindow, leftStimsTrajectory(:,1)', linspace(eventWindow(1),eventWindow(end), 50));
+leftStimsTrajectory_int(:,2) = interp1(eventWindow, leftStimsTrajectory(:,2)', linspace(eventWindow(1),eventWindow(end), 50));
+rightStimsTrajectory_int(:,1) = interp1(eventWindow, rightStimsTrajectory(:,1)', linspace(eventWindow(1),eventWindow(end), 50));
+rightStimsTrajectory_int(:,2) = interp1(eventWindow, rightStimsTrajectory(:,2)', linspace(eventWindow(1),eventWindow(end), 50));
+%%
+figure(4);
+set(gcf,'color','w');
+
+subplot(1,2,2)
+ax1 = gca;
+% ax1.TickDir = 'out';
+plot(0,0)
+hold on
+xlim([-.25 .25]);
+xlim([-.25 .25]);
+ylim([-.25 .25]);
+axis square
+box off
+
+cd('C:\Users\Wool\Desktop\tempFigs')
+vidObj1 = VideoWriter('movie.avi');
+open(vidObj1);
+loops = 50;
+for f = 1:loops-1
+    
+    plot(leftRewardsTrajectory_int(f:f+1,1),leftRewardsTrajectory_int(f:f+1,2),'Color',colors(3,:),'LineWidth',1);
+    plot(rightRewardsTrajectory_int(f:f+1,1),rightRewardsTrajectory_int(f:f+1,2),'Color',colors(4,:),'LineWidth',1);
+    if f == 17
+        plot(leftRewardsTrajectory_int(f,1),leftRewardsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
+        plot(rightRewardsTrajectory_int(f,1),rightRewardsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
+    end
+
+    hold on
+    F1(f) = getframe(gcf);
+    writeVideo(vidObj1,F1(f));
+end
+
+subplot(1,2,1)
+plot(0,0)
+hold on
+xlim([-.25 .25]);
+xlim([-.25 .25]);
+ylim([-.25 .25]);
+axis square
+box off
+ax2 = gca;
+% ax2.TickDir = 'out';
+% cd('C:\Users\Wool\Desktop\tempFigs')
+% vidObj2 = VideoWriter('stim.avi');
+% open(vidObj2);
+loops = 50;
+for f = 1:loops-1
+    plot(leftStimsTrajectory_int(f:f+1,1),leftStimsTrajectory_int(f:f+1,2),'Color',colors(1,:),'LineWidth',1);
+    plot(rightStimsTrajectory_int(f:f+1,1),rightStimsTrajectory_int(f:f+1,2),'Color',colors(2,:),'LineWidth',1);
+    if f == 17
+        plot(leftStimsTrajectory_int(f,1),leftStimsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
+        plot(rightStimsTrajectory_int(f,1),rightStimsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
+    end
+
+    hold on
+    F1(f) = getframe(gcf);
+    writeVideo(vidObj1,F1(f));
+end
+
+
+%%
+fig = figure;
+movie(fig,F1,1)
+cd('C:\Users\Wool\Desktop\tempFigs')
+VideoWriter(F1,'rewardMovie.avi')
+
+fig = figure;
+movie(fig,F2,1)
+cd('C:\Users\Wool\Desktop\tempFigs')
+VideoWriter(F1,'stimMovie.avi')
+
+% Prepare the new file.
+    %   vidObj = VideoWriter('peaks.avi');
+    %   open(vidObj);
+    %
+    %   % Create an animation.
+    %   Z = peaks; surf(Z);
+    %   axis tight
+    %   set(gca,'nextplot','replacechildren');
+    %
+    %   for k = 1:20
+    %      surf(sin(2*pi*k/20)*Z,Z)
+    %
+    %      % Write each frame to the file.
+    %      currFrame = getframe;
+    %      writeVideo(vidObj,currFrame);
+    %   end
+    % 
+    %   % Close the file.
+    %   close(vidObj);
+
+
 
 

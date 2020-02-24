@@ -4,6 +4,7 @@ function plotCells = chooseCellType(propType, expInfo, cellResps, respTimes, eve
 
 % 20 Nov 2019 Takes new trialCondition struct for selectCondition.m
 % 14 Jan 2020 Takes new cellResps array (all planes combined)
+% 22 Jan 2020 Test vis responses from passive experiments
 %% LOAD DATA FROM EXPINFO
 
 block = expInfo.block;
@@ -22,6 +23,53 @@ switch propType
         
         plotCells = 1:size(cellResps,2);
         
+    case 'vis_passive'
+        
+        % align traces to stim onset for testing visual responsiveness
+        event = 'stimulusOnTimes';
+        [stim_alignedTraces, stim_eventWindow] = alignResps(expInfo, cellResps, respTimes, eventTimes, event);
+
+        %event window
+        stim_eventIdx = find(stim_eventWindow == 0);
+
+        %stimulus response index
+        stim_periTime = [0 0.3] / Fs;
+        stim_preTime = [-0.3 0] / Fs;
+        stim_vPreIdx = stim_eventIdx + stim_preTime(1) : stim_eventIdx;
+        stim_vPeriIdx = stim_eventIdx + stim_periTime(1) :stim_eventIdx + stim_periTime(2);
+        sdTestIdx = stim_eventIdx : stim_eventIdx + 6;
+        
+        trialConditions = initTrialConditions;
+        [~, condIdx] = selectCondition(block, propContrasts(propContrasts > .12), eventTimes, trialConditions);
+        [~, condIdx_zero] = selectCondition(block, 0, eventTimes, trialConditions);
+        leftScreenIdx = find(block.events.azimuthValues == -90);
+        rightScreenIdx = find(block.events.azimuthValues == 90);
+        condIdx_left = intersect(condIdx,leftScreenIdx);
+        condIdx_right = intersect(condIdx,rightScreenIdx);
+        
+        for iCell = 1:size(stim_alignedTraces,3)
+
+            %compare at a timepoint after stimulus onset
+            leftStimResp = mean(stim_alignedTraces(condIdx_left,stim_vPeriIdx,iCell),2);
+            rightStimResp = mean(stim_alignedTraces(condIdx_right,stim_vPeriIdx,iCell),2);
+            zeroStimResp = mean(stim_alignedTraces(condIdx_zero,stim_vPeriIdx,iCell),2);
+            if ~isnan(mean(leftStimResp)) && ~isnan(mean(zeroStimResp)) && ~isnan(mean(rightStimResp))
+                [~,pL] = ttest2(leftStimResp,zeroStimResp);
+                [~,pR] = ttest2(rightStimResp,zeroStimResp);
+            else
+                pL = 1;
+                pR = 1;
+            end
+
+            %check if the response is >0.25 SD in the perievent window
+            sdCheck = sum(mean(stim_alignedTraces(condIdx_left,sdTestIdx,iCell),1) > .25) > 1;
+
+            % if it passes the statistical test and sdCheck = true
+            if  (pL < 0.01) || (pR < 0.01)
+                plotCells = [plotCells; iCell];
+            end
+        end
+        
     case 'vis'
         % align traces to stim onset for testing visual responsiveness
         event = 'stimulusOnTimes';
@@ -30,7 +78,6 @@ switch propType
         %event window
         stim_eventIdx = find(stim_eventWindow == 0);
 
-        % stim_eventIdx = 3;
         %stimulus response index
         stim_periTime = [0 0.3] / Fs;
         stim_preTime = [-0.3 0] / Fs;
@@ -65,10 +112,8 @@ switch propType
             %check if the response is >0.25 SD in the perievent window
             sdCheck = sum(mean(stim_alignedTraces(condIdx_left,sdTestIdx,iCell),1) > .25) > 1;
 
-            % if it a. passes the statistical test and b. left-stim responses
-            % are larger than zero-stim responses (classical CRF
-            % shape) and c. sdCheck = true
-            if  (pL < 0.01 && sdCheck) || (pR < 0.01 && sdCheck)
+            % if it passes the statistical test and sdCheck = true
+            if  (pL < 0.01 ) || (pR < 0.01 )
                 plotCells = [plotCells; iCell];
             end
         end
@@ -162,7 +207,7 @@ switch propType
             % if it a. passes the statistical test and b. left-stim responses
             % are larger than zero-stim responses (classical CRF
             % shape) and c. sdCheck = true
-            if  (p < 0.01 && pL < 0.01 && sdCheck && mean(rightMovResp) < mean(leftMovResp))
+            if  (p < 0.01 && pL < 0.01 && mean(rightMovResp) < mean(leftMovResp))
                 plotCells = [plotCells; iCell];
             end
         end
@@ -212,7 +257,7 @@ switch propType
             % if it a. passes the statistical test and b. left-stim responses
             % are larger than zero-stim responses (classical CRF
             % shape) and c. sdCheck = true
-            if  (p < 0.01 && pR < 0.01 && sdCheck && mean(rightMovResp) > mean(leftMovResp))
+            if  (p < 0.01 && pR < 0.01 && mean(rightMovResp) > mean(leftMovResp))
                 plotCells = [plotCells; iCell];
             end
         end
