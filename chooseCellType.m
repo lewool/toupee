@@ -79,8 +79,8 @@ switch propType
         stim_eventIdx = find(stim_eventWindow == 0);
 
         %stimulus response index
-        stim_periTime = [0 0.3] / Fs;
-        stim_preTime = [-0.3 0] / Fs;
+        stim_periTime = [0 0.5] / Fs;
+        stim_preTime = [-0.5 0] / Fs;
         stim_vPreIdx = stim_eventIdx + stim_preTime(1) : stim_eventIdx;
         stim_vPeriIdx = stim_eventIdx + stim_periTime(1) :stim_eventIdx + stim_periTime(2);
         sdTestIdx = stim_eventIdx : stim_eventIdx + 6;

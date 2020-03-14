@@ -33,7 +33,13 @@ globalTime = startT:Fs:endT;
 cellResps = [];
 for iPlane = 2:numPlanes
     planeTime = planeInfo(iPlane).frameTimes;
-    C = double(allFcell(iPlane).spikes{1}');
+    try
+        %matlab suite2p output
+        C = double(allFcell(iPlane).spikes{1}');
+    catch
+        %python suite2p output
+        C = double(allFcell(iPlane).spikes');
+    end
     if size(planeTime,2) ~= size(C,1)
         planeTime = planeTime(1:size(C,1));
     end

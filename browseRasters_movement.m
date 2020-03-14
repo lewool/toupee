@@ -14,7 +14,7 @@ block = expInfo.block;
 %% align calcium traces to the event you want
 
 % cut the trace into trial-by-trial traces, aligned to a particular event
-events = {'stimulusOnTimes' 'prestimulusQuiescenceEndTimes' 'rewardOnTimes'};
+events = {'stimulusOnTimes' 'prestimulusQuiescenceEndTimes' 'feedbackTimes'};
 alignedResps = cell(1,length(events));
 for e = 1:length(events)
     [alignedResps{e}, eventWindow] = alignResps(expInfo, cellResps, respTimes, eventTimes, events{e});
@@ -23,7 +23,7 @@ end
 %% select cells with the properties you want
 plotCells = chooseCellType('vis', expInfo, cellResps, respTimes, eventTimes, 0.1);
 
-%% divide the trails up into 12 groups: stim (L, 0, R) x resp (L, R) x block (L, R) 
+%% divide the trials up into 12 groups: stim (L, 0, R) x resp (L, R) x block (L, R) 
 %(LLL, 0LL, RLL, LLR, 0LR, RLR, RRL, 0RL, RLL, RRR, 0RR, RLR)
 contrasts = unique(expInfo.block.events.contrastValues);
 
@@ -72,53 +72,97 @@ trialConditions_hiR_wentR_incorrect = initTrialConditions('highRewardSide','righ
 
 %%
 
+stimColors{1} = [0 .4 1; .4 .4 .4; .4 .4 .4; 1 0 0];
+stimColors{2} = [0 .4 1; .4 .4 .4; .4 .4 .4; 1 0 0];
+stimColors{3} = [1 0 0; .4 .4 .4; .4 .4 .4; 0 .4 1];
+stimColors{4} = [1 0 0; .4 .4 .4; .4 .4 .4; 0 .4 1];
 
+moveColors{1} = [0 0 1; 0 0 1; 0 0 1; 0 0 1];
+moveColors{2} = [0 0 1; 0 0 1; 0 0 1; 0 0 1];
+moveColors{3} = [.5 0 0; .5 0 0; .5 0 0; .5 0 0];
+moveColors{4} = [.5 0 0; .5 0 0; .5 0 0; .5 0 0];
 
-figure;
-for e = 1:2
+rewColors{1} = [1 1 0 0];
+rewColors{2} = [1 1 0 0];
+rewColors{3} = [1 1 0 0];
+rewColors{4} = [1 1 0 0];
 
-    event = events{e};
-    % sort the trials based on stim relative to movement, keep this
-    allSorts = cell(4,4);
-    a=0;
-    ww = fieldnames(condIdx);
-    for w = 1:length(ww)
-        disp(ww{w})
-        hh = fieldnames(condIdx.(ww{w}));
-        for h = 1:length(hh)
-            disp(hh{h})
-            ss = fieldnames(condIdx.(ww{w}).(hh{h}));
-            a=a+1;
-            for s = 1:length(ss)
-                disp(ss{s})
-                relativeTimes{1} = eventTimes(7).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))'-eventTimes(strcmp({eventTimes.event},event)).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))';
-                relativeTimes{2} = eventTimes(1).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))'-eventTimes(strcmp({eventTimes.event},event)).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))';
-                relativeTimes{3} = eventTimes(4).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))'-eventTimes(strcmp({eventTimes.event},event)).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))';
-                [~,sortIdx] = sort(abs(relativeTimes{e}),'ascend');
-                allSorts{s,a} = condIdx.(ww{w}).(hh{h}).(ss{s})(sortIdx)';
+fig = figure;
+hold on
+set(fig,'Position',[50   300   2140   1000])
+
+if ~exist('k') == 1
+    k = 1;
+end
+max_k = length(plotCells);
+while k <= max_k
+
+    for s = 1:12
+        subplot(3,4,s)
+        cla;
+    end
+
+    for e = 1:3 
+
+        event = events{e};
+        % sort the trials based on stim relative to movement, keep this
+        allSorts = cell(4,4);
+        a=0;
+        ww = fieldnames(condIdx);
+        for w = 1:length(ww)
+            hh = fieldnames(condIdx.(ww{w}));
+            for h = 1:length(hh)
+                ss = fieldnames(condIdx.(ww{w}).(hh{h}));
+                a=a+1;
+                for s = 1:length(ss)
+                    relativeTimes{1} = eventTimes(7).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))'-eventTimes(strcmp({eventTimes.event},event)).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))';
+                    relativeTimes{2} = eventTimes(1).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))'-eventTimes(strcmp({eventTimes.event},event)).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))';
+                    relativeTimes{3} = eventTimes(1).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))'-eventTimes(strcmp({eventTimes.event},event)).daqTime(condIdx.(ww{w}).(hh{h}).(ss{s}))';
+                    [~,sortIdx] = sort(abs(relativeTimes{e}),'ascend');
+                    allSorts{s,a} = condIdx.(ww{w}).(hh{h}).(ss{s})(sortIdx)';
+                end
             end
+        end
+
+        for c = 1:4
+            subplot(3,4,sub2ind([4 3],c,e));
+            start = 0;
+            for f = 1:4
+                g = imagesc(eventWindow,start+1:(start+length(allSorts{f,c})),alignedResps{e}(allSorts{f,c},:,plotCells(k)));
+                hold on;
+                stimTimes = eventTimes(1).daqTime(allSorts{f,c})'-eventTimes(strcmp({eventTimes.event},event)).daqTime(allSorts{f,c})';
+                movTimes = eventTimes(7).daqTime(allSorts{f,c})'-eventTimes(strcmp({eventTimes.event},event)).daqTime(allSorts{f,c})';
+                rewTimes = eventTimes(5).daqTime(allSorts{f,c})'-eventTimes(strcmp({eventTimes.event},event)).daqTime(allSorts{f,c})';
+                plot(stimTimes,start+1:(start+length(allSorts{f,c})),'.', 'MarkerEdgeColor',stimColors{c}(f,:));
+                plot(movTimes,start+1:(start+length(allSorts{f,c})),'.', 'MarkerEdgeColor',moveColors{c}(f,:));
+                pr = scatter(rewTimes,start+1:(start+length(allSorts{f,c})),'k.');
+                pr.MarkerEdgeAlpha = rewColors{c}(f);
+                colormap(flipud(gray));
+                start = start+length(allSorts{f,c});
+                ylim([1 length(vertcat(allSorts{:,c}))]);
+                box off
+                iMax(sub2ind([4 3],c,e)) = max(max(g.CData));
+                iMin(sub2ind([4 3],c,e)) = min(min(g.CData));
+                ax = gca;
+                ax.TickDir = 'out';
+                ax.YTick = [];
+            end
+
         end
     end
 
+%     for s = 1:12
+%         subplot(3,4,s)
+%         caxis([min(iMin) max(iMax)]);
+%     end
     
-for c = 1:4
-    subplot(2,4,sub2ind([4 2],c,e));
-    start = 0;
-    for f = 1:4
-        imagesc(eventWindow,start+1:(start+length(allSorts{f,c})),alignedResps{e}(allSorts{f,c},:,142));
-        hold on;
-        stimTimes = eventTimes(1).daqTime(allSorts{f,c})'-eventTimes(strcmp({eventTimes.event},event)).daqTime(allSorts{f,c})';
-        movTimes = eventTimes(7).daqTime(allSorts{f,c})'-eventTimes(strcmp({eventTimes.event},event)).daqTime(allSorts{f,c})';
-        rewTimes = eventTimes(4).daqTime(allSorts{f,c})'-eventTimes(strcmp({eventTimes.event},event)).daqTime(allSorts{f,c})';
-        plot(stimTimes,start+1:(start+length(allSorts{f,c})),'g.');
-        plot(movTimes,start+1:(start+length(allSorts{f,c})),'b.');
-        plot(rewTimes,start+1:(start+length(allSorts{f,c})),'r.');
-        colormap(flipud(gray));
-        start = start+length(allSorts{f,c});
-        ylim([1 length(vertcat(allSorts{:,c}))]);
+    was_a_key = waitforbuttonpress;
+    if was_a_key && strcmp(get(fig, 'CurrentKey'), 'leftarrow')
+      k = max(1, k - 1);
+    elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'rightarrow')
+      k = min(max_k, k + 1);
     end
     
-end
 end
 %% plot raster browser - equal size subplots, move-aligned
 fig = figure;

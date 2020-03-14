@@ -48,8 +48,8 @@ plotCells = chooseCellType('vis', expInfo, cellResps, respTimes, eventTimes, 0.1
 contrasts = unique(expInfo.block.events.contrastValues);
 
 %set up trial conditions for hi-L and hi-R blocks
-trialConditions{1} = initTrialConditions('highRewardSide','left','responseType','correct','movementTime','late');
-trialConditions{2} = initTrialConditions('highRewardSide','right','responseType','correct','movementTime','late');
+trialConditions{1} = initTrialConditions('highRewardSide','left','responseType','all','movementTime','late');
+trialConditions{2} = initTrialConditions('highRewardSide','right','responseType','all','movementTime','late');
 
 % filter out the longest RTs
 allRTs = eventTimes(7).daqTime - eventTimes(1).daqTime;

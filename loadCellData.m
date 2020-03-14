@@ -102,7 +102,7 @@ elseif strcmp(procType,'python') == 1
         dat = load(fullfile(procDir,mouseName,expDate,seriesFolder,'suite2p',folderName,file2Name));
         
         FcellAll = dat.F;
-        FcellNeuAll = dat.FNeu;
+        FcellNeuAll = dat.Fneu;
         neuropilCoeff = dat.ops.neucoeff;
         spikesAll = dat.spks;
         
@@ -112,7 +112,7 @@ elseif strcmp(procType,'python') == 1
         %reshape Fcell and FcellNeu to include only ROIs you selected manually during Suite2P
         Fcell = FcellAll(iscellIdx,:);
         FcellNeu = FcellNeuAll(iscellIdx,:);
-        FcellCorrected(i,:) = Fcell - (neuropilCoeff * FcellNeu);
+        FcellCorrected = Fcell - (neuropilCoeff * FcellNeu);
         
         % compute dF/F for each ROI trace/neuropil, plus all neuropil
         for j = 1:size(Fcell,1)
