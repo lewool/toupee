@@ -1,27 +1,73 @@
-function [alignedResps, eventWindow] = alignResps(expInfo, cellResps, respTimes, eventTimes, event, Fs)
+function [neuralData] = alignResps(expInfo, neuralData, behavioralData, timeBeforeAndAfter, events)
 %Extract the trial-by-trial activity for ROIs in each imaging plane
 %and align to a particular trial event (stim on, movement on, etc.)
 %
 %'event' is a string that is taken from the 'events' field of the eventTimes 
 %structure generated in getEventTimes.m
 
-numCompleteTrials = numel(expInfo.block.events.endTrialTimes);
+%28 March 2020 changed inputs and outputs to take multiple experiments and
+%deliver tidier structs
 
-%Upsampling rate
-if nargin < 6
-    Fs = 0.1;
+%set defaults
+Fs = 0.1;
+
+if nargin < 4
+    timeBefore = 2;
+    timeAfter = 2;
+    events = {'stimulusOnTimes' 'prestimulusQuiescenceEndTimes' 'feedbackTimes'};
+elseif nargin < 5
+    events = {'stimulusOnTimes' 'prestimulusQuiescenceEndTimes' 'feedbackTimes'};
+    
+    % call window range; if fails, set default
+    try
+        timeBefore = timeBeforeAndAfter(1);
+        timeAfter = timeBeforeAndAfter(2);
+    catch
+        try
+            timeBefore = timeBeforeAndAfter;
+            timeAfter = timeBeforeAndAfter;
+        catch
+            timeBefore = 2;
+            timeAfter = 2;
+        end
+    end
 end
 
-% get event time window for each trial
-timeBefore = 2; %seconds
-timeAfter = 2;
-eventWindow = -timeBefore:Fs:timeAfter;
-periEventTimes = bsxfun(@plus,eventTimes(strcmp({eventTimes.event},event)).daqTime',eventWindow);
-periEventTimes = periEventTimes(1:numCompleteTrials,:);
+for ex = 1:length(expInfo)
+    
+    nt = numel(expInfo(ex).block.events.endTrialTimes);
+    
+    for ev = 1:length(events)
+        
+        % get event time window for each trial
+        eventWindow = -timeBefore:Fs:timeAfter;
+        periEventTimes = bsxfun(@plus,behavioralData(ex).eventTimes(strcmp({behavioralData(ex).eventTimes.event},events{ev})).daqTime',eventWindow);
+        periEventTimes = periEventTimes(1:nt,:);
 
-%grab cell responses associated with the event time windows 
-%(size is nTrials x windowLength x nCells)
-alignedResps = zeros(numCompleteTrials, length(eventWindow), size(cellResps,2));
-for iCell = 1:size(cellResps,2)        
-    alignedResps(:,:,iCell) = interp1(respTimes,cellResps(:,iCell),periEventTimes,'previous');
-end
+        %initialize alignedResp cell
+        alignedResps{ev} = zeros(nt, length(eventWindow), size(neuralData(ex).cellResps,2));
+        
+        %grab cell responses associated with the event time windows 
+        %(size is nTrials x windowLength x nCells)
+        for iCell = 1:size(neuralData(ex).cellResps,2)        
+            alignedResps{ev}(:,:,iCell) = interp1(neuralData(ex).respTimes,neuralData(ex).cellResps(:,iCell),periEventTimes,'previous');
+        end
+    end
+    
+    % save data into the neuralData struct
+    neuralData(ex).eta.alignedResps = alignedResps;
+    neuralData(ex).eta.events = events;
+    neuralData(ex).eta.eventWindow = eventWindow;
+    
+end    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

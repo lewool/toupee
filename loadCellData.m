@@ -1,13 +1,19 @@
 function [allFcell,expInfo] = loadCellData(expInfo)
 %Load the calcium for curated ROIs across
 %a series of experiments processed together in Suite2P
+%
+%DOES NOT LOAD FLYBACK PLANE
+%
 % 24 Feb 2020 LEW added option to import processed data from python suite2p
+% 26 Mar 2020 LEW omitted flyblack from load
+% 27 Mar 2020 LEW adapted for multi expInfo load
 
+for ex = 1:length(expInfo)
 %% LOAD EXPINFO VARIABLES
 
-mouseName = expInfo.mouseName;
-expDate = expInfo.expDate;
-expSeries = expInfo.expSeries;
+mouseName = expInfo(ex).mouseName;
+expDate = expInfo(ex).expDate;
+expSeries = expInfo(ex).expSeries;
 
 %% 
 seriesFolder = strrep(num2str(expSeries),'  ',' ');
@@ -21,18 +27,18 @@ file2Name = strcat('Fall.mat');
 
 try
     load(fullfile(procDir,mouseName,expDate,seriesFolder,file1Name));
-    expInfo.numPlanes = dat.ops.nplanes;
-    expInfo.numChannels = dat.ops.nchannels;
+    expInfo(ex).numPlanes = dat.ops.nplanes;
+    expInfo(ex).numChannels = dat.ops.nchannels;
     procType = 'matlab';
 catch
     dat = load(fullfile(procDir,mouseName,expDate,seriesFolder,'suite2p','plane0',file2Name));
-    expInfo.numPlanes = dat.ops.nplanes;
-    expInfo.numChannels = dat.ops.nchannels;
+    expInfo(ex).numPlanes = dat.ops.nplanes;
+    expInfo(ex).numChannels = dat.ops.nchannels;
     procType = 'python';
 end
 
 if strcmp(procType,'matlab') == 1
-    for iPlane = 1:expInfo.numPlanes
+    for iPlane = 2:expInfo(ex).numPlanes
         try
             fileName = strcat('F_',mouseName,'_',expDate,'_plane',num2str(iPlane),'_proc.mat');
             load(fullfile(procDir,mouseName,expDate,seriesFolder,fileName))
@@ -68,12 +74,12 @@ if strcmp(procType,'matlab') == 1
 
             % compute dF/F for each ROI trace/neuropil, plus all neuropil
             for j = 1:size(Fcell,1)
-                FcellCorrectedDFF(j,:) = dff(FcellCorrected(j,:),0.1,20,30,expInfo.numPlanes);
-                FcellNeuDFF(j,:) = dff(FcellNeu(j,:),0.1,20,30,expInfo.numPlanes);
+                FcellCorrectedDFF(j,:) = dff(FcellCorrected(j,:),0.1,20,30,expInfo(ex).numPlanes);
+                FcellNeuDFF(j,:) = dff(FcellNeu(j,:),0.1,20,30,expInfo(ex).numPlanes);
             end
 
             for k = 1:size(FcellNeuAll,1)
-                FcellNeuAllDFF(k,:) = dff(FcellNeuAll(k,:),0.1,20,30,expInfo.numPlanes);
+                FcellNeuAllDFF(k,:) = dff(FcellNeuAll(k,:),0.1,20,30,expInfo(ex).numPlanes);
             end
 
             % extract the deconvolved spikes as well
@@ -92,12 +98,13 @@ if strcmp(procType,'matlab') == 1
             clearvars FcellAll FcellNeuAll Fcell FcellNeu neuropilCoeff FcellCorrected FcellCorrectedDFF FcellNeuDFF FcellNeuAllDFF spikes
         end
         %a single (corrected) cell trace is found in allPlaneTraces(iPlane).FcellCorrected{1,iExp}(iCell,:)
-        allFcell(iPlane) = planeTraces;
+        allFcellInd(iPlane-1) = planeTraces;
         clear planeTraces;
     end
-
+    allFcell{ex} = allFcellInd;
+    
 elseif strcmp(procType,'python') == 1
-    for iPlane = 1:expInfo.numPlanes
+    for iPlane = 2:expInfo(ex).numPlanes
         folderName = strcat('plane',num2str(iPlane-1));
         dat = load(fullfile(procDir,mouseName,expDate,seriesFolder,'suite2p',folderName,file2Name));
         
@@ -116,12 +123,12 @@ elseif strcmp(procType,'python') == 1
         
         % compute dF/F for each ROI trace/neuropil, plus all neuropil
         for j = 1:size(Fcell,1)
-            FcellCorrectedDFF(j,:) = dff(FcellCorrected(j,:),0.1,20,30,expInfo.numPlanes);
-            FcellNeuDFF(j,:) = dff(FcellNeu(j,:),0.1,20,30,expInfo.numPlanes);
+            FcellCorrectedDFF(j,:) = dff(FcellCorrected(j,:),0.1,20,30,expInfo(ex).numPlanes);
+            FcellNeuDFF(j,:) = dff(FcellNeu(j,:),0.1,20,30,expInfo(ex).numPlanes);
         end
 
         for k = 1:size(FcellNeuAll,1)
-            FcellNeuAllDFF(k,:) = dff(FcellNeuAll(k,:),0.1,20,30,expInfo.numPlanes);
+            FcellNeuAllDFF(k,:) = dff(FcellNeuAll(k,:),0.1,20,30,expInfo(ex).numPlanes);
         end
         
         % extract the deconvolved spikes as well
@@ -140,7 +147,9 @@ elseif strcmp(procType,'python') == 1
         clearvars FcellAll FcellNeuAll Fcell FcellNeu neuropilCoeff FcellCorrected FcellCorrectedDFF FcellNeuDFF FcellNeuAllDFF spikes
         
         %a single (corrected) cell trace is found in allPlaneTraces(iPlane).FcellCorrected(iCell,:)
-        allFcell(iPlane) = planeTraces;
+        allFcellInd(iPlane-1) = planeTraces;
         clear planeTraces;
     end
+    allFcell{ex} = allFcellInd;
+end
 end

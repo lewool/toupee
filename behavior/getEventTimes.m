@@ -1,4 +1,4 @@
-function [eventTimes, wheelTrajectories] = getEventTimes(expInfo, signalsNames)
+function behavioralData = getEventTimes(expInfo, signalsNames)
 % for signalsNames, use the exact fieldnames from the block file or you'll get an error
 % e.g. signalsNames = {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'};
 
@@ -7,11 +7,13 @@ function [eventTimes, wheelTrajectories] = getEventTimes(expInfo, signalsNames)
 % 2019 May 09: Collects feedback times for biased-likelihood exps when
 % valve didn't fire
 % 2019 Nov 18: expInfo struct input arg
+% add multi expInfos
 
+for ex = 1:length(expInfo)
 %% PULL OUT EXPINFO VARIABLES
 
-block = expInfo.block;
-Timeline = expInfo.Timeline;
+block = expInfo(ex).block;
+Timeline = expInfo(ex).Timeline;
 
 %% DETECT PHD FLIPS
 % since the photodiode doesn't always register a WHITE or BLACK signal
@@ -197,12 +199,12 @@ for i = 1:numCompleteTrials
     trialWheelTimes = t(trialIdx);
     
     % record the raw times in their own struct
-    wheelTrajectories(i).signalsTimes = trialWheelTimes;
-    wheelTrajectories(i).values = deg(trialIdx);
+    wheelTrajectories{ex}(i).signalsTimes = trialWheelTimes;
+    wheelTrajectories{ex}(i).values = deg(trialIdx);
     
     % this offset value lets us zero the wheel position at the
     % start of the interactive period
-    wheelTrajectories(i).interactivePosOffset = deg(interIdx);
+    wheelTrajectories{ex}(i).interactivePosOffset = deg(interIdx);
 end
 
 %% DETERMINE MOVEMENT PERIODS
@@ -214,10 +216,33 @@ end
 vel(isnan(vel)) = 0; %weird
 env = envelope(vel,100);
 isMoving = env > 50; %?
-timesStartedMovement = t(2:end) .* (diff(isMoving) > 0);
-timesStartedMovement(timesStartedMovement == 0) = [];
-timesEndedMovement = t(2:end) .* (diff(isMoving) < 0);
-timesEndedMovement(timesEndedMovement == 0) = [];
+
+%look back in time a bit to where velocity actually started changing
+timeAround = 0.075;
+intAround = timeAround * Fs;
+
+idxIsGoing = find(diff(isMoving)>0);
+for tu = 1:length(idxIsGoing)
+    if idxIsGoing(tu) < intAround
+        [~, gIdx] = min(env(1:idxIsGoing(tu)));
+        timesStartedMovement(tu) = t(gIdx);
+    else
+        [~, gIdx] = min(env(idxIsGoing(tu)-intAround:idxIsGoing(tu)));
+        timesStartedMovement(tu) = t(idxIsGoing(tu)-intAround+gIdx);
+    end
+end
+
+idxIsStopping = find(diff(isMoving)<0);
+for td = 1:length(idxIsStopping)
+    if idxIsGoing(td) + intAround > length(env)
+        [~, sIdx] = min(env(idxIsGoing(tu):end));
+        timesEndedMovement(td) = t(idxIsStopping(td)+sIdx-1);
+    else
+    	[~, sIdx] = min(env(idxIsGoing(tu):idxIsGoing(tu)+intAround));
+        timesEndedMovement(td) = t(idxIsStopping(td)+sIdx-1);
+    end
+    
+end
 
 for iTime = 1:numCompleteTrials
     % find when quiescence ends (usually after stimulus onset)
@@ -238,10 +263,10 @@ for iTime = 1:numCompleteTrials
     % can't be real responses)
     if abs(firstMove - timepoint) < 0.100
         goodQuiescenceFlag(iTime) = false;
-        wheelTrajectories(iTime).goodQuiescenceFlag = false;
+        wheelTrajectories{ex}(iTime).goodQuiescenceFlag = false;
     else
         goodQuiescenceFlag(iTime) = true;
-        wheelTrajectories(iTime).goodQuiescenceFlag = true;
+        wheelTrajectories{ex}(iTime).goodQuiescenceFlag = true;
     end
     
     % find when quiescence starts (before stimulus onset)
@@ -263,6 +288,9 @@ eventTimes(l+1).daqTime = prestimulusQuiescenceStarted;
 eventTimes(l+2).event = 'prestimulusQuiescenceEndTimes';
 eventTimes(l+2).daqTime = prestimulusQuiescenceEnded;
 
+allEventTimes{ex} = eventTimes;
+end
+behavioralData = struct('eventTimes', allEventTimes,'wheelTrajectories',wheelTrajectories);
 
 end
 

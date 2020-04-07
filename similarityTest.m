@@ -14,72 +14,36 @@
 
 
 %%
-clear all
-mouseList = {{'LEW007'},{'LEW008'},{'LEW008'},{'LEW008'},{'LEW031'},{'LEW032'}};
-expList = {{'2018-10-09',1,[1]},{'2019-01-29',1,[1]},{'2019-02-07',1,[1]},{'2019-02-12',1,[1]},{'2020-02-03',1,[1]},{'2020-02-03',1,[1]}}; 
-
-mouseList = ...
-    {{'LEW005'},...
-    {'LEW006'},...
-    {'LEW006'},...
-    {'LEW013'},...
-    {'LEW013'},...
-    {'LEW015'},...
-    {'LEW015'}};
-
-expList = ...
-    {{'2018-06-10',2,[2 3]},...
-    {'2018-06-14',1,[1 2]},...
-    {'2018-06-15',1,[1 2]},...
-    {'2019-03-26',1,1},...
-    {'2019-03-27',1,1},...
-    {'2019-03-21',1,1},...
-    {'2019-04-12',1,1}};
-
-mouseList = {{'LEW031'},{'LEW032'}};
-expList = {{'2020-02-03',1,[1]},{'2020-02-03',1,[1]}};
-whichETA = 2;
-allHistos_high = {};
-allHistos_stim = {};
-
-%%
-for m = 1:length(mouseList)
+for m = 1:length(expInfo)
     
 clearvars -except m mouseList expList allHistos_high allHistos_stim whichETA
 disp(m);
 
-%% load experiment details
+%% initialize experiment details
 
-expInfo = initExpInfo(mouseList(m),expList(m));
+% expInfo = initExpInfo({{'LEW032'}},{{'2020-02-14',3,[3]}});
+expInfo = initExpInfo('LEW031');
 
 %% load data
 
-expInfo = data.loadExpData(expInfo);
+[expInfo, neuralData, behavioralData] = processExperiment(expInfo, 'matched');
+[neuralData] = alignResps(expInfo, neuralData, behavioralData);
+[neuralData] = getSignificantActivity(expInfo, behavioralData, neuralData);
+combinedNeuralData = combineNeuralData(expInfo, behavioralData, neuralData,'matched');
 
-%% get event timings and wheel trajectories
+%% extract some variables to make this code still work 
 
-[eventTimes, wheelTrajectories] = getEventTimes(expInfo, {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'});
-
-%% load traces
-
-[allFcell, expInfo] = loadCellData(expInfo);
-[cellResps, respTimes] = getCellResps(expInfo, allFcell);
-cellResps = zscore(cellResps);
-
-%% align calcium traces to the event you want
-
-% cut the trace into trial-by-trial traces, aligned to a particular event
-events = {'stimulusOnTimes' 'prestimulusQuiescenceEndTimes' 'feedbackTimes'};
-alignedResps = cell(1,length(events));
-for e = 1:length(events)
-    [alignedResps{e}, eventWindow] = alignResps(expInfo, cellResps, respTimes, eventTimes, events{e});
-end
-
+alignedResps = combinedNeuralData.matched.eta.alignedResps;
+eventWindow = combinedNeuralData.matched.eta.eventWindow;
+bfcH = combinedNeuralData.matched.stats.bfcH;
+pLabels = combinedNeuralData.matched.stats.labels;
 
 %% select cells with the properties you want
 
-plotCells = chooseCellType('all', expInfo, cellResps, respTimes, eventTimes, 0.1);
+plotCells = find(bfcH(:,strcmp(pLabels,'mov')) > 0);
+plotCells = 1:size(alignedResps{1},3);
 
+whichETA = 1;
 
 %% report the mean response of each cell to your event, per trial, at a given timepoint
 %output is a matrix of size trials x cells
@@ -97,7 +61,7 @@ onsetResps(:,badCells) = [];
 
 %% set up trial conditions to compare
 
-contrasts = unique(expInfo.block.events.contrastValues);
+contrasts = getUniqueContrasts(expInfo);
 
 %set up trial conditions for hi-L and hi-R blocks
 trialConditions{1} = initTrialConditions('highRewardSide','left','responseType','correct','movementTime','late');
@@ -120,7 +84,7 @@ trainTrials = 2:2:size(onsetResps,1);
 d = 1;
 for c = 1:length(contrastConditions)
     for t = 1:length(trialConditions)
-        [~, condIdx{d}.all] = selectCondition(expInfo.block, contrastConditions{c}, eventTimes, trialConditions{t});
+        [~, condIdx{d}.all] = selectCondition(expInfo, contrastConditions{c}, behavioralData, trialConditions{t});
         condIdx{d}.test = intersect(testTrials,condIdx{d}.all);
         condIdx{d}.train = intersect(trainTrials,condIdx{d}.all);
         l = sort({contrastLabels{c},trialLabels{t}});
@@ -175,10 +139,10 @@ ax2Lim = 1.2 * [-max([cell2mat(dotProd_highSide(:)); cell2mat(dotProd_stimSide(:
                 0 max(max([density_stim(:) density_high(:)]))];
 
 % add histograms to global list
-for h = 1:4
-    allHistos_high{h, length(allHistos_high)+1} = dotProd_highSide{h,1}-dotProd_highSide{h,2};
-    allHistos_stim{h, length(allHistos_stim)+1} = dotProd_highSide{h,1}-dotProd_highSide{h,2};
-end
+% for h = 1:4
+%     allHistos_high{h, length(allHistos_high)+1} = dotProd_highSide{h,1}-dotProd_highSide{h,2};
+%     allHistos_stim{h, length(allHistos_stim)+1} = dotProd_highSide{h,1}-dotProd_highSide{h,2};
+% end
 
 %% single-timepoint scatterplot
 
@@ -186,7 +150,7 @@ end
 colors = [0.1 0.7 0.1; 1 .6 0; 0 .4 1; 1 0 0];
 mSize = 12;
 
-for f = 1:min([length(mouseList) 2])
+for f = 1:min([length(expInfo) 2])
     % first plot single session
     if f == 1
         figure;
@@ -337,7 +301,7 @@ axMax = max([max(abs(trajectoryRewards_mean(:))) max(abs(trajectoryStims_mean(:)
 axLim = [-axMax axMax] *1.2;
 
 % plot
-for f = 1:min([length(mouseList) 2])
+for f = 1:min([length(expInfo) 2])
     % first plot single session
     if f == 1
         figure;
@@ -408,65 +372,76 @@ end
 
 %% make a trajectory movie
 
-% leftRewardsTrajectory_int(:,1) = interp1(eventWindow, leftRewardsTrajectory(:,1)', linspace(eventWindow(1),eventWindow(end), 50));
-% leftRewardsTrajectory_int(:,2) = interp1(eventWindow, leftRewardsTrajectory(:,2)', linspace(eventWindow(1),eventWindow(end), 50));
-% rightRewardsTrajectory_int(:,1) = interp1(eventWindow, rightRewardsTrajectory(:,1)', linspace(eventWindow(1),eventWindow(end), 50));
-% rightRewardsTrajectory_int(:,2) = interp1(eventWindow, rightRewardsTrajectory(:,2)', linspace(eventWindow(1),eventWindow(end), 50));
-% leftStimsTrajectory_int(:,1) = interp1(eventWindow, leftStimsTrajectory(:,1)', linspace(eventWindow(1),eventWindow(end), 50));
-% leftStimsTrajectory_int(:,2) = interp1(eventWindow, leftStimsTrajectory(:,2)', linspace(eventWindow(1),eventWindow(end), 50));
-% rightStimsTrajectory_int(:,1) = interp1(eventWindow, rightStimsTrajectory(:,1)', linspace(eventWindow(1),eventWindow(end), 50));
-% rightStimsTrajectory_int(:,2) = interp1(eventWindow, rightStimsTrajectory(:,2)', linspace(eventWindow(1),eventWindow(end), 50));
-% 
-% figure(4);
-% set(gcf,'color','w','Position',[100 100 1025 420]);
-% 
-% for s = 1:2
-%     subplot(1,2,s)
-%     plot(0,0)
-%     hold on
-%     xlim([-.25 .25]);
-%     ylim([-.25 .25]);
-%     axis square
-%     box off
-%     ax1 = gca;
-%     ax1.TickDir = 'out';
-%     ylabel('highL - highR')
-%     xlabel('stimL - stimR')
-% end
-% 
+leftRewardsTrajectory_int(:,1) = interp1(eventWindow, trajectoryRewards_mean(:,1,1)', linspace(eventWindow(1),eventWindow(end), 50));
+leftRewardsTrajectory_int(:,2) = interp1(eventWindow, trajectoryRewards_mean(:,2,1)', linspace(eventWindow(1),eventWindow(end), 50));
+rightRewardsTrajectory_int(:,1) = interp1(eventWindow, trajectoryRewards_mean(:,1,2)', linspace(eventWindow(1),eventWindow(end), 50));
+rightRewardsTrajectory_int(:,2) = interp1(eventWindow, trajectoryRewards_mean(:,2,2)', linspace(eventWindow(1),eventWindow(end), 50));
+leftStimsTrajectory_int(:,1) = interp1(eventWindow, trajectoryStims_mean(:,1,1)', linspace(eventWindow(1),eventWindow(end), 50));
+leftStimsTrajectory_int(:,2) = interp1(eventWindow, trajectoryStims_mean(:,2,1)', linspace(eventWindow(1),eventWindow(end), 50));
+rightStimsTrajectory_int(:,1) = interp1(eventWindow, trajectoryStims_mean(:,1,2)', linspace(eventWindow(1),eventWindow(end), 50));
+rightStimsTrajectory_int(:,2) = interp1(eventWindow, trajectoryStims_mean(:,2,2)', linspace(eventWindow(1),eventWindow(end), 50));
+
+figure(4);
+set(gcf,'color','w','Position',[100 100 1025 420]);
+
+for s = 1:2
+    subplot(1,2,s)
+    plot(0,0)
+    hold on
+    xlim([-.25 .25]);
+    ylim([-.25 .25]);
+    axis square
+    box off
+    ax1 = gca;
+    ax1.TickDir = 'out';
+    ylabel('highL - highR')
+    xlabel('stimL - stimR')
+end
+
 % cd('C:\Users\Wool\Desktop\tempFigs')
 % vidObj1 = VideoWriter('movie.avi');
 % open(vidObj1);
-% loops = 50;
-% 
-% subplot(1,2,1);
-% for f = 1:loops-1
-%     
-%     plot(leftRewardsTrajectory_int(f:f+1,1),leftRewardsTrajectory_int(f:f+1,2),'Color',colors(1,:),'LineWidth',1);
-%     plot(rightRewardsTrajectory_int(f:f+1,1),rightRewardsTrajectory_int(f:f+1,2),'Color',colors(2,:),'LineWidth',1);
-%     if f == 17
-%         plot(leftRewardsTrajectory_int(f,1),leftRewardsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
-%         plot(rightRewardsTrajectory_int(f,1),rightRewardsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
-%     end
-% 
-%     hold on
+loops = 50;
+
+
+for f = 1:loops-1
+    subplot(1,2,1);
+        plot(leftRewardsTrajectory_int(f:f+1,1),leftRewardsTrajectory_int(f:f+1,2),'Color',colors(1,:),'LineWidth',1);
+        plot(rightRewardsTrajectory_int(f:f+1,1),rightRewardsTrajectory_int(f:f+1,2),'Color',colors(2,:),'LineWidth',1);
+        if f == 17
+            plot(leftRewardsTrajectory_int(f,1),leftRewardsTrajectory_int(f,2),'ko','MarkerFaceColor',colors(1,:))
+            plot(rightRewardsTrajectory_int(f,1),rightRewardsTrajectory_int(f,2),'ko','MarkerFaceColor',colors(2,:))
+        end
+        hold on
+        
+        subplot(1,2,2)
+        plot(leftStimsTrajectory_int(f:f+1,1),leftStimsTrajectory_int(f:f+1,2),'Color',colors(3,:),'LineWidth',1);
+        plot(rightStimsTrajectory_int(f:f+1,1),rightStimsTrajectory_int(f:f+1,2),'Color',colors(4,:),'LineWidth',1);
+        if f == 17
+            plot(leftStimsTrajectory_int(f,1),leftStimsTrajectory_int(f,2),'ko','MarkerFaceColor',colors(3,:))
+            plot(rightStimsTrajectory_int(f,1),rightStimsTrajectory_int(f,2),'ko','MarkerFaceColor',colors(1,:))
+        end
+        hold on;
+        pause(.2)
 %     F1(f) = getframe(gcf);
 %     writeVideo(vidObj1,F1(f));
-% end
-% 
-% subplot(1,2,2)
-% for f = 1:loops-1
-%     plot(leftStimsTrajectory_int(f:f+1,1),leftStimsTrajectory_int(f:f+1,2),'Color',colors(3,:),'LineWidth',1);
-%     plot(rightStimsTrajectory_int(f:f+1,1),rightStimsTrajectory_int(f:f+1,2),'Color',colors(4,:),'LineWidth',1);
-%     if f == 17
-%         plot(leftStimsTrajectory_int(f,1),leftStimsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
-%         plot(rightStimsTrajectory_int(f,1),rightStimsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
-%     end
-% 
-%     hold on
+end
+
+subplot(1,2,2)
+for f = 1:loops-1
+    plot(leftStimsTrajectory_int(f:f+1,1),leftStimsTrajectory_int(f:f+1,2),'Color',colors(3,:),'LineWidth',1);
+    plot(rightStimsTrajectory_int(f:f+1,1),rightStimsTrajectory_int(f:f+1,2),'Color',colors(4,:),'LineWidth',1);
+    if f == 17
+        plot(leftStimsTrajectory_int(f,1),leftStimsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
+        plot(rightStimsTrajectory_int(f,1),rightStimsTrajectory_int(f,2),'ko','MarkerFaceColor',[0 .6 .12])
+    end
+
+    hold on
+        pause(.2)
+
 %     F1(f) = getframe(gcf);
 %     writeVideo(vidObj1,F1(f));
-% end
+end
 
 
 

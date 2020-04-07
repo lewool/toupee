@@ -1,22 +1,26 @@
 function expInfo = loadExpData(expInfo)
 % 30 Jan 2018: This shit was written by LEW
 % 14 Nov 2019: Updated to remove rigbox dat dependencies
+% 28 Mar 2020: allowed multi expInfo load
 
 %check input arguments
 if nargin > 1
-    error('Check your inputs: mouseName, expDate, expNum')
-else
-	mouseName = expInfo.mouseName;
-	expDate = expInfo.expDate;
-	expNum = expInfo.expNum;
-	
-	if ischar(expNum)
-		expNum = str2double(expNum);
-        expInfo.expNum = expNum;
-	end 
+    error('Check your inputs: expInfo')
+end
 
-    [expRef, expLog] = data.constructExpRef(mouseName,expDate,expNum);
+for ex = 1:length(expInfo)
+    
+mouseName = expInfo(ex).mouseName;
+expDate = expInfo(ex).expDate;
+expNum = expInfo(ex).expNum;
+
+if ischar(expNum)
+    expNum = str2double(expNum);
+    expInfo.expNum = expNum;
 end 
+
+[expRef, expLog] = data.constructExpRef(mouseName,expDate,expNum);
+
 
 % load all possible data locations
 paths = data.dataPaths();
@@ -56,8 +60,8 @@ if ~exist('Timeline')
     Timeline = [];
 end
 
-expInfo.block = block;
-expInfo.Timeline = Timeline;
-
+expInfo(ex).block = block;
+expInfo(ex).Timeline = Timeline;
+end
 end
 

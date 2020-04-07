@@ -1,8 +1,8 @@
-function [condLogical, condIdx] = selectCondition(block, contrast, eventTimes, trialConditions)
+function [condLogical, condIdx] = selectCondition(expInfo, contrast, behavioralData, trialConditions)
 % A wee function for picking the trial types you want to look at when analyzing your cells
 % INPUTS: block struct, a contrast/side (this can be a vector), and trialConditions, a struct
-% that specifies the types of trials you want to include. Both 'block' and eventTimes' can 
-% be nx1 structs containing exp data from multiple days for concatenation
+% that specifies the types of trials you want to include. Both 'expInfo' and eventTimes' can 
+% be 1xn structs containing exp data from multiple days for concatenation
 % OUTPUT: an index of all the relevant trials from the experiment(s)
 
 % 8 March 2018 Written by LEW
@@ -11,8 +11,9 @@ function [condLogical, condIdx] = selectCondition(block, contrast, eventTimes, t
 % 13 May 2019 Added rewarded/unrewarded outcome selection (likelihood experiments)
 % 20 Nov 2019 Changed so that trial conditions are input from a single
 % struct, initialized in 'initTrialConditions.m'
+% 27 Mar 2020 Updated to take expInfo directly, fixed concatenation
 
-% unpack trialConditions struct
+%% unpack trialConditions struct
 repeatType = trialConditions.repeatType;
 movementDir = trialConditions.movementDir;
 movementTime = trialConditions.movementTime;
@@ -24,20 +25,24 @@ pastMovementDir = trialConditions.pastMovementDir;
 pastResponseType = trialConditions.pastResponseType;
 trialsBack = trialConditions.trialsBack;
 switchBlocks = trialConditions.switchBlocks;
+whichTrials = trialConditions.whichTrials;
 
+%% 
+
+% get length of expInfo blocks
+numExps = length(expInfo);
 condLogical = [];
-for iBlock = 1:length(block)
-    if length(block) == 1
-        b = block;
-        et = eventTimes;
-    else
-        b = block{iBlock};
-        et = eventTimes{iBlock};
-    end
+for iExp = 1:numExps
     
-    nt = numel(b.events.endTrialTimes);
-    contrastVal = b.events.contrastValues(1:nt);
+    % extract data from single experiment
+    b = expInfo(iExp).block;
+    et = behavioralData(iExp).eventTimes;
 
+    nt = numel(b.events.endTrialTimes);
+    contrastVal = b.events.contrastValues(1:nt);  
+    
+%%%%%%%%%%%% ASSIGNMENT SEGMENT (FROM TRIALCONDITIONS INPUT) %%%%%%%%%%%%%%
+    
     switch repeatType
         case 'random' %randomly presented trials
             idxRepeat = b.events.repeatNumValues == 1;
@@ -67,10 +72,8 @@ for iBlock = 1:length(block)
     switch movementTime
         case 'early'
             idxMovement = et(7).daqTime(1:nt) - et(2).daqTime(1:nt) <= 0;
-            idxMovement = idxMovement(1:nt);
         case 'late'
             idxMovement = et(7).daqTime(1:nt) - et(2).daqTime(1:nt) > 0;
-            idxMovement = idxMovement(1:nt);
         case 'all'
             idxMovement = true(1,nt);
         otherwise
@@ -78,7 +81,7 @@ for iBlock = 1:length(block)
     end
 
     switch highRewardSide
-        case 'left' %left-stimulus trials had larger reward
+        case 'left' %left-stimulus trials had larger value/prob
             try
                 idxRewardSide = b.events.highRewardSideValues   == -1;
                 idxRewardSide = idxRewardSide(1:nt);
@@ -92,7 +95,7 @@ for iBlock = 1:length(block)
                 end
             end
 
-        case 'right' %right-stimulus trials had larger reward
+        case 'right' %right-stimulus trials had larger value/prob
             try
                 idxRewardSide = b.events.highRewardSideValues   == 1;
                 idxRewardSide = idxRewardSide(1:nt);
@@ -124,34 +127,32 @@ for iBlock = 1:length(block)
         otherwise
             error('Choose a valid responseType: "correct", "incorrect", or "all"');
     end
-    
+
     switch rewardOutcome
         case 'rewarded'
             try 
-                likelihoodTest = block.events.likelyRewardSideValues;
-                idxRewarded = ~isnan(eventTimes(5).daqTime(:))';
+                idxRewarded = ~isnan(et(5).daqTime(:))';
                 idxRewarded = idxRewarded(1:nt);
             catch 
                 warning('No biased-side parameter found; including all trials by default')
                 idxRewarded = true(1,nt);
             end
-            
+
         case 'unrewarded'
             try 
-                likelihoodTest = block.events.likelyRewardSideValues;
-                idxRewarded = (isnan(eventTimes(4).daqTime(:)))'.*(block.events.feedbackValues == 1);
+                idxRewarded = (isnan(et(4).daqTime(:)))'.*(b.events.feedbackValues == 1);
                 idxRewarded = idxRewarded(1:nt);
             catch 
                 warning('No biased-side parameter found; including all trials by default')
                 idxRewarded = true(1,nt);
             end
-            
+
         case 'all'
             idxRewarded = true(1,nt);
         otherwise
             error('Choose a valid rewardOutcome: "rewarded", "unrewarded", or "all"');
     end        
-    
+
     %track the stimulus 1 trial in the past
     switch pastStimulus 
         case 'right' %stimulus was on the right
@@ -168,7 +169,7 @@ for iBlock = 1:length(block)
         otherwise
             error('Choose a valid pastStimulus: "right", "left", "zero", or "all"');
     end
-    
+
     %track the choice 1 trial in the past
     switch pastMovementDir 
         case 'ccw' %moved the stimulus left
@@ -182,7 +183,7 @@ for iBlock = 1:length(block)
         otherwise
             error('Choose a valid pastMovementDir: "ccw", "cw", or "all"');
     end
-    
+
     %track the outcome 1 trial in the past
     switch pastResponseType 
         case 'correct'
@@ -196,7 +197,7 @@ for iBlock = 1:length(block)
         otherwise
             error('Choose a valid pastResponseType: "correct", "incorrect", or "all"');
     end 
-    
+
     switch switchBlocks
         case 'beforeLeft'
             bl = [];
@@ -236,9 +237,35 @@ for iBlock = 1:length(block)
             error('Choose a valid switchType: "before", "after", or "all"');
     end
 
-    cl = ismember(contrastVal, contrast).* idxRepeat .* idxDirection .* idxMovement .* idxRewardSide .* idxCorrect .*idxRewarded .* idxPastStimulus .* idxPastDirection .* idxPastCorrect .*idxSwitch;
-    condLogical = [condLogical,cl];
+    if isnumeric(whichTrials)
+        idxWhich = false(1,nt);
+        idxWhich(whichTrials) = true;
+    elseif ~isnumeric(whichTrials)
+        idxWhich = true(1,nt);
+    else
+        error('Choose a valid indexing range, or "all"');
+    end
+
+%%%%%%%%%%%%%%%%%%%%%% END ASSIGNMENT SEGMENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
     
+    % find the trials that pass all conditions (logical vector)
+    cl = ...
+        ismember(contrastVal, contrast).* ...
+        idxRepeat .* ...
+        idxDirection .* ...
+        idxMovement .* ...
+        idxRewardSide .* ...
+        idxCorrect .* ...
+        idxRewarded .* ...
+        idxPastStimulus .* ...
+        idxPastDirection .* ...
+        idxPastCorrect .* ...
+        idxSwitch .* ...
+        idxWhich;
+    
+    % add logical vector to previous ones
+    condLogical = [condLogical,cl];
 end
-[~, condIdx] = find(condLogical > 0);
+    % index the whole logical vector (length = GRAND TOTAL of trials)
+    [~, condIdx] = find(condLogical > 0);
 end

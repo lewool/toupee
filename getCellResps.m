@@ -1,14 +1,17 @@
 function [cellResps, respTimes] = getCellResps(expInfo, allFcell, Fs)
 
+% 26 Mar 2020 flyback now omitted during loadCellData, not here
+
+for ex = 1:length(expInfo)
 %% LOAD DATA FROM EXPINFO
 
-mouseName = expInfo.mouseName;
-expDate = expInfo.expDate;
-expNum = expInfo.expNum;
-expSeries = expInfo.expSeries;
-block = expInfo.block;
-Timeline = expInfo.Timeline;
-numPlanes = expInfo.numPlanes;
+mouseName = expInfo(ex).mouseName;
+expDate = expInfo(ex).expDate;
+expNum = expInfo(ex).expNum;
+expSeries = expInfo(ex).expSeries;
+block = expInfo(ex).block;
+Timeline = expInfo(ex).Timeline;
+numPlanes = expInfo(ex).numPlanes;
 
 %% SET UPSAMPLING RATE (if not an input)
 
@@ -30,15 +33,15 @@ endT = max(maxTs);
 globalTime = startT:Fs:endT;
 
 %%
-cellResps = [];
-for iPlane = 2:numPlanes
+resps = [];
+for iPlane = 1:numPlanes-1
     planeTime = planeInfo(iPlane).frameTimes;
     try
         %matlab suite2p output
-        C = double(allFcell(iPlane).spikes{1}');
+        C = double(allFcell{ex}(iPlane).spikes{1}');
     catch
         %python suite2p output
-        C = double(allFcell(iPlane).spikes');
+        C = double(allFcell{ex}(iPlane).spikes');
     end
     if size(planeTime,2) ~= size(C,1)
         planeTime = planeTime(1:size(C,1));
@@ -47,7 +50,9 @@ for iPlane = 2:numPlanes
     F = griddedInterpolant(samplePoints,C);
     queryPoints = {globalTime, 1:size(C,2)};
     Cq = F(queryPoints);
-    cellResps(:, size(cellResps,2)+1:size(cellResps,2)+size(Cq,2)) = Cq;
+    resps(:, size(resps,2)+1:size(resps,2)+size(Cq,2)) = Cq;
 end
 
-respTimes = globalTime;
+cellResps{ex} = zscore(resps);
+respTimes{ex} = globalTime;
+end
