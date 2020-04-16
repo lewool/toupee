@@ -337,8 +337,12 @@ for x = 1:length(condIdx)
     len(x,1) = length(condIdx{x}.all);
 end
 
-minCond = min(len(contains(labels,'bAll')));
-minCond = 3;
+try
+    minCond = min(len(contains(labels,'bAll')));
+catch
+    minCond = 3;
+end
+
 bAll_mL_sL_idx = find(contains(labels,'-').*contains(labels,'bAll_mL'));
 bAll_mL_sR_idx = find(contains(labels,'+').*contains(labels,'bAll_mL'));
 bAll_mR_sL_idx = find(contains(labels,'-').*contains(labels,'bAll_mR'));
