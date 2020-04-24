@@ -235,10 +235,10 @@ end
 idxIsStopping = find(diff(isMoving)<0);
 for td = 1:length(idxIsStopping)
     if idxIsGoing(td) + intAround > length(env)
-        [~, sIdx] = min(env(idxIsGoing(tu):end));
+        [~, sIdx] = min(env(idxIsGoing(td):end));
         timesEndedMovement(td) = t(idxIsStopping(td)+sIdx-1);
     else
-    	[~, sIdx] = min(env(idxIsGoing(tu):idxIsGoing(tu)+intAround));
+    	[~, sIdx] = min(env(idxIsGoing(td):idxIsGoing(td)+intAround));
         timesEndedMovement(td) = t(idxIsStopping(td)+sIdx-1);
     end
     
