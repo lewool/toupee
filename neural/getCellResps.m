@@ -53,6 +53,13 @@ for iPlane = 1:numPlanes-1
     resps(:, size(resps,2)+1:size(resps,2)+size(Cq,2)) = Cq;
 end
 
+    
 cellResps{ex} = zscore(resps);
+cellResps{ex} = resps./max(resps);
+
+%get rid of bad cells
+someNaNs = find(isnan(cellResps{ex}));
+badCells = unique(ceil(someNaNs/size(cellResps{ex},1)));
+cellResps{ex}(:,badCells) = [];
 respTimes{ex} = globalTime;
 end

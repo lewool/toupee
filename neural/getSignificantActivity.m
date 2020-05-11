@@ -37,7 +37,7 @@ if nargin < 4
     %%%%%%%%%%%%%%%% compute perimovement activity
 
     % align traces to movement onset
-    event = 'prestimulusQuiescenceEndTimes';
+    event = 'firstMoveTimes';
     mov_alignedTraces = neuralData(ex).eta.alignedResps{strcmp(neuralData(ex).eta.events,event)};
     mov_eventWindow = neuralData(ex).eta.eventWindow;
 
@@ -61,7 +61,7 @@ if nargin < 4
 
     %%%%%%%%%%%%%%%% compute perireward activity
 
-    % align traces to movement onset
+    % align traces to feedback onset
     event = 'feedbackTimes';
     rew_alignedTraces = neuralData(ex).eta.alignedResps{strcmp(neuralData(ex).eta.events,event)};
     rew_eventWindow = neuralData(ex).eta.eventWindow;

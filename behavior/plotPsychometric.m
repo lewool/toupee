@@ -95,6 +95,10 @@ end
 
 %%%% plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+colors = [0.1 0.7 0.1; 1 .6 0; 0 .4 1; 1 0 0];
+figure;
+hold on;
+
 % 2AFC EXPERIMENT OR ONE-SIDED B2AFC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if length(unique(allRewardSideValues)) < 2
     if mean(allRewardSideValues) > 0
@@ -166,7 +170,7 @@ if length(unique(allRewardSideValues)) < 2
 % B2AFC EXPERIMENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 else
     % plot trials with high reward on the left
-    lineColor = [0 .4 1];
+    lineColor = colors(1,:);
     cc = unique(allContrastValues);
     pp = nan(size(cc));
     nn = nan(size(cc));
@@ -220,7 +224,7 @@ else
     end
 
     % plot trials with high reward on the right
-    lineColor = [1 0 0];
+    lineColor = colors(2,:);
     cc = unique(allContrastValues);
     pp = nan(size(cc));
     nn = nan(size(cc));
@@ -274,8 +278,9 @@ else
     set(gca, 'XTickLabels', {'100', '50', '25', '0', '25', '50', '100'})
     set(gca, 'YTick', [0, 0.5, 1])
     set(gca, 'YTickLabels', {'0', '0.5', '1.0'})        
-    xlabel('Left Contrast (%)       Right Contrast (%)')
-    ylabel('P(rightward choice)')
+    xlabel('Left contrast (%)             Right contrast (%)')
+    ylabel('P(right choice)')
+    text(75,0,strcat(num2str(length(allChoiceValues)),{' trials'}));
 
     ax3 = gca;
     ax3.TickDir = 'out';

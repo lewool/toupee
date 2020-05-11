@@ -37,9 +37,14 @@ for iExp = 1:numExps
     % extract data from single experiment
     b = expInfo(iExp).block;
     et = behavioralData(iExp).eventTimes;
+    wm = behavioralData(iExp).wheelMoves;
 
     nt = numel(b.events.endTrialTimes);
-    contrastVal = b.events.contrastValues(1:nt);  
+    contrastVal = b.events.contrastValues(1:nt); 
+    
+    firstMoveDirs = zeros(1,nt);
+    firstMoveDirs((~isnan(wm.epochs(3).onsetTimes))) = wm.epochs(3).moveDir(~isnan(wm.epochs(3).onsetTimes));
+    firstMoveDirs((~isnan(wm.epochs(2).onsetTimes))) = wm.epochs(2).moveDir(~isnan(wm.epochs(2).onsetTimes));
     
 %%%%%%%%%%%% ASSIGNMENT SEGMENT (FROM TRIALCONDITIONS INPUT) %%%%%%%%%%%%%%
     
@@ -57,11 +62,23 @@ for iExp = 1:numExps
     end
 
     switch movementDir
-        case 'ccw' %moved the stimulus left
-            idxDirection = b.events.responseValues == 1;
+        case 'ccw' %moved the stimulus from right to left
+            if strcmp(movementTime,'early')
+                idxDirection = wm.epochs(2).moveDir == 1;
+            elseif strcmp(movementTime,'late')
+                idxDirection = wm.epochs(3).moveDir == 1;
+            elseif strcmp(movementTime,'all')
+                idxDirection = firstMoveDirs == 1;
+            end
             idxDirection = idxDirection(1:nt);
-        case 'cw' %moved the stimulus right
-            idxDirection = b.events.responseValues == -1;
+        case 'cw' %moved the stimulus from left to right
+            if strcmp(movementTime,'early')
+                idxDirection = wm.epochs(2).moveDir == -1;
+            elseif strcmp(movementTime,'late')
+                idxDirection = wm.epochs(3).moveDir == -1;
+            elseif strcmp(movementTime,'all')
+                idxDirection = firstMoveDirs == -1;
+            end
             idxDirection = idxDirection(1:nt);
         case 'all'
             idxDirection = true(1,nt);
@@ -71,9 +88,10 @@ for iExp = 1:numExps
 
     switch movementTime
         case 'early'
-            idxMovement = et(7).daqTime(1:nt) - et(2).daqTime(1:nt) <= 0;
+            idxMovement = wm.epochs(2).isMoving;
+            idxMovement = idxMovement(1:nt);
         case 'late'
-            idxMovement = et(7).daqTime(1:nt) - et(2).daqTime(1:nt) > 0;
+            idxMovement = ~wm.epochs(2).isMoving .* wm.epochs(3).isMoving;
         case 'all'
             idxMovement = true(1,nt);
         otherwise

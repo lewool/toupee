@@ -21,7 +21,14 @@ end
  
 %% get event times
 
-behavioralData = getEventTimes(expInfo, {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'});
+allEventTimes = getEventTimes(expInfo, {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'});
+allWheelMoves = getWheelMoves(expInfo, allEventTimes);
+
+if length(allEventTimes) == length(allWheelMoves)
+    behavioralData = struct('eventTimes',allEventTimes,'wheelMoves', allWheelMoves);
+else
+    error('Event/wheel experiment lengths do not match')
+end
 
 %% collate cell responses across planes
 
