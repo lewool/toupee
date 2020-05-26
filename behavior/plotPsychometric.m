@@ -23,6 +23,8 @@ allRepeatValues = [];
 allHitValues = [];
 allChoiceValues = [];
 rs = [];
+allRTs = [];
+allMoveTypes = [];
 
 if nargin == 1
     for s = 1:length(varargin{1})
@@ -30,9 +32,15 @@ if nargin == 1
         expInfo = data.loadExpData(expInfo);
         block = expInfo.block;
         
-        contrastValues = block.events.contrastValues;
         trialLimit = length(block.events.endTrialValues);
-        allContrastValues = [allContrastValues, contrastValues(1:trialLimit)];
+        contrastValues = block.events.contrastValues(1:trialLimit);
+        RTs = (block.events.feedbackTimes(1:trialLimit) - block.events.stimulusOnTimes(1:trialLimit)) < 3.2;
+        moveTypes = true(1,trialLimit);
+        
+        allContrastValues = [allContrastValues, contrastValues];
+        allRTs = [allRTs, RTs]; 
+        allMoveTypes = [allMoveTypes, moveTypes];        
+        
         try
             allRewardSideValues = [allRewardSideValues, block.events.likelyRewardSideValues(1:trialLimit)];
         catch
@@ -53,7 +61,7 @@ if nargin == 1
         allChoiceValues = [allChoiceValues, block.events.responseValues(1:trialLimit)];
     end
 
-elseif nargin > 1
+elseif nargin == 2
     for d = 1:length(varargin{2})
         expList = varargin{2};
         mouseList = varargin{1};
@@ -67,10 +75,15 @@ elseif nargin > 1
 
         expInfo = data.loadExpData(expInfo);
         block = expInfo.block;
-
-        contrastValues = block.events.contrastValues;
+        
         trialLimit = length(block.events.endTrialValues);
-        allContrastValues = [allContrastValues, contrastValues(1:trialLimit)];
+        contrastValues = block.events.contrastValues(1:trialLimit);
+        RTs = (block.events.feedbackTimes(1:trialLimit) - block.events.stimulusOnTimes(1:trialLimit)) < 3.2;
+        moveTypes = true(1,trialLimit);
+        
+        allContrastValues = [allContrastValues, contrastValues];
+        allRTs = [allRTs, RTs]; 
+        allMoveTypes = [allMoveTypes, moveTypes];
         try
             allRewardSideValues = [allRewardSideValues, block.events.likelyRewardSideValues(1:trialLimit)];
         catch
@@ -91,6 +104,64 @@ elseif nargin > 1
         allChoiceValues = [allChoiceValues, block.events.responseValues(1:trialLimit)];
 
     end
+elseif nargin > 2
+    try
+        moveType = varargin{4};
+    catch
+        moveType = 'all';
+    end
+    for d = 1:length(varargin{2})
+        expList = varargin{2};
+        mouseList = varargin{1};
+        behavioralData = varargin{3};
+        if length(mouseList) == 1
+            mouseList = repelem(mouseList,length(expList));
+        end
+
+        expInfo.mouseName = mouseList{d}{:};
+        expInfo.expDate = expList{d}{1};
+        expInfo.expNum = expList{d}{2};
+
+        expInfo = data.loadExpData(expInfo);
+        block = expInfo.block;
+        et = behavioralData(d).eventTimes;
+        wm = behavioralData(d).wheelMoves;
+        
+        trialLimit = length(block.events.endTrialValues);
+        contrastValues = block.events.contrastValues(1:trialLimit);
+        RTs = et(1).daqTime - wm.epochs(5).onsetTimes < 3;
+        if strcmp(moveType,'early')
+            moveTypes = ~isnan(wm.epochs(2).onsetTimes);
+        elseif strcmp(moveType,'late')
+            moveTypes = ~isnan(wm.epochs(3).onsetTimes) & isnan(wm.epochs(2).onsetTimes);
+        elseif strcmp(moveType,'all')
+            moveTypes = true(1,trialLimit);
+        end
+        
+        allContrastValues = [allContrastValues, contrastValues];
+        allRTs = [allRTs, RTs]; 
+        allMoveTypes = [allMoveTypes, moveTypes];
+        
+        try
+            allRewardSideValues = [allRewardSideValues, block.events.likelyRewardSideValues(1:trialLimit)];
+        catch
+            try
+                allRewardSideValues = [allRewardSideValues, block.events.highRewardSideValues(1:trialLimit)];
+            catch
+                try
+                    rs(mod(block.events.contingencyPeriodValues,2) == 0) = -1;
+                    rs(mod(block.events.contingencyPeriodValues,2) == 1) = 1;
+                    allRewardSideValues = [allRewardSideValues, rs(1:trialLimit)];
+                catch
+                end   
+            end
+        end
+
+        allRepeatValues = [allRepeatValues, block.events.repeatNumValues(1:trialLimit)];
+        allHitValues = [allHitValues, block.events.feedbackValues(1:trialLimit)];
+        allChoiceValues = [allChoiceValues, wm.epochs(5).moveDir];
+    end
+                    
 end
 
 %%%% plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -115,7 +186,7 @@ if length(unique(allRewardSideValues)) < 2
         contIdxs = [];
 
         %determine which trials had contrast = cc(cont)
-        contIdxs = allContrastValues == cc(cont) & allRepeatValues == 1;
+        contIdxs = allContrastValues == cc(cont) & allRepeatValues == 1 & allRTs == 1 & allMoveTypes == 1;
 
         %number of trials with contrast = cc(cont)
         nn(cont) = sum(contIdxs); 
@@ -152,7 +223,7 @@ if length(unique(allRewardSideValues)) < 2
         [~, pci] = binofit(round(pp.*nn), nn, alpha); % get CIs of the binomial distribution
         errorbar(cc, pp, pp-pci(:,1)', pp-pci(:,2)', ...
             'ko', 'Color', lineColor,'MarkerFaceColor',lineColor,'MarkerEdgeColor','w', 'MarkerSize', 6, ...
-            'LineWidth', .5)
+            'LineWidth', .5,'capsize',0)
         hold on;
         box off
         else
@@ -178,7 +249,7 @@ else
         contIdxs = [];
 
         %determine which trials had contrast = cc(cont)
-        contIdxs = (allRewardSideValues < 0) & allContrastValues == cc(cont) & allRepeatValues == 1;
+        contIdxs = (allRewardSideValues < 0) & allContrastValues == cc(cont) & allRepeatValues == 1 & allRTs == 1 & allMoveTypes == 1;
 
         %number of trials with contrast = cc(cont)
         nn(cont) = sum(contIdxs); 
@@ -213,7 +284,7 @@ else
         [~, pci] = binofit(round(pp.*nn), nn, alpha); % get CIs of the binomial distribution
         errorbar(cc, pp, pp-pci(:,1)', pp-pci(:,2)', ...
             'ko', 'Color', lineColor,'MarkerFaceColor',lineColor,'MarkerEdgeColor','w', 'MarkerSize', 6, ...
-            'LineWidth', .5)
+            'LineWidth', .5,'capsize',0)
         
         hold on;
 
@@ -232,7 +303,7 @@ else
         contIdxs = [];
 
         %determine which trials had contrast = cc(cont)
-        contIdxs = (allRewardSideValues > 0) & allContrastValues == cc(cont) & allRepeatValues == 1;
+        contIdxs = (allRewardSideValues > 0) & allContrastValues == cc(cont) & allRepeatValues == 1 & allRTs == 1 & allMoveTypes == 1;
 
         %number of trials with contrast = cc(cont)
         nn(cont) = sum(contIdxs); 
@@ -266,7 +337,7 @@ else
         [~, pci] = binofit(round(pp.*nn), nn, alpha); % get CIs of the binomial distribution
         errorbar(cc, pp, pp-pci(:,1)', pp-pci(:,2)', ...
             'ko', 'Color', lineColor,'MarkerFaceColor',lineColor,'MarkerEdgeColor','w', 'MarkerSize', 6, ...
-            'LineWidth', .5)
+            'LineWidth', .5,'capsize',0)
         box off
         
     else
@@ -280,7 +351,7 @@ else
     set(gca, 'YTickLabels', {'0', '0.5', '1.0'})        
     xlabel('Left contrast (%)             Right contrast (%)')
     ylabel('P(right choice)')
-    text(75,0,strcat(num2str(length(allChoiceValues)),{' trials'}));
+    text(75,0,strcat(num2str(min([sum(allRTs) sum(allMoveTypes)])),{' trials'}));
 
     ax3 = gca;
     ax3.TickDir = 'out';

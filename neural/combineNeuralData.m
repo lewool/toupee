@@ -77,7 +77,7 @@ combinedNeuralData.stats = struct(...
     );
 
 %additional steps if matched sessions
-if nargin > 3 && strcmp(varargin{4},'matched')
+if expInfo(1).cellMatched == 1
     
     %the number of cells in a matched experiment will be the same 
     %across all experiments/events, choose one for reference
@@ -109,7 +109,7 @@ if nargin > 3 && strcmp(varargin{4},'matched')
         );
 
     %recompute statistics using ALL trials across ALL exps
-    combinedNeuralData = getSignificantActivity(expInfo, behavioralData, combinedNeuralData, 'matched');
+    combinedNeuralData = getSignificantActivity(expInfo, behavioralData, combinedNeuralData);
 
 end
 

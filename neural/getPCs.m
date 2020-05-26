@@ -2,9 +2,8 @@ function allPCs = getPCs(alignedResps)
 
 %% do PCA on the 3d matrix (cells x time x trials)
 
-for a = 1:length(alignedResps)
 %reshape the matrix to cells x time x trials
-M = permute(alignedResps{a},[3 2 1]);
+M = permute(alignedResps,[3 2 1]);
 [i,~] = find(isnan(M));
 nanCells = unique(i);
 
@@ -29,6 +28,4 @@ newMresh = reshape(newM,size(M,1),size(M,2), size(M,3));
 %% reshape back into the original dimensions
 %output is a matrix of size trials x time x PCs
 
-allPCs{a} = permute(newMresh(1:numPCs,:,:),[3 2 1]);
-
-end
+allPCs = permute(newMresh(:,:,:),[3 2 1]);

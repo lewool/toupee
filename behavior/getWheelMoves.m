@@ -29,7 +29,8 @@ for ex = 1:length(expInfo)
     pos = pos./(rotaryEncoderResolution)*2*pi*wheelRadius; % convert to mm
     rawPos = rawPos./(rotaryEncoderResolution)*2*pi*wheelRadius; % convert to mm
 
-    vel = conv(diff([0 pos]), wheel.gausswin(10), 'same');
+    % %compute wheel velocity
+    [vel, ~] = wheel.computeVelocity2(pos, 1, Fs);
 
     %% trial-by-trial traces
 
@@ -201,7 +202,26 @@ for ex = 1:length(expInfo)
         end
 
     end
+    
+    %identify the first movement of the trial, redundant info but easy to
+    %do
+    firstMoveOnset = zeros(1,numCompleteTrials);
+    firstMoveOnset((~isnan(moveOnset_goCue))) = moveOnset_goCue(~isnan(moveOnset_goCue));
+    firstMoveOnset((~isnan(moveOnset_early))) = moveOnset_early(~isnan(moveOnset_early));
+    
+    firstMoveOffset = zeros(1,numCompleteTrials);
+    firstMoveOffset((~isnan(moveOffset_goCue))) = moveOffset_goCue(~isnan(moveOffset_goCue));
+    firstMoveOffset((~isnan(moveOffset_early))) = moveOffset_early(~isnan(moveOffset_early));
+    
+    firstMoveDir = zeros(1,numCompleteTrials);
+    firstMoveDir((~isnan(moveDir_goCue))) = moveDir_goCue(~isnan(moveDir_goCue));
+    firstMoveDir((~isnan(moveDir_early))) = moveDir_early(~isnan(moveDir_early));
+    
+    firstMoveVel = zeros(1,numCompleteTrials);
+    firstMoveVel((~isnan(peakVel_goCue))) = peakVel_goCue(~isnan(peakVel_goCue));
+    firstMoveVel((~isnan(peakVel_early))) = peakVel_early(~isnan(peakVel_early));
 
+    
     %% load into struct
 
     wheelMoves.epochs(1) = struct(...
@@ -239,10 +259,22 @@ for ex = 1:length(expInfo)
         'moveDir', moveDir_feedback,...
         'peakVel', peakVel_feedback ...
         );
+    
+    wheelMoves.epochs(5) = struct(...
+        'epoch', 'firstMove',...
+        'isMoving', [],... 
+        'onsetTimes', firstMoveOnset,...
+        'offsetTimes', firstMoveOffset,...
+        'moveDir', firstMoveDir,...
+        'peakVel', firstMoveVel ...
+        );
 
      wheelMoves.traces.pos = wheelTraceValues;
      wheelMoves.traces.time = wheelTraceTimes;
      
      allWheelMoves{ex} = wheelMoves;
+     clear wheelMoves
+     
+     disp(char(strcat({'session '},num2str(ex),{' completed'})))
      
 end

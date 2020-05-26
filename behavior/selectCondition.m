@@ -135,9 +135,11 @@ for iExp = 1:numExps
 
     switch responseType
         case 'correct'
+%             idxCorrect = firstMoveDirs == b.events.correctResponseValues(1:nt);
             idxCorrect = b.events.feedbackValues == 1;
             idxCorrect = idxCorrect(1:nt);
         case 'incorrect'
+%             idxCorrect = firstMoveDirs ~= b.events.correctResponseValues(1:nt);
             idxCorrect = b.events.feedbackValues == 0;
             idxCorrect = idxCorrect(1:nt);
         case 'all'

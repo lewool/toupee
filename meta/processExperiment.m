@@ -1,22 +1,15 @@
-function [expInfo, neuralData, behavioralData] = processExperiment(varargin)
+function [expInfo, neuralData, behavioralData] = processExperiment(expInfo)
 
 
 %% load cell data
-% regular, solo, or unmatched sessions
-if nargin == 1 || strcmp(varargin{2},'unmatched')
-    expInfo = varargin{1};
-    expInfo = data.loadExpData(expInfo);
-    [allFcell, expInfo] = loadCellData(expInfo);
-    
-% matched sessions
-elseif nargin == 2 && strcmp(varargin{2},'matched')
-    expInfo = varargin{1};
-    expInfo = data.loadExpData(expInfo);
+
+matchTag = expInfo(1).cellMatched;
+expInfo = data.loadExpData(expInfo);
+
+if matchTag
     [allFcell, expInfo] = loadMatchedCellData(expInfo);
-   
-% any other arguments will throw an error    
 else
-    error('Input an expInfo and "matched"/"unmatched" tag')
+    [allFcell, expInfo] = loadCellData(expInfo);
 end
  
 %% get event times
@@ -38,3 +31,9 @@ end
 
 neuralData = struct('allFcell',allFcell,'cellResps',cellResps,'respTimes',respTimes);
 
+%% align resps
+
+[neuralData] = alignResps(expInfo, neuralData, behavioralData);
+[neuralData] = getSignificantActivity(expInfo, behavioralData, neuralData,0);
+
+%%

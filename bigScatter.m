@@ -1,107 +1,53 @@
-%% initialize experiment details
-clear all;
-% close all;
-expInfo = initExpInfo({{'LEW031'}},{{'2020-02-03',1,[1]}});
-% expInfo = initExpInfo('LEW031');
-matched = 0;
-%% load data & extract some variables to make this code still work
+%% initialize figs
+balanced = 1;
+axLimA = [0 .25 0 .25];
+axLimB = [0 .25 0 .25];
+mSize = 20;
+color = [0 0 0];
 
-if matched == 1
-    [expInfo, neuralData, behavioralData] = processExperiment(expInfo,'matched');
-    [neuralData] = alignResps(expInfo, neuralData, behavioralData);
-    [neuralData] = getSignificantActivity(expInfo, behavioralData, neuralData);
-    combinedNeuralData = combineNeuralData(expInfo, behavioralData, neuralData,'matched');
-
-    alignedResps = combinedNeuralData.matched.eta.alignedResps;
-    eventWindow = combinedNeuralData.matched.eta.eventWindow;
-    bfcH = combinedNeuralData.matched.stats.bfcH;
-    pLabels = combinedNeuralData.matched.stats.labels;
-    events = combinedNeuralData.matched.eta.events;
-elseif matched == 0 
-    [expInfo, neuralData, behavioralData] = processExperiment(expInfo);
-    [neuralData] = alignResps(expInfo, neuralData, behavioralData);
-    [neuralData] = getSignificantActivity(expInfo, behavioralData, neuralData);
-    combinedNeuralData = combineNeuralData(expInfo, behavioralData, neuralData);
-
-    alignedResps = neuralData.eta.alignedResps;
-    eventWindow = neuralData.eta.eventWindow;
-    bfcH = neuralData.stats.bfcH;
-    pLabels = neuralData.stats.labels;
-    events = neuralData.eta.events;
+scatterFig = figure(1);
+set(gcf,'position', [98         254        1366         657]);
+for s = 1:2
+    subplot(2,4,s)
+    l = line([axLimA(1) axLimA(2)],[axLimA(1) axLimA(2)]);
+    set(l,...
+        'LineStyle', '--',...
+        'LineWidth',1,...
+        'Color',[.5 .5 .5]...
+        );
+    hold on
+end
+for s = 1:4
+    subplot(2,4,s+4)
+    l = line([axLimA(1) axLimA(2)],[axLimA(1) axLimA(2)]);
+    set(l,...
+        'LineStyle', '--',...
+        'LineWidth',1,...
+        'Color',[.5 .5 .5]...
+        );
+    hold on
 end
 
-%% get cell responses at a particular timepoint
+hold on;
 
-Fs = 0.1;
-%%%%%%%%%%%%%%%% compute baseline activity
+timelineFig = figure(2);
+hold on;
+%%
+for ex = 1:9
+%% import data
 
-% align traces to stim onset
-event = 'stimulusOnTimes';
-stim_alignedTraces = alignedResps{strcmp(events,event)};
-stim_eventWindow = eventWindow;
-
-%designate a baseline window
-stim_eventIdx = find(stim_eventWindow == 0);
-stim_preTime = [-0.5 0] / Fs;
-baselineIdx = stim_eventIdx + stim_preTime(1) : stim_eventIdx;
-
-%compute the mean baseline activity per cell, per trial (trials x neurons)
-baselineResps = squeeze(mean(stim_alignedTraces(:,baselineIdx,:),2));
-
-%%%% compute peristimulus activity
-
-%designate a peristimulus window
-stimTime = [0 0.4] / Fs;
-stimIdx = stim_eventIdx + stimTime(1) :stim_eventIdx + stimTime(2);
-
-%compute the mean peristimulus activity per cell, per trial (trials x neurons)
-stimResps = squeeze(mean(stim_alignedTraces(:,stimIdx,:),2));
-
-%%%%%%%%%%%%%%%% compute perimovement activity
-
-% align traces to movement onset
-event = 'firstMoveTimes';
-mov_alignedTraces = alignedResps{strcmp(events,event)};
-mov_eventWindow = eventWindow;
-
-%designate a movement window
-mov_eventIdx = find(mov_eventWindow == 0);
-movTime = [-0.2 0.1] / Fs;
-movIdx = mov_eventIdx + movTime(1) : mov_eventIdx + movTime(2);
-
-%compute the mean perimovement activity per cell, per trial (trials x neurons)
-movResps = squeeze(mean(mov_alignedTraces(:,movIdx,:),2));
-
-%%%%%%%%%%%%%%%% compute premovement activity
-
-%designate a movement window
-pmov_eventIdx = find(mov_eventWindow == 0);
-pmovTime = [-0.7 -0.3] / Fs;
-pmovIdx = pmov_eventIdx + pmovTime(1) : pmov_eventIdx + pmovTime(2);
-
-%compute the mean perimovement activity per cell, per trial (trials x neurons)
-pmovResps = squeeze(mean(mov_alignedTraces(:,pmovIdx,:),2));
-
-%%%%%%%%%%%%%%%% compute perireward activity
-
-% align traces to movement onset
-event = 'feedbackTimes';
-rew_alignedTraces = alignedResps{strcmp(events,event)};
-rew_eventWindow = eventWindow;
-
-%designate a movement window
-rew_eventIdx = find(rew_eventWindow == 0);
-rewTime = [0 0.2] / Fs;
-rewIdx = rew_eventIdx + rewTime(1) : rew_eventIdx + rewTime(2);
-
-%compute the mean perireward activity per cell, per trial (trials x neurons)
-rewResps = squeeze(mean(rew_alignedTraces(:,rewIdx,:),2));
+nd = neuralData(ex);
+[baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(nd.eta);
+alignedResps = nd.eta.alignedResps;
+bfcH = nd.stats.bfcH;
+pLabels = nd.stats.labels;
+eventWindow = nd.eta.eventWindow;
 
 %% set up trial conditions to compare
 
 clear contrastConditions trialConditions labels condIdx
-contrasts = getUniqueContrasts(expInfo);
-allContrasts = getAllContrasts(expInfo);
+contrasts = getUniqueContrasts(expInfo(ex));
+allContrasts = getAllContrasts(expInfo(ex));
 
 %set up trial conditions for hi-L and hi-R blocks
 trialConditions{1} = initTrialConditions('highRewardSide','left','movementDir','cw','movementTime','late');
@@ -135,7 +81,7 @@ trainTrials = 2:2:size(alignedResps{1},1);
 d = 1;
 for c = 1:length(contrastConditions)
     for t = 1:length(trialConditions)
-        [~, condIdx{d,:}.all] = selectCondition(expInfo, contrastConditions{c}, behavioralData, trialConditions{t});
+        [~, condIdx{d,:}.all] = selectCondition(expInfo(ex), contrastConditions{c}, behavioralData(ex), trialConditions{t});
         condIdx{d,:}.test = intersect(testTrials,condIdx{d}.all);
         condIdx{d,:}.train = intersect(trainTrials,condIdx{d}.all);
         labels{d,1} = strcat(trialLabels{t},contrastLabels{c});
@@ -144,18 +90,15 @@ for c = 1:length(contrastConditions)
 end
 
 %% equalize contrasts between trial types
+clear whichMatchTrials;
 
-%decide whether to use this
-balanced = 1;
-% balanced = 0;
-if balanced == 1
 matchList = {...
     'bAll_mL_sL' , 'bAll_mR_sL';...
     'bAll_mL_sR' , 'bAll_mR_sR';...
-    'bL_mL_sL' , 'bR_mL_sL';...
-    'bL_mR_sL' , 'bR_mR_sL';...
-    'bL_mL_sR' , 'bR_mL_sR';...
-    'bL_mR_sR' , 'bR_mR_sR';...
+    'bL_mL_sL' , 'bR_mR_sL';...
+    'bL_mL_sR' , 'bR_mR_sR';...
+    'bL_mL_sL' , 'bR_mR_sL';...
+    'bL_mL_sR' , 'bR_mR_sR';...
     };
 
 for iM = 1:size(matchList,1)
@@ -178,31 +121,31 @@ for iM = 1:size(matchList,1)
     whichMatchTrials{iM,1} = subsetLTrials;
     whichMatchTrials{iM,2} = subsetRTrials;
 end
-end
+
 %%
 % close all
-figMatrix = figure;
 colors = [0.1 0.7 0.1; 1 .6 0; 0 .4 1; 1 0 0];
 
-set(figMatrix,'position',[40 90 1230 900]);
 respPeriod = stimResps;
 
-whichCells = 'leftStim'; %choose from 'pLabels' array
-if strcmp(whichCells, 'all')
-    plotCells = 1:size(alignedResps{1},3);
+if ex < 9
+    whichCells = 'leftStim'; %choose from 'pLabels' array
+    if strcmp(whichCells, 'all')
+        plotCells = 1:size(alignedResps{1},3);
+    else
+        plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
+    end
 else
-    plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
+        whichCells = 'rightStim'; %choose from 'pLabels' array
+    if strcmp(whichCells, 'all')
+        plotCells = 1:size(alignedResps{1},3);
+    else
+        plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
+    end
 end
 
-% plotCells = intersect(find(bfcH(:,strcmp(pLabels,'rightMov')) > 0),find(bfcH(:,strcmp(pLabels,'leftStim')) == 0));
-
-% condVector = {'bR_mL_sL' 'bR_mR_sL' 'bR_mL_sR' 'bR_mR_sR'};
-% color = colors(2,:);
-% condVector = {'bL_mL_sL' 'bL_mR_sL' 'bL_mL_sR' 'bL_mR_sR'};
-% color = colors(1,:);
+%% stim versus move
 condVector = {'bAll_mL_sL' 'bAll_mR_sL' 'bAll_mL_sR' 'bAll_mR_sR'};
-color = [0 0 0];
-mSize = 12;
 
 clear X;
 for iCond = 1:length(condVector)
@@ -215,58 +158,9 @@ for iCond = 1:length(condVector)
     X(:,iCond) = mean(respPeriod(whichTrials,plotCells),1);
 end
 
-axLimA = 1.05 * [min(min(X)) max(max(X)) min(min(X)) max(max(X))];
-for r = 1:4
-    x1 = X(:,r);
-    for c = 1:4
-        x2 = X(:,c);
-        subplot(4,4,sub2ind([4 4],r,c));
-        hold on;
-        if r == c
-%             cla;
-            h = histogram(x1,linspace(axLimA(1),axLimA(2),11),'Normalization','probability');
-            set(h,'FaceColor',color,...
-                'FaceAlpha',.2...
-                );
-            set(gca,'Color','none');
-            box off;
-            axis square;
-            xlim([axLimA(1) axLimA(2)]);
-        else
-            p = scatter(x1,x2,mSize);
-            l = line([axLimA(1) axLimA(2)],[axLimA(1) axLimA(2)]);
-            set(p,...
-                'MarkerEdgeColor','none',...
-                'Marker','o',...
-                'MarkerFaceColor',color,...
-                'MarkerFaceAlpha',.2...
-                );
-            set(l,...
-                'LineStyle', '--',...
-                'LineWidth',1,...
-                'Color',[.5 .5 .5]...
-                );
-            axis(axLimA);
-        end
-        axis square
-        
-        if c == 4
-            xlabel(condVector{r},'Interpreter','none')
-        end
-        
-        if r == 1
-            ylabel(condVector{c},'Interpreter','none')
-        end
-        
-    end
-end
-
-
+%% high versus low
 condVectorY = {'bR_mL_sL' 'bR_mR_sL' 'bR_mL_sR' 'bR_mR_sR'};
 condVectorZ = {'bL_mL_sL' 'bL_mR_sL' 'bL_mL_sR' 'bL_mR_sR'};
-
-mSize = 12;
-color = [0 0 0];
 
 clear Z Y;
 for iCond = 1:length(condVectorZ)
@@ -289,146 +183,87 @@ for iCond = 1:length(condVectorY)
     Y(:,iCond) = mean(respPeriod(whichTrials,plotCells),1);
 end
 
-axLimB = 1.05 * [min(min([Z Y])) max(max([Z Y])) min(min([Z Y])) max(max([Z Y]))];
-figVector = figure;
-set(figVector,'position',[1280 90 260 900]);
+%% plot all
 
-for s = 1:4
-    subplot(4,1,s)
-    x = Z(:,s);
-    y = Y(:,s);
-    p = scatter(x,y,mSize);
-        l = line([axLimB(1) axLimB(2)],[axLimB(1) axLimB(2)]);
-    title(condVectorZ{s}(end-4:end),'Interpreter','none');  
-    xlabel('bL')
-    ylabel('bR')
-    set(p,...
-        'MarkerEdgeColor','none',...
-        'Marker','o',...
-        'MarkerFaceColor',color,...
-        'MarkerFaceAlpha',.2...
-        );
-    set(l,...
-        'LineStyle', '--',...
-        'LineWidth',1,...
-        'Color',[.5 .5 .5]...
-        );
-    axis(axLimB);
-    axis square
+if ex < 9
+    xCC = X(:,1);
+    xCI = X(:,2);
+    xII = X(:,4);
+    xIC = X(:,3);
+else
+    xCC = X(:,4);
+    xCI = X(:,3);
+    xII = X(:,1);
+    xIC = X(:,2);
 end
+%%
 
 
+figure(1);
+ax1 = subplot(2,4,1);
+hold on;
 
-figure;
-set(gcf,'position', [20 560 1840 220]);
-ax1 = subplot(1,7,1);
-x1 = X(:,2);
-x2 = X(:,1);
-p = scatter(x2,x1,mSize);
-l = line([axLimA(1) axLimA(2)],[axLimA(1) axLimA(2)]);
-ax1.YColor = [.5 0 0];
-ax1.XColor = [0 0 1];
-ax1.LineWidth = 2;
-xlabel('move left')
-ylabel('move right')
-title('stim left')
+p = scatter(xCC,xCI,mSize);
+xlabel('chose contra')
+ylabel('chose ipsi')
+title('stim contra')
 set(p,...
     'MarkerEdgeColor','none',...
     'Marker','o',...
     'MarkerFaceColor',[0 .4 1],...
-    'MarkerFaceAlpha',.2...
-    );
-set(l,...
-    'LineStyle', '--',...
-    'LineWidth',1,...
-    'Color',[.5 .5 .5]...
+    'MarkerFaceAlpha',.3...
     );
 axis(axLimA);
 axis square
 
-ax2 = subplot(1,7,2);
-x1 = X(:,4);
-x2 = X(:,3);
-p = scatter(x2,x1,mSize);
-l = line([axLimA(1) axLimA(2)],[axLimA(1) axLimA(2)]);
-ax2.YColor = [.5 0 0];
-ax2.XColor = [0 0 1];
-ax2.LineWidth = 2;
-xlabel('move left')
-ylabel('move right')
-title('stim right')
+ax2 = subplot(2,4,2);
+hold on;
+p = scatter(xIC,xII,mSize);
+xlabel('chose contra')
+ylabel('chose ipsi')
+title('stim ipsi')
 set(p,...
     'MarkerEdgeColor','none',...
     'Marker','o',...
     'MarkerFaceColor',[1 0 0],...
-    'MarkerFaceAlpha',.2...
-    );
-set(l,...
-    'LineStyle', '--',...
-    'LineWidth',1,...
-    'Color',[.5 .5 .5]...
+    'MarkerFaceAlpha',.3...
     );
 axis(axLimA);
 axis square
 
 for s = 1:4
-    ax = subplot(1,7,s+3);
+    ax = subplot(2,4,s+4);
+    hold on;
     x = Z(:,s);
     y = Y(:,s);
     p = scatter(x,y,mSize);
-        l = line([axLimB(1) axLimB(2)],[axLimB(1) axLimB(2)]);
     title(condVectorZ{s}(end-4:end),'Interpreter','none');  
-    xlabel('bL')
-    ylabel('bR')
+    xlabel('high reward contra')
+    ylabel('high reward ipsi')
     if s < 3
     set(p,...
         'MarkerEdgeColor','none',...
         'Marker','o',...
         'MarkerFaceColor',[0 .4 1],...
-        'MarkerFaceAlpha',.2...
+        'MarkerFaceAlpha',.3...
         );
     elseif s >= 3
         set(p,...
         'MarkerEdgeColor','none',...
         'Marker','o',...
         'MarkerFaceColor',[1 0 0],...
-        'MarkerFaceAlpha',.2...
+        'MarkerFaceAlpha',.3...
         );
     end
-    if mod(s,2) > 0
-        ax.YColor = [0 0 1];
-        ax.XColor = [0 0 1];
-        ax.LineWidth = 2;
-    elseif mod(s,2) == 0 
-        ax.YColor = [.5 0 0];
-        ax.XColor = [.5 0 0];
-        ax.LineWidth = 2;
-    end
-    set(l,...
-        'LineStyle', '--',...
-        'LineWidth',1,...
-        'Color',[.5 .5 .5]...
-        );
     axis(axLimB);
     axis square
 end
 
 %% 
-whichCells = 'stim'; %choose from 'pLabels' array
-if strcmp(whichCells, 'all')
-    plotCells = 1:size(alignedResps{1},3);
-else
-    plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
-end
-
-% plotCells = intersect(find(bfcH(:,strcmp(pLabels,'leftMov')) > 0),find(bfcH(:,strcmp(pLabels,'leftStim')) == 0));
-
 condVector = {'bAll_mL_sL' 'bAll_mR_sL' 'bAll_mL_sR' 'bAll_mR_sR'};
 color = [0 0 0];
-mSize = 12;
 
-
-clear X;
+clear XX;
 for iCond = 1:length(condVector)
     if balanced && sum(sum(strcmp(condVector(iCond),matchList)))
         whichTrials = whichMatchTrials{strcmp(condVector(iCond),matchList)};
@@ -436,27 +271,64 @@ for iCond = 1:length(condVector)
         whichTrials = condIdx{strcmp(labels,condVector{iCond})}.all;
     end
     numTrials = size(whichTrials,2);
-    X(:,:,iCond) = squeeze(mean(alignedResps{1}(whichTrials,:,plotCells),1));
+    XX(:,:,iCond) = squeeze(mean(alignedResps{1}(whichTrials,:,plotCells),1));
 end
 
-
-leftPrefIdx = mean(X(:,:,4) - X(:,:,3),2);
-stdPrefIdx = std(X(:,:,4) - X(:,:,3),[],2)/sqrt(size(X,2));
+if ex > 9
+    meanPrefIdx_C = mean(XX(:,:,1) - XX(:,:,2),2);
+    meanPrefIdx_I = mean(XX(:,:,3) - XX(:,:,4),2);
+    stdPrefIdx = std(XX(:,:,1) - XX(:,:,2),[],2)/sqrt(size(XX,2));
+else
+   meanPrefIdx_C = mean(XX(:,:,4) - XX(:,:,3),2);
+   meanPrefIdx_I = mean(XX(:,:,2) - XX(:,:,1),2);
+stdPrefIdx = std(XX(:,:,4) - XX(:,:,3),[],2)/sqrt(size(XX,2)); 
+end
 
 windowSize = 3;
 b = (1/windowSize)*ones(1,windowSize);
 a = 1;
-LPI_smoothed = filter(b, a, leftPrefIdx);
-std_smoothed = filter(b, a, stdPrefIdx);
-
-
-% figure;
+meanC_smoothed(:,ex) = filter(b, a, meanPrefIdx_C);
+meanI_smoothed(:,ex) = filter(b, a, meanPrefIdx_I);
+std_smoothed(:,ex) = filter(b, a, stdPrefIdx);
+%%
+figure(2);
 hold on;
-plotLine = plot(eventWindow,LPI_smoothed);
-set(plotLine,'LineWidth',2,'Color',[1 0 0]);
-plotCI = fill([eventWindow';flipud(eventWindow')],[(LPI_smoothed-std_smoothed);flipud((LPI_smoothed+std_smoothed))],[1 0 0], 'LineStyle', 'none');
-alpha(0.2);
+subplot(1,2,1)
+hold on;
+plotLine = plot(eventWindow,meanC_smoothed(:,ex));
+set(plotLine,'LineWidth',2,'Color',[0 .4 1]);
+% plotCI = fill([eventWindow';flipud(eventWindow')],[(LPI_smoothed-std_smoothed);flipud((LPI_smoothed+std_smoothed))],[0 0 0], 'LineStyle', 'none');
+plotLine.Color(4) = (0.15);
+xlim([-1 2])
+ylabel('Contra choice – Ipsi choice')
+xlabel('Time from stimulus onset (s)')
+set(gca,'tickdir','out')
 
+subplot(1,2,2)
+hold on;
+plotLine = plot(eventWindow,meanI_smoothed(:,ex));
+set(plotLine,'LineWidth',2,'Color',[1 0 0]);
+% plotCI = fill([eventWindow';flipud(eventWindow')],[(LPI_smoothed-std_smoothed);flipud((LPI_smoothed+std_smoothed))],[0 0 0], 'LineStyle', 'none');
+plotLine.Color(4) = (0.15);
+xlim([-1 2])
+ylabel('Contra choice – Ipsi choice')
+xlabel('Time from stimulus onset (s)')
+set(gca,'tickdir','out')
+
+end
+
+figure(2);
+set(gcf,'position',[816   606   781   269])
+
+hold on;
+subplot(1,2,1)
+plotLine = plot(eventWindow,mean(meanC_smoothed,2));
+hold on;
+set(plotLine,'LineWidth',3,'Color',[0 .4 1]);
+subplot(1,2,2)
+hold on;
+plotLine = plot(eventWindow,mean(meanI_smoothed,2));
+set(plotLine,'LineWidth',3,'Color',[1 0 0]);
 
 
 %% WORKSHOP
@@ -481,3 +353,77 @@ alpha(0.2);
 % set(plotMS,'LineWidth',2,'Color','k');
 % plotSCI = fill([eventWindow';flipud(eventWindow')],[(meanShuffle-stdShuffle);flipud((meanShuffle+stdShuffle))],'k', 'LineStyle', 'none');
 % alpha(0.2);
+
+% figMatrix = figure;
+% set(figMatrix,'position',[40 90 1230 900]);
+% 
+% for r = 1:4
+%     x1 = X(:,r);
+%     for c = 1:4
+%         x2 = X(:,c);
+%         subplot(4,4,sub2ind([4 4],r,c));
+%         hold on;
+%         if r == c
+% %             cla;
+%             h = histogram(x1,linspace(axLimA(1),axLimA(2),11),'Normalization','probability');
+%             set(h,'FaceColor',color,...
+%                 'FaceAlpha',.2...
+%                 );
+%             set(gca,'Color','none');
+%             box off;
+%             axis square;
+%             xlim([axLimA(1) axLimA(2)]);
+%         else
+%             p = scatter(x1,x2,mSize);
+%             l = line([axLimA(1) axLimA(2)],[axLimA(1) axLimA(2)]);
+%             set(p,...
+%                 'MarkerEdgeColor','none',...
+%                 'Marker','o',...
+%                 'MarkerFaceColor',color,...
+%                 'MarkerFaceAlpha',.2...
+%                 );
+%             set(l,...
+%                 'LineStyle', '--',...
+%                 'LineWidth',1,...
+%                 'Color',[.5 .5 .5]...
+%                 );
+%             axis(axLimA);
+%         end
+%         axis square
+%         
+%         if c == 4
+%             xlabel(condVector{r},'Interpreter','none')
+%         end
+%         
+%         if r == 1
+%             ylabel(condVector{c},'Interpreter','none')
+%         end
+%         
+%     end
+% end
+
+% figVector = figure;
+% set(figVector,'position',[1280 90 260 900]);
+% for s = 1:4
+%     subplot(4,1,s)
+%     x = Z(:,s);
+%     y = Y(:,s);
+%     p = scatter(x,y,mSize);
+%         l = line([axLimB(1) axLimB(2)],[axLimB(1) axLimB(2)]);
+%     title(condVectorZ{s}(end-4:end),'Interpreter','none');  
+%     xlabel('bL')
+%     ylabel('bR')
+%     set(p,...
+%         'MarkerEdgeColor','none',...
+%         'Marker','o',...
+%         'MarkerFaceColor',color,...
+%         'MarkerFaceAlpha',.2...
+%         );
+%     set(l,...
+%         'LineStyle', '--',...
+%         'LineWidth',1,...
+%         'Color',[.5 .5 .5]...
+%         );
+%     axis(axLimB);
+%     axis square
+% end

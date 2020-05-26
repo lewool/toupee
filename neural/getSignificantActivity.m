@@ -1,12 +1,11 @@
-function neuralData = getSignificantActivity(expInfo, behavioralData, neuralData, ifmatched)
+function neuralData = getSignificantActivity(expInfo, behavioralData, neuralData, matched)
 % Determine which neurons are active for different aspects of the task:
 % stimulus onset, movement onset, movement direction, reward onset, block
 % identity (ITI)
 
 Fs = 0.1;
-
-if nargin < 4
     
+if matched == 0
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% UNMATCHED STATS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
     for ex = 1:length(expInfo)
         
@@ -130,7 +129,7 @@ if nargin < 4
     
     end
 
-elseif nargin == 4
+elseif matched == 1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% MATCHED STATS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     %check if there is a matched substruct, otherwise error
@@ -168,7 +167,7 @@ elseif nargin == 4
     %%%% compute perimovement activity
 
     % align traces to movement onset
-    event = 'prestimulusQuiescenceEndTimes';
+    event = 'firstMoveTimes';
     mov_alignedTraces = neuralData.matched.eta.alignedResps{strcmp(neuralData.matched.eta.events,event)};
     mov_eventWindow = neuralData.matched.eta.eventWindow;
 
