@@ -1,3 +1,6 @@
+# Paths file
++toupee/+data/getPaths.m
+
 # Windows default autosave extension
 *.asv
 

@@ -1,3 +1,6 @@
 [submodule "+toupee/+behavior/wheelAnalysis"]
 	path = +toupee/+behavior/wheelAnalysis
 	url = https://github.com/cortex-lab/wheelAnalysis
+[submodule "wheelAnalysis"]
+	path = wheelAnalysis
+	url = https://github.com/cortex-lab/wheelAnalysis
