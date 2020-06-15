@@ -1,4 +1,4 @@
-function paths = getPaths()
+function paths = getPathsTemplate()
 % add as many data locations to this list as you want. put your primary one
 % first to break the search-loop faster
 
