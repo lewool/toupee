@@ -1,4 +1,4 @@
-function paths = dataPaths()
+function paths = getPaths()
 % add as many data locations to this list as you want. put your primary one
 % first to break the search-loop faster
 
@@ -9,3 +9,5 @@ paths.server = {...
 
 paths.local = {...
     {'C:\Users\Jai\m2v1_expected_reward\data\subjects'}}; 
+
+end

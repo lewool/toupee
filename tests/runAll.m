@@ -22,7 +22,7 @@ function [status, results] = runAll(varargin)
 % 2) Run all the tests in the repo besides tests for the `+meta/` dir
 %   [status, failures] = toupee.tests.runAll('ignore', 'meta');
 
-import toupee.misc.*
+import toupee.misc.iif
 
 % If we're not ignoring any folders, then run all tests.
 if nargin < 1
