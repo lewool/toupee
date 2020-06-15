@@ -8,6 +8,6 @@ paths.server = {...
     {'\\zubjects.cortexlab.net\Subjects'}}; 
 
 paths.local = {...
-    {'C:\Users\Jai\m2v1_expected_reward\data\subjects'}}; 
+    {'C:\Users\username\local_data\subjects'}}; 
 
 end
