@@ -13,7 +13,7 @@ for ex = 1:length(expInfo)
 %% PULL OUT EXPINFO VARIABLES
 
 block = expInfo(ex).block;
-Timeline = expInfo(ex).Timeline;
+timeline = expInfo(ex).timeline;
 
 %% DETECT PHD FLIPS
 % since the photodiode doesn't always register a WHITE or BLACK signal
@@ -21,7 +21,7 @@ Timeline = expInfo(ex).Timeline;
 % BLACK or GRAY to WHITE to determine when threshold was reached and the
 % feedback signal generated.
 
-phdRaw = Timeline.rawDAQData(:,strcmp({Timeline.hw.inputs.name},'photoDiode'));
+phdRaw = timeline.rawDAQData(:,strcmp({timeline.hw.inputs.name},'photoDiode'));
 
 % apply a boxcar filter to get rid of some trace jaggedness
 windowSize = 3;
@@ -39,7 +39,7 @@ phdInterp = interp1(flipvals, flipvals, phdFilt, 'nearest', 'extrap');
 whenFlips = abs(diff(phdInterp)) > 0;
 
 % get rid of the timestamps when there was no flip
-flipTimes = Timeline.rawDAQTimestamps(2:end); %good enough for govt work
+flipTimes = timeline.rawDAQTimestamps(2:end); %good enough for govt work
 flipTimes(whenFlips < 1) = [];
 
 %% MATCH UP BLOCK TIMES TO STIM ONSET TIMES
@@ -92,12 +92,12 @@ end
 % reward timings are also recorded on the Daq, we can take these at face
 % value and add them to 'timelineTimes'
 
-%gather the reward pulse from Timeline
-reward = Timeline.rawDAQData(:,strcmp({Timeline.hw.inputs.name},'rewardCommand'));
+%gather the reward pulse from timeline
+reward = timeline.rawDAQData(:,strcmp({timeline.hw.inputs.name},'rewardCommand'));
 
 rewardThresh = max(reward)/2;
 rewardTrace = reward > rewardThresh;
-realRewardTimes = Timeline.rawDAQTimestamps(find(rewardTrace(2:end) & ~rewardTrace(1:end-1))+1);
+realRewardTimes = timeline.rawDAQTimestamps(find(rewardTrace(2:end) & ~rewardTrace(1:end-1))+1);
 
 % isolate keyboard rewards by first interpolating them to the Daq times
 allRewardTimes = realRewardTimes;
@@ -146,7 +146,7 @@ eventTimes(l+2).event = 'feedbackTimes';
 eventTimes(l+2).signalsTime = block.events.feedbackTimes(1:numCompleteTrials);
 %a rough guess at when the mouse would expect the valve to fire, based on
 %the mean valve delay
-eventTimes(l+2).daqTime = interp1(Timeline.rawDAQTimestamps,Timeline.rawDAQTimestamps,block.events.feedbackTimes(1:numCompleteTrials) + meanRewDiff,'nearest');
+eventTimes(l+2).daqTime = interp1(timeline.rawDAQTimestamps,timeline.rawDAQTimestamps,block.events.feedbackTimes(1:numCompleteTrials) + meanRewDiff,'nearest');
  
 
 % %% RAW WHEEL TRACES

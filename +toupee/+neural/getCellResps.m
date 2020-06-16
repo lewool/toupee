@@ -5,7 +5,7 @@ function [cellResps, respTimes] = getCellResps(expInfo, allFcell, Fs)
 for ex = 1:length(expInfo)
 %% LOAD DATA FROM EXPINFO
 
-mouseName = expInfo(ex).mouseName;
+subject = expInfo(ex).subject;
 expDate = expInfo(ex).expDate;
 expNum = expInfo(ex).expNum;
 expSeries = expInfo(ex).expSeries;

@@ -61,7 +61,7 @@ elseif nargin > 1
             mouseList = repelem(mouseList,length(expList));
         end
 
-        expInfo.mouseName = mouseList{d}{:};
+        expInfo.subject = mouseList{d}{:};
         expInfo.expDate = expList{d}{1};
         expInfo.expNum = expList{d}{2};
 

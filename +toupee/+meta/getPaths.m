@@ -10,17 +10,17 @@ function paths = getPaths()
 % Examples:
 % ---------
 % 1) Get subject data paths:
-%   [paths] = getPaths();
+%   paths = getPaths();
 
 % Add as many data locations to these fields as you want. Put primary
 % locations first in order to break the search-loop faster.
 
 paths.server = {...
-    {'\\znas.cortexlab.net\Subjects'},...
-    {'\\zserver.cortexlab.net\Data\Subjects'},... 
-    {'\\zubjects.cortexlab.net\Subjects'}}; 
+    '\\znas.cortexlab.net\Subjects',...
+    '\\zserver.cortexlab.net\Data\Subjects',... 
+    '\\zubjects.cortexlab.net\Subjects'}; 
 
 paths.local = {...
-    {'C:\Users\Jai\m2v1_expected_reward\data\subjects'}}; 
+    'C:\Users\Jai\m2v1_expected_reward\data\subjects'}; 
 
 end

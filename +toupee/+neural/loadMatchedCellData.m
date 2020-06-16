@@ -8,7 +8,7 @@ function [allFcell, expInfo] = loadMatchedCellData(expInfo)
 paths = data.dataPaths();
 procDir = paths.local{1}{1};
 
-listing = dir(fullfile(procDir,expInfo(1).mouseName,'matchedCells'));
+listing = dir(fullfile(procDir,expInfo(1).subject,'matchedCells'));
 numPlanes = length(listing) - 2;
 
 for m = 1:length(expInfo)
@@ -17,7 +17,7 @@ for m = 1:length(expInfo)
 
         %load roiMatchData struct for the plane
         folderName = strcat('plane',num2str(iPlane));
-        load(fullfile(procDir,expInfo(m).mouseName,'matchedCells',folderName,'matchFile.mat'));
+        load(fullfile(procDir,expInfo(m).subject,'matchedCells',folderName,'matchFile.mat'));
 
         %load processed data for the session/plane
         dat = load(roiMatchData.allRois{m});

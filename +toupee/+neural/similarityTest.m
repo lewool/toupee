@@ -154,7 +154,7 @@ for f = 1:min([length(expInfo) 2])
     % first plot single session
     if f == 1
         figure;
-        set(gcf, 'Position', [186  554  850 700], 'Name', strcat(expInfo.mouseName,'_', expInfo.expDate));
+        set(gcf, 'Position', [186  554  850 700], 'Name', strcat(expInfo.subject,'_', expInfo.expDate));
     % then plot all sessions
     else
         figure(994);
@@ -206,7 +206,7 @@ for f = 1:min([length(expInfo) 2])
     if f == 1
         % first plot single session
         figure;
-        set(gcf, 'Position', [186  554  850 700], 'Name', strcat(expInfo.mouseName,'_', expInfo.expDate));
+        set(gcf, 'Position', [186  554  850 700], 'Name', strcat(expInfo.subject,'_', expInfo.expDate));
     else
         % then plot all sessions
         figure(1004);
@@ -305,7 +305,7 @@ for f = 1:min([length(expInfo) 2])
     % first plot single session
     if f == 1
         figure;
-        set(gcf,'Position',[100 100 1025 420], 'Name', strcat(expInfo.mouseName,'_', expInfo.expDate));
+        set(gcf,'Position',[100 100 1025 420], 'Name', strcat(expInfo.subject,'_', expInfo.expDate));
     % then plot all sessions
     else
         figure(1005);

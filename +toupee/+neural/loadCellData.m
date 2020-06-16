@@ -11,7 +11,7 @@ function [allFcell,expInfo] = loadCellData(expInfo)
 for ex = 1:length(expInfo)
 %% LOAD EXPINFO VARIABLES
 
-mouseName = expInfo(ex).mouseName;
+subject = expInfo(ex).subject;
 expDate = expInfo(ex).expDate;
 expSeries = expInfo(ex).expSeries;
 
@@ -22,16 +22,16 @@ seriesFolder = strrep(num2str(seriesFolder),' ','_');
 
 paths = data.dataPaths();
 procDir = paths.local{1}{1};
-file1Name = strcat('F_',mouseName,'_',expDate,'_plane',num2str(2),'_proc.mat');
+file1Name = strcat('F_',subject,'_',expDate,'_plane',num2str(2),'_proc.mat');
 file2Name = strcat('Fall.mat');
 
 try
-    load(fullfile(procDir,mouseName,expDate,seriesFolder,file1Name));
+    load(fullfile(procDir,subject,expDate,seriesFolder,file1Name));
     expInfo(ex).numPlanes = dat.ops.nplanes;
     expInfo(ex).numChannels = dat.ops.nchannels;
     procType = 'matlab';
 catch
-    dat = load(fullfile(procDir,mouseName,expDate,seriesFolder,'suite2p','plane0',file2Name));
+    dat = load(fullfile(procDir,subject,expDate,seriesFolder,'suite2p','plane0',file2Name));
     expInfo(ex).numPlanes = dat.ops.nplanes;
     expInfo(ex).numChannels = dat.ops.nchannels;
     procType = 'python';
@@ -40,12 +40,12 @@ end
 if strcmp(procType,'matlab') == 1
     for iPlane = 2:expInfo(ex).numPlanes
         try
-            fileName = strcat('F_',mouseName,'_',expDate,'_plane',num2str(iPlane),'_proc.mat');
-            load(fullfile(procDir,mouseName,expDate,seriesFolder,fileName))
+            fileName = strcat('F_',subject,'_',expDate,'_plane',num2str(iPlane),'_proc.mat');
+            load(fullfile(procDir,subject,expDate,seriesFolder,fileName))
         catch
-            fileName = strcat('F_',mouseName,'_',expDate,'_plane',num2str(iPlane),'.mat');
+            fileName = strcat('F_',subject,'_',expDate,'_plane',num2str(iPlane),'.mat');
             warning(strcat('No processed file found for plane ',num2str(iPlane),'; loading default'));
-            load(fullfile(procDir,mouseName,expDate,seriesFolder,fileName))
+            load(fullfile(procDir,subject,expDate,seriesFolder,fileName))
         end
 
         for iExp = 1:numel(dat.Fcell)
@@ -106,7 +106,7 @@ if strcmp(procType,'matlab') == 1
 elseif strcmp(procType,'python') == 1
     for iPlane = 2:expInfo(ex).numPlanes
         folderName = strcat('plane',num2str(iPlane-1));
-        dat = load(fullfile(procDir,mouseName,expDate,seriesFolder,'suite2p',folderName,file2Name));
+        dat = load(fullfile(procDir,subject,expDate,seriesFolder,'suite2p',folderName,file2Name));
         
         FcellAll = dat.F;
         FcellNeuAll = dat.Fneu;
