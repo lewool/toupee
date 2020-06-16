@@ -1,76 +1,43 @@
-function expInfo = initExpInfo(varargin)
+function expInfo = initExpInfo(details)
+% Gets experiment information for given session(s)
+% 
+% Inputs:
+% -------
+% details : cell
+%   The session(s) details. Use a nested cell for each session, with four
+%   elements in each nested cell: subject name, datestr, session, and
+%   series.
+% 
+% Outputs:
+% --------
+% expInfo : struct
+%   A struct array with each element containing fields with information for
+%   a particular session. The fields for each struct element are:
+%   'mouseName', 'expDate', 'expNum', 'expSeries', 'block', 'Timeline',
+%   'numPlanes', 'numChannels'.
+%
+% Examples:
+% ---------
+% 1) Return experiment info for a single session from a single subject.
+%   details = {{'LEW031', '2020-02-03', 1, 1}};
+%   expInfo = toupee.meta.initExpInfo(details);
+% 2) Return experiment info for multiple sessions from multiple subjects.
+%   details = {{'LEW005', '2018-06-10', 2, [2 3]},... 
+%              {'LEW015', '2019-03-21', 1, 1},...
+%              {'LEW015', '2019-04-12', 1, 1}};
+%   expInfo = toupee.meta.initExpInfo(details);
 
-% SINGLE MOUSE (MATCHED EXPS)
-% varargin{1} = 'LEW007';
-
-% SINGLE EXP
-% varargin{1} = {{'LEW007'}};
-% varargin{2} = {'2018-10-09',1,[1]}; 
-
-% SINGLE MOUSE, SINGLE EXP
-% varargin{1} = {{'LEW008'}};
-% varargin{2} = ...
-%     {{'2019-01-29',1,[1]},...
-%     {'2019-02-07',1,[1]},...
-%     {'2019-02-12',1,[1]}}; 
-
-% MULTI MOUSE, MULTI EXP
-% varargin{1} = ...
-%     {{'LEW005'},...
-%     {'LEW015'},...
-%     {'LEW015'}};
-% varargin{2} = ...
-%     {{'2018-06-10',2,[2 3]},...
-%     {'2019-03-21',1,1},...
-%     {'2019-04-12',1,1}};
-
-%% check arguments
-
-if nargin == 1 %matched-cell experiments
-    
-    mouseName = varargin{1};
-    paths = data.dataPaths();
-    procDir = paths.local{1}{1};
-    if ~exist(char(fullfile(procDir,mouseName,'matchedCells')),'dir')
-        error('No match folder found for this mouse')
-    end
-
-    load(fullfile(procDir,mouseName,'matchedCells','plane1','matchFile.mat'));
-    numSessions = length(roiMatchData.allRois);
-
-    %get expList straight from matchCell data
-    for m = 1:numSessions
-        fileParts = regexp(roiMatchData.allRois{m},'\','split');
-        expList{m}{1} = fileParts{5};
-        expList{m}{2} = str2num(fileParts{6});
-        expList{m}{3} = str2num(fileParts{6});
-    end
-
-    mouseList = {{mouseName}};
-
-elseif nargin == 2
-    
-    mouseList = varargin{1};
-    expList = varargin{2};
-
-elseif nargin > 2
-    error('Inputs should be a mouse name or a mouseList/expList')
-end
-%% assemble expInfo struct
-
-if length(mouseList) == 1
-    mouseList = repelem(mouseList,length(expList));
+% Assemble expInfo struct
+for s = 1:length(details)
+    expInfo(s) = struct(...
+        'mouseName', details{s}{1},...
+        'expDate', details{s}{2},...
+        'expNum', details{s}{3},...
+        'expSeries', details{s}{4},...
+        'block', [],...
+        'Timeline', [],...
+        'numPlanes', [],...
+        'numChannels', []);  %#ok<AGROW>
 end
 
-    for s = 1:length(expList)
-        expInfo(s) = struct(...
-            'mouseName',mouseList{s}{:},...
-            'expDate',expList{s}{1},...
-            'expNum',expList{s}{2},...
-            'expSeries',expList{s}{3},...
-            'block',[],...
-            'Timeline',[],...
-            'numPlanes',[],...
-            'numChannels',[]);
-    end
 end

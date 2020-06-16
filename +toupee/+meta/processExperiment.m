@@ -1,4 +1,4 @@
-function [expInfo, neuralData, behavioralData] = processExperiment(varargin)
+function [expInfo, neuralData, behavioralData] = processExperiment(expInfo)
 
 
 %% load cell data
