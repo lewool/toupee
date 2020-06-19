@@ -20,11 +20,13 @@ This MATLAB toolbox is for processing and analyzing neural data (fluorescence tr
 
 ```
 +toupee\
-      +behavior\
-      +data\
+      +behavioral\
+      	+wheel\
       +meta\
+      	+npy\
       +misc\
       +neural\
+      +plot\
 archive\
 docs\
 examples\
@@ -32,9 +34,9 @@ tests\
 wheelAnalysis\
 ```
 
-The source code that processes and analyzes data is organized in [packages](https://uk.mathworks.com/help/matlab/matlab_oop/scoping-classes-with-packages.html) within `+toupee\`. As for the other folders, `archive\` contains old source code and examples, `docs\` contains files that detail meta-information about this repository, `examples\` contains files that show usage examples of the source code, `tests\` contains unit and integration tests for the source code, and `wheelAnalysis\` is a submodule of the [wheelAnalysis github repository](https://github.com/cortex-lab/wheelAnalysis).
+The source code that processes and analyzes data is organized in [packages](https://uk.mathworks.com/help/matlab/matlab_oop/scoping-classes-with-packages.html) within `+toupee\`. As for the other folders, `archive\` contains old source code and examples, `docs\` contains files that detail meta-information about this repository, `examples\` contains files that show usage examples of the source code, and `tests\` contains unit and integration tests for the source code.
 
-Each directory in this repository contains its own README file summarizing that directory's purpose and contents.
+Each subdirectory in this repository contains its own `readme` file summarizing that directory's purpose and contents.
 
 ## Getting started
 
