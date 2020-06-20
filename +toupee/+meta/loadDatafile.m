@@ -99,7 +99,7 @@ for e = 1:length(expInfo)
                 fprintf('\nLoading %s...', blockFilePath);
                 block = load(blockFilePath);
                 expInfo(e).block = block.block;
-                fprintf('\nDone.');
+                fprintf('\nDone.\n');
                 f(strcmpi(f, 'block')) = [];
             end
         end
@@ -111,7 +111,7 @@ for e = 1:length(expInfo)
                 fprintf('\nLoading %s...', timelineFilePath);
                 timeline = load(timelineFilePath);
                 expInfo(e).timeline = timeline.Timeline;
-                fprintf('\nDone.');
+                fprintf('\nDone.\n');
                 f(strcmpi(f, 'timeline')) = [];
             end
         end
@@ -139,7 +139,7 @@ for e = 1:length(expInfo)
     end
     % Mention any files that weren't able to be found/loaded.
     if ~isempty(f)
-        fprintf('The following files for %s were unable to be found:',...
+        fprintf('\nThe following files for %s were unable to be found:\n',...
                 expRef);
         disp(f);
     end
@@ -184,9 +184,9 @@ if isfile(filepath)  % ensure file exists
             fieldname = fieldnames(x);
             x = x.(fieldname{1});
         end
-        fprintf('\nDone.');
+        fprintf('\nDone\n.');
     catch ex
-        fprintf('\nCould not load %s. Full error message: %s',...
+        fprintf('\nCould not load %s. Full error message: %s\n',...
              filepath, ex.message);
         return
     end
