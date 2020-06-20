@@ -1,109 +1,117 @@
-function [expInfo] = ...
-    processExperiment(details, behavioralSpecs, neuralSpecs)
+function [expInfo] = processExperiment(details, specs)
 % Gets experiment information and data for given session(s)
 % 
+%
 % Inputs:
 % -------
 % details : cell array
-%   The session(s) details. Use a nested cell for each session, with four
-%   elements in each nested cell: subject name (char array), date (char 
-%   array in datestr format), session (int scalar), and series (int array).
-% behavioralSpecs : cell array of name-value pairs
-%   An array of function handles of functions in `+toupee\+behavioral\`.
-%   These functions will be called in order to set up the 'behavioralData'
-%   field of the returned `expInfo` struct.
-% neuralFns : cell array of name-value pairs
-%   An array of function handles of functions in `+toupee\+neural\`. These
-%   functions will be called in order to set up the 'neuralData' field of
-%   the returned `expInfo` struct.
+%   The session(s) details. If getting info for multiple sessions, use a 
+%   nested cell array for each session. The elements in the innermost cells
+%   should be subject name (char array), experiment date (char array in 
+%   datestr format), and experiment number (int scalar). Optionally, there
+%   can be a 4th element: series (int array), which is the specs for the
+%   filenames saved by suite2P.
+%
+% specs : cell array
+%   Specifications for which files to load into the returned `expInfo`
+%   struct. If getting info for multiple sessions, use a nested cell array
+%   for each session. The elements in the innermost cells can be:
+%   1) 'block': loads the block file
+%   2) 'timeline': loads the timeline file
+%   3) individual behavioral or neural data files. These files can
+%   correspond to block data (e.g. 'wheel.position.npy'), timeline data 
+%   (e.g. 'rewardvalve.raw.npy'), or suite2P data (e.g. 'SVD_plane1.mat')
 % 
+%
 % Outputs:
 % --------
 % expInfo : struct
 %   A struct array with each element containing fields with information for
-%   a particular session. The fields for each struct element are:
-%   'subject', 'expDate', 'expNum', 'expSeries', 'block', 'timeline',
-%   'numPlanes', 'numChannels', 'behavioralData', 'neuralData'.
+%   a particular session. The fields for each struct element can include:
+%   'subject', 'expDate', 'expNum', 'expRef', 'expSeries', 'block',
+%   'timeline', 'numPlanes', 'numChannels', 'behavioralData', 'neuralData'.
+%
 %
 % Examples:
 % ---------
-% 1) Return experiment info for a single session from a single subject.
-%   details = {{'LEW031', '2020-02-03', 1, 1}};
+% 1) Return the bare experiment info for a single session from a single
+% subject.
+%   details = {'LEW031', '2020-02-03', 1};
 %   expInfo = toupee.meta.processExperiment(details);
-% 2) Return experiment info for multiple sessions from multiple subjects.
-%   details = {{'LEW031', '2020-02-03', 1, 1},... 
-%              {'LEW015', '2019-03-21', 1, 1},...
+%
+% 2) Return experiment info and the block + timeline files for all of 
+% multiple sessions from multiple subjects.
+%   details = {{'LEW031', '2020-02-03', 1},... 
+%              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
-%   expInfo = toupee.meta.processExperiment(details);
+%   specs = {{'block', 'timeline'}};
+%   specs = repmat(specs, [1, numel(details)])
+%   expInfo = toupee.meta.processExperiment(details, specs);
+%
+% 3) Return experiment info and the block + specific individual data files
+% for particular sessions.
+%   details = {{'LEW031', '2020-02-03', 1},... 
+%              {'LEW037', '2020-03-13', 1},...
+%              {'LEW005', '2018-06-10', 2, [2 3]}};
+%   specs = {{'wheel.position.npy', 'wheel.timestamps.npy'},...
+%            {'block', 'rewardvalve.raw.npy'}, {'block'}};
+%   expInfo = toupee.meta.processExperiment(details, specs);
+%
+%
+% See Also:
+% ---------
+% `toupee.meta.constructExpRef`
+% `toupee.meta.loadDatafile`
+%
 
-% import all other functions in this subpackage, and `iif`
+% Import all other functions in this subpackage and `iif`.
 import toupee.meta.*
 import toupee.misc.iif
 
-% Do some checks on input args
+% Do some checks on input args.
+if ~iscell(details)  % ensure `details` is cell.
+    error('toupee:meta:processExperiment:badInput',...
+          'The "details" input arg should be a cell array')
+elseif ~iscell(details{1})  % convert to nested cell if not already
+    details = {details};
+end
 
-% For each experiment session...
-for e = 1:length(details)
+% For each experiment session, set up `expInfo`.
+for e = 1:numel(details)
     % Initialize expInfo struct.
+    d = details{e};
     expInfo(e) = struct(...
-        'subject', details{e}{1},...
-        'expDate', details{e}{2},...
-        'expNum', details{e}{3},...
-        'expSeries', details{e}{4},...
+        'subject', d{1},...
+        'expDate', d{2},...
+        'expNum', d{3},...
+        'expRef', constructExpRef(d{1}, d{2}, d{3}),...
+        'expSeries', [],...
         'block', [],...
         'timeline', [],...
         'numPlanes', [],...
         'numChannels', [],...
-        'behavioralData', [],...
-        'neuralData', []);  %#ok<AGROW>
-    % Load exp data (block + timeline files)
-    subject = expInfo(e).subject;
-    expDate = expInfo(e).expDate;
-    expNum = expInfo(e).expNum;
-    expRef = constructExpRef(subject, expDate, expNum);
-    serverPaths = getPaths().server;
-    for s = 1:length(serverPaths)  % check each server for exp data
-        p = serverPaths{s};
-        blockFilePath = fullfile(p, subject, expDate, num2str(expNum),...
-                                 strcat(expRef, '_Block.mat'));
-        timelineFilePath = fullfile(p, subject, expDate, num2str(expNum),...
-                                    strcat(expRef, '_Timeline.mat'));
-        % Load block file
-        if isempty(expInfo.block) && isfile(blockFilePath)
-            expInfo.block = load(blockFilePath);
-        end
-        % Load timeline file
-        if isempty(expInfo.timeline) && isfile(timelineFilePath)
-            expInfo.timeline = load(timelineFilePath);
-        end
+        'behavioralData', struct(),...
+        'neuralData', struct());  %#ok<*AGROW>
+    expInfo(e).expSeries = iif(numel(d) > 3, @() d{4}, []);
+    % Throw warning if there are extraneous details.
+    if numel(d) > 4  
+        warning('toupee:meta:processExperiment:extraDetails',...
+            ['There should only be a maximum of 4 types of details, '...
+             'but this session, "%s", was provided with all of the '...
+             'following:'], expInfo(e).expRef);
+         disp(d);
     end
 end
 
-%% load behavioral data
-
-%% load neural data
- 
-%% get event times
-
-allEventTimes = getEventTimes(expInfo, {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'});
-allWheelMoves = getWheelMoves(expInfo, allEventTimes);
-
-if length(allEventTimes) == length(allWheelMoves)
-    behavioralData = struct('eventTimes',allEventTimes,'wheelMoves', allWheelMoves);
-else
-    error('Event/wheel experiment lengths do not match')
+if nargin > 1  % try to load data files
+    if ~iscell(specs)  % ensure `specs` is cell
+        error('toupee:meta:processExperiment:badInput',...
+              'The "specs" input arg should be a cell array')
+    elseif ~iscell(specs{1})  % convert to nested cell if not already
+        specs = {specs};
+    end
+    expInfo = loadDatafile(expInfo, specs);  % load data files
 end
-
-%% collate cell responses across planes
-
-[cellResps, respTimes] = getCellResps(expInfo, allFcell);
-
-%% assemble into relevant structs, for tidiness
-
-neuralData = struct('allFcell',allFcell,'cellResps',cellResps,'respTimes',respTimes);
-
-expInfo.behavioralData = behavioralData;
-expInfo.neuralData = neuralData;
 
 end
 

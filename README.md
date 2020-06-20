@@ -46,4 +46,4 @@ Each subdirectory in this repository contains its own `readme` file summarizing 
 
 *Note*: Each path returned in your personal `getPaths.m` function should contain the following nested directory structure: `\subject\date\session` (for example, the first path in `getPathsTemplate.m` is `\\znas.cortexlab.net\Subjects`, which contains data from the first session on 2020-02-03 for subject LEW031 in `\\znas.cortexlab.net\Subjects\LEW031\2020-02-03\1`)
 
-3. Run examples: In MATLAB, add `toupee\` and all its subfolders to your path. Then open and follow the instructions in the `behavioral_analysis` and `neural_analysis` scripts in `examples\`.
+3. Run examples: In MATLAB, add `toupee\` and all its subfolders to your path. Then open and follow the instructions in the `behavioralAnalysis` and `neuralAnalysis` scripts in `examples\`.
