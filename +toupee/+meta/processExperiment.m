@@ -44,8 +44,7 @@ function [expInfo] = processExperiment(details, specs)
 %   details = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
-%   specs = {{'block', 'timeline'}};
-%   specs = repmat(specs, [1, numel(details)])
+%   specs = {'block', 'timeline'};
 %   expInfo = toupee.meta.processExperiment(details, specs);
 %
 % 3) Return experiment info and the block + specific individual data files
@@ -53,8 +52,7 @@ function [expInfo] = processExperiment(details, specs)
 %   details = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
-%   specs = {{'wheel.position.npy', 'wheel.timestamps.npy'},...
-%            {'block', 'rewardvalve.raw.npy'}, {'block'}};
+%   specs = {{'timeline'}, {'block', 'rewardvalve.raw.npy'}, {'block'}};
 %   expInfo = toupee.meta.processExperiment(details, specs);
 %
 %

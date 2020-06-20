@@ -49,9 +49,8 @@ function expInfo = loadDatafile(expInfo, file)
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
 %   expInfo = toupee.meta.processExperiment(details);
-%   files = {{'wheel.position.npy', 'wheel.timestamps.npy'},...
-%             {'block', 'rewardvalve.raw.npy'}, {'block'}};
-%   expInfo = toupee.meta.processExperiment(expInfo, files);
+%   files = {{'timeline'}, {'block', 'rewardvalve.raw.npy'}, {'block'}};
+%   expInfo = toupee.meta.loadDatafile(expInfo, files);
 %
 %
 % See Also:
@@ -63,10 +62,9 @@ function expInfo = loadDatafile(expInfo, file)
 % @todo distinguish neural vs. behavioral datafiles
 % @todo add support for binary (+ other?) file types
 
-% import all other functions in this subpackage and `iif`.
+% import all other functions in this subpackage.
 import toupee.meta.*
 import toupee.meta.npy.*
-import toupee.misc.iif
 
 % Do some checks on input args.
 % Ensure `file` is cell.
@@ -90,8 +88,8 @@ for e = 1:length(expInfo)
     allPaths = [getPaths().server, getPaths().local];
     f = file{e};  % files to be loaded for current experiment session
     % Check each location for exp data.
-    for i = 1:numel(allPaths)
-        p = allPaths{i};
+    for loc = 1:numel(allPaths)
+        p = allPaths{loc};
         % Get directory where datafiles would be for this location.
         eDir = fullfile(p, subject, expDate, num2str(expNum));
         % Load block file if specified
@@ -100,19 +98,19 @@ for e = 1:length(expInfo)
             if isfile(blockFilePath)  % load file and remove from `f`
                 fprintf('\nLoading %s...', blockFilePath);
                 block = load(blockFilePath);
-                expInfo.block = block.block;
+                expInfo(e).block = block.block;
                 fprintf('\nDone.');
                 f(strcmpi(f, 'block')) = [];
             end
         end
         % Load timeline file if specified
-        if any(strcmpi(s, 'timeline'))  
+        if any(strcmpi(f, 'timeline'))  
             timelineFilePath =... 
                 fullfile(eDir, strcat(expRef, '_Timeline.mat'));
             if isfile(timelineFilePath)  % load file and remove from `f`
                 fprintf('\nLoading %s...', timelineFilePath);
                 timeline = load(timelineFilePath);
-                expInfo.timeline = timeline.Timeline;
+                expInfo(e).timeline = timeline.Timeline;
                 fprintf('\nDone.');
                 f(strcmpi(f, 'timeline')) = [];
             end
@@ -123,7 +121,7 @@ for e = 1:length(expInfo)
         % Try to load data from files.
         fdata =...
             cellfun(@(x) loadMiscFile(x), fullPaths, 'UniformOutput', 0);
-        if ~isempty(fdata)
+        if ~all(cellfun(@(x) isempty(x), fdata))
             % Remove empty values for files data wasn't loaded from.
             nada = cellfun(@(x) isempty(x), fdata);
             fdata(nada) = [];
@@ -133,7 +131,7 @@ for e = 1:length(expInfo)
             fnames = cellfun(@(x) strrep(x, '.', '_'), fnames,...
                              'UniformOutput', 0);  % replace `.` with `_`
             % Add data to `expInfo`.
-            for i = 1:fnames
+            for i = 1:numel(fnames)
                 expInfo(e).behavioralData.(fnames{i}) = fdata{i};
             end
             f(strcmpi(f, loadedFiles)) = [];  % rm loaded files from `f`.
