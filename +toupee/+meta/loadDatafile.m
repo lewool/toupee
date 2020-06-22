@@ -4,7 +4,7 @@ function expInfo = loadDatafile(expInfo, file)
 %
 % Inputs:
 % -------
-% expInfo : struct
+% expInfo : struct array
 %   A struct containing relevant information and data for particular
 %   experiment sessions.
 %
@@ -21,21 +21,20 @@ function expInfo = loadDatafile(expInfo, file)
 %
 % Outputs:
 % --------
-% expInfo : struct
+% expInfo : struct array
 %   A struct containing relevant information and data for particular
 %   experiment sessions.
 %
 %
 % Examples:
 % ---------
-% 1) Load the block file for a single session from a single subject.
+% 1) For a single session: load the block file.
 %   details = {'LEW031', '2020-02-03', 1};
 %   expInfo = toupee.meta.processExperiment(details);
 %   file = {'block'};
 %   expInfo = toupee.meta.loadDatafile(expInfo, file);
 %
-% 2) Load the block + timeline files for multiple sessions from multiple
-% subjects.
+% 2) For multiple sessions: load each session's block + timeline files.
 %   details = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
@@ -43,8 +42,9 @@ function expInfo = loadDatafile(expInfo, file)
 %   files = {'block', 'timeline'};
 %   expInfo = toupee.meta.loadDatafile(expInfo, files);
 %
-% 3) Load the block + specific individual data files dependent on the
-% particular session.
+% 3) For multiple sessions: for the first session load just the timeline
+% file, for the second session load the block file and the raw reward valve 
+% data from timeline, and for the third session load just the block file.
 %   details = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
@@ -65,10 +65,10 @@ function expInfo = loadDatafile(expInfo, file)
 % import all other functions in this subpackage.
 import toupee.meta.*
 import toupee.meta.npy.*
+import toupee.misc.iif
 
 % Do some checks on input args.
-% Ensure `file` is cell.
-if ~iscell(file)
+if ~iscell(file)  % ensure `file` is cell.
     error('toupee:meta:loadDatafile:badInput',...
           'The "file" input arg should be a cell array')
 elseif ~iscell(file{1})  % convert to nested cell if not already
@@ -128,13 +128,21 @@ for e = 1:length(expInfo)
             loadedFiles = f(~nada);
             [~, fnames, ~] = cellfun(@(x) fileparts(x), loadedFiles,...
                                      'UniformOutput', 0);
-            fnames = cellfun(@(x) strrep(x, '.', '_'), fnames,...
-                             'UniformOutput', 0);  % replace `.` with `_`
-            % Add data to `expInfo`.
+            % Ensure the fieldname is struct compatible, and add the file's
+            % data to `expInfo`.
             for i = 1:numel(fnames)
+                % Remove expRef from fieldname.
+                if contains(fnames{i}, expRef)
+                    unders = strfind(fnames{i}, '_');
+                    fnames{i} = fnames{i}(unders(end) + 1 : end);
+                end
+                % Replace `.` & '-' with `_`.
+                fnames{i} = strrep(strrep(fnames{i}, '.', '_'), '-', '+');
+                % Add to `expInfo`.
                 expInfo(e).behavioralData.(fnames{i}) = fdata{i};
             end
-            f(strcmpi(f, loadedFiles)) = [];  % rm loaded files from `f`.
+            % Remove loaded files from `f`.
+            f(strcmpi(f, loadedFiles)) = [];
         end
     end
     % Mention any files that weren't able to be found/loaded.
@@ -184,7 +192,7 @@ if isfile(filepath)  % ensure file exists
             fieldname = fieldnames(x);
             x = x.(fieldname{1});
         end
-        fprintf('\nDone\n.');
+        fprintf('\nDone.\n');
     catch ex
         fprintf('\nCould not load %s. Full error message: %s\n',...
              filepath, ex.message);

@@ -25,7 +25,7 @@ function [expInfo] = processExperiment(details, specs)
 %
 % Outputs:
 % --------
-% expInfo : struct
+% expInfo : struct array
 %   A struct array with each element containing fields with information for
 %   a particular session. The fields for each struct element can include:
 %   'subject', 'expDate', 'expNum', 'expRef', 'expSeries', 'block',
@@ -34,21 +34,21 @@ function [expInfo] = processExperiment(details, specs)
 %
 % Examples:
 % ---------
-% 1) Return the bare experiment info for a single session from a single
-% subject.
+% 1) For a single session: return the bare experiment info.
 %   details = {'LEW031', '2020-02-03', 1};
 %   expInfo = toupee.meta.processExperiment(details);
 %
-% 2) Return experiment info and the block + timeline files for all of 
-% multiple sessions from multiple subjects.
+% 2) For multiple sessions: return each session's respective experiment
+% info and block and timeline files.
 %   details = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
 %   specs = {'block', 'timeline'};
 %   expInfo = toupee.meta.processExperiment(details, specs);
 %
-% 3) Return experiment info and the block + specific individual data files
-% for particular sessions.
+% 3) For multiple sessions: for the first session load just the timeline
+% file, for the second session load the block file and the raw reward valve 
+% data from timeline, and for the third session load just the block file.
 %   details = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
@@ -78,6 +78,11 @@ end
 for e = 1:numel(details)
     % Initialize expInfo struct.
     d = details{e};
+    if numel(d) < 3 || numel(d) > 4
+        error('toupee:meta:processExperiment:badInput',...
+              ['Each session specified in the "details" input arg cell '... 
+               'array should contain exactly 3 or 4 elements'])
+    end
     expInfo(e) = struct(...
         'subject', d{1},...
         'expDate', d{2},...
@@ -91,14 +96,6 @@ for e = 1:numel(details)
         'behavioralData', struct(),...
         'neuralData', struct());  %#ok<*AGROW>
     expInfo(e).expSeries = iif(numel(d) > 3, @() d{4}, []);
-    % Throw warning if there are extraneous details.
-    if numel(d) > 4  
-        warning('toupee:meta:processExperiment:extraDetails',...
-            ['There should only be a maximum of 4 types of details, '...
-             'but this session, "%s", was provided with all of the '...
-             'following:'], expInfo(e).expRef);
-         disp(d);
-    end
 end
 
 if nargin > 1  % try to load data files
