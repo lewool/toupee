@@ -86,7 +86,7 @@ function [expInfo, mask, idx] = filterTrials(expInfo, name, conditions)
 % @todo add code for 'past' conditions
 
 % Do some checks on input args
-if ~iscell(name) || ~ischar(name{1}) || ~ischar(name)...
+if ~ischar(name) && (~iscell(name) || ~ischar(name{1}))...
     || ~isstruct(conditions)
     error('toupee:meta:filterTrials:badInput',...
           ['The "name" input arg must be a char array, and the '...
@@ -293,7 +293,7 @@ for e = 1:numel(expInfo)
         else
             ntc = conditions.nTrialsCirca;
         end
-        hrsv = b.events.highRewardSideValues;
+        hrsv = b.events.highRewardSideValues(1:nt);
         switch conditions.switchBlocks
             case 'beforeRight'
                 switchIdx = find(diff(hrsv) > 0) + 1; 
@@ -330,7 +330,9 @@ for e = 1:numel(expInfo)
             maskIdx(maskIdx < 0) = [];
             maskIdx(maskIdx > nt) = [];
         end
-            mask(maskIdx) = 1;
+        mask2 = false(1, nt);
+        mask2(maskIdx) = 1;
+        mask = mask & mask2;
     end
     
     % whichTrials
@@ -355,8 +357,8 @@ for e = 1:numel(expInfo)
     idx = find(mask);
     maskName = strcat(name, 'Mask');
     idxName = strcat(name, 'Idx');
-    expInfo.behavioralData.trials.(maskName) = mask;
-    expInfo.behavioralData.trials.(idxName) = idx;
+    expInfo(e).behavioralData.trials.(maskName) = mask;
+    expInfo(e).behavioralData.trials.(idxName) = idx;
     
 end
 
