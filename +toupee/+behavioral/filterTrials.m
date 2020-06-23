@@ -37,7 +37,7 @@ function [expInfo, mask, idx] = filterTrials(expInfo, name, conditions)
 %
 % Outputs:
 % --------
-% expInfo : struct
+% expInfo : struct array
 %   A struct containing relevant information and data for particular
 %   experiment sessions.
 %
@@ -141,9 +141,9 @@ for e = 1:numel(expInfo)
     if isfield(conditions, 'response')
         switch conditions.response
             case 'correct'
-                mask2 = b.events.correctResponseValues(1:nt) == 1;
+                mask2 = b.events.feedbackValues(1:nt);
             case 'incorrect'
-                mask2 = b.events.correctResponseValues(1:nt) == -1;
+                mask2 = ~b.events.feedbackValues(1:nt);
             otherwise
                 error('toupee:behavioral:filterTrials:badInput',...
                       ['''%s'' is not a valid value for "response". The ',...

@@ -59,8 +59,8 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 %
 % See Also:
 % ---------
-% `toupee.meta.processExperiment`
-% `toupee.meta.getPaths`
+% toupee.meta.processExperiment
+% toupee.meta.getPaths
 %
 % @todo make better specs for loading neural data
 % @todo distinguish neural vs. behavioral datafiles
@@ -74,7 +74,7 @@ import toupee.misc.iif
 % Do some checks on input args.
 if ~(iscell(files) || ischar(files))  % ensure `files` is cell or char
     error('toupee:meta:loadDatafile:badInput',...
-          'The "file" input arg must be a cell array')
+          'The "file" input arg must be a cell or char array')
 % convert to nested cell if not already
 elseif ischar(files)
     files = {{files}};

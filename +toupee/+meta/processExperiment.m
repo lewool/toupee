@@ -62,8 +62,8 @@ function [expInfo, fdata] = processExperiment(details, files)
 %
 % See Also:
 % ---------
-% `toupee.meta.constructExpRef`
-% `toupee.meta.loadDatafile`
+% toupee.meta.constructExpRef
+% toupee.meta.loadDatafile
 %
 
 % Import all other functions in this subpackage and `iif`.
