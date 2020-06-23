@@ -12,7 +12,7 @@ function [expInfo, fdata] = processExperiment(details, files)
 %   can be a 4th element: series (int array), which is the specs for the
 %   filenames saved by suite2P.
 %
-% files : cell array
+% files : cell array OR char array
 %   File(s) to load into the `expInfo` struct. If loading files for
 %   multiple sessions, use a nested cell array for each session. The
 %   elements in the innermost cells can be:
@@ -103,11 +103,9 @@ for e = 1:numel(details)
 end
 
 if nargin > 1  % try to load data files
-    if ~iscell(files)  % ensure `files` is cell
+    if ~(iscell(files) || ischar(files))  % ensure `files` is cell or char
         error('toupee:meta:processExperiment:badInput',...
-              'The "files" input arg must be a cell array')
-    elseif ~iscell(files{1})  % convert to nested cell if not already
-        files = {files};
+              'The "files" input arg must be a cell or char array')
     end
     [expInfo, fdata] = loadDatafile(expInfo, files);  % load data files
 end

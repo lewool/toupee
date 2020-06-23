@@ -85,10 +85,9 @@ function [expInfo, mask, idx] = filterTrials(expInfo, name, conditions)
 % @todo add more documentation
 % @todo add code for 'past' conditions
 
-import toupee.misc.iif
-
 % Do some checks on input args
-if ~iscell(name) || ~ischar(name{1}) || ~isstruct(conditions)
+if ~iscell(name) || ~ischar(name{1}) || ~ischar(name)...
+    || ~isstruct(conditions)
     error('toupee:meta:filterTrials:badInput',...
           ['The "name" input arg must be a char array, and the '...
            '"conditions" input arg must be a struct']);

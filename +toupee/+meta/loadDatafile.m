@@ -8,7 +8,7 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 %   A struct containing relevant information and data for particular
 %   experiment sessions.
 %
-% files : cell array
+% files : cell array OR char array
 %   File(s) to load into the `expInfo` struct. If loading files for
 %   multiple sessions, use a nested cell array for each session. The
 %   elements in the innermost cells can be:
@@ -72,11 +72,14 @@ import toupee.meta.npy.*
 import toupee.misc.iif
 
 % Do some checks on input args.
-if ~iscell(files)  % ensure `file` is cell.
+if ~(iscell(files) || ischar(files))  % ensure `files` is cell or char
     error('toupee:meta:loadDatafile:badInput',...
           'The "file" input arg must be a cell array')
-elseif ~iscell(files{1})  % convert to nested cell if not already
-    files = {files};
+% convert to nested cell if not already
+elseif ischar(files)
+    files = {{files}};
+elseif ~iscell(files{1})
+    files = files{1};
 end
 % If there are multiple sessions, repmat `file` if necessary.
 if numel(expInfo) > 1 && ~(numel(files) > 1)
@@ -91,7 +94,6 @@ for e = 1:length(expInfo)
     expRef = expInfo(e).expRef;
     allPaths = [getPaths().server, getPaths().local];
     f = files{e};  % files to be loaded for current experiment session
-    fdata(e) = struct();  %#ok<*AGROW>
     % Check each location for exp data.
     for loc = 1:numel(allPaths)
         p = allPaths{loc};
