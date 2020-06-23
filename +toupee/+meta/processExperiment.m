@@ -1,4 +1,4 @@
-function [expInfo] = processExperiment(details, specs)
+function [expInfo, fdata] = processExperiment(details, files)
 % Gets experiment information and data for given session(s)
 % 
 %
@@ -12,25 +12,29 @@ function [expInfo] = processExperiment(details, specs)
 %   can be a 4th element: series (int array), which is the specs for the
 %   filenames saved by suite2P.
 %
-% specs : cell array
-%   Specifications for which files to load into the returned `expInfo`
-%   struct. If getting info for multiple sessions, use a nested cell array
-%   for each session. The elements in the innermost cells can be:
+% files : cell array
+%   File(s) to load into the `expInfo` struct. If loading files for
+%   multiple sessions, use a nested cell array for each session. The
+%   elements in the innermost cells can be:
 %   1) 'block': loads the block file
 %   2) 'timeline': loads the timeline file
-%   3) individual behavioral or neural data files. These files can
-%   correspond to block data (e.g. 'wheel.position.npy'), timeline data 
-%   (e.g. 'rewardvalve.raw.npy'), or suite2P data (e.g. 'SVD_plane1.mat')
+%   3) Full names of individual behavioral or neural data files. These
+%   files can correspond to block data (e.g. 'wheel.position.npy'),
+%   timeline data (e.g. 'rewardvalve.raw.npy'), or suite2P data (e.g. 
+%   'SVD_plane1.mat')
 % 
 %
 % Outputs:
 % --------
 % expInfo : struct array
-%   A struct array with each element containing fields with information for
-%   a particular session. The fields for each struct element can include:
+%   Each array element contains fields with information for a particular
+%   session. The fields for each struct element can include:
 %   'subject', 'expDate', 'expNum', 'expRef', 'expSeries', 'block',
 %   'timeline', 'numPlanes', 'numChannels', 'behavioralData', 'neuralData'.
 %
+% fdata: struct array
+%   Each array element contains the loaded datafiles specified in `files`
+%   for the corresponding experiment session.
 %
 % Examples:
 % ---------
@@ -43,8 +47,8 @@ function [expInfo] = processExperiment(details, specs)
 %   details = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
-%   specs = {'block', 'timeline'};
-%   expInfo = toupee.meta.processExperiment(details, specs);
+%   files = {'block', 'timeline'};
+%   expInfo = toupee.meta.processExperiment(details, files);
 %
 % 3) For multiple sessions: for the first session load just the timeline
 % file, for the second session load the block file and the raw reward valve 
@@ -52,8 +56,8 @@ function [expInfo] = processExperiment(details, specs)
 %   details = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
-%   specs = {{'timeline'}, {'block', 'rewardvalve.raw.npy'}, {'block'}};
-%   expInfo = toupee.meta.processExperiment(details, specs);
+%   files = {{'timeline'}, {'block', 'rewardvalve.raw.npy'}, {'block'}};
+%   expInfo = toupee.meta.processExperiment(details, files);
 %
 %
 % See Also:
@@ -69,7 +73,7 @@ import toupee.misc.iif
 % Do some checks on input args.
 if ~iscell(details)  % ensure `details` is cell.
     error('toupee:meta:processExperiment:badInput',...
-          'The "details" input arg should be a cell array')
+          'The "details" input arg must be a cell array')
 elseif ~iscell(details{1})  % convert to nested cell if not already
     details = {details};
 end
@@ -81,7 +85,7 @@ for e = 1:numel(details)
     if numel(d) < 3 || numel(d) > 4
         error('toupee:meta:processExperiment:badInput',...
               ['Each session specified in the "details" input arg cell '... 
-               'array should contain exactly 3 or 4 elements'])
+               'array must contain exactly 3 or 4 elements'])
     end
     expInfo(e) = struct(...
         'subject', d{1},...
@@ -99,13 +103,13 @@ for e = 1:numel(details)
 end
 
 if nargin > 1  % try to load data files
-    if ~iscell(specs)  % ensure `specs` is cell
+    if ~iscell(files)  % ensure `files` is cell
         error('toupee:meta:processExperiment:badInput',...
-              'The "specs" input arg should be a cell array')
-    elseif ~iscell(specs{1})  % convert to nested cell if not already
-        specs = {specs};
+              'The "files" input arg must be a cell array')
+    elseif ~iscell(files{1})  % convert to nested cell if not already
+        files = {files};
     end
-    expInfo = loadDatafile(expInfo, specs);  % load data files
+    [expInfo, fdata] = loadDatafile(expInfo, files);  % load data files
 end
 
 end
