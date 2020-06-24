@@ -27,7 +27,7 @@ rs = [];
 if nargin == 1
     for s = 1:length(varargin{1})
         expInfo = varargin{1}(s);
-        expInfo = data.loadExpData(expInfo);
+        %expInfo = data.loadExpData(expInfo);
         block = expInfo.block;
         
         contrastValues = block.events.contrastValues;
