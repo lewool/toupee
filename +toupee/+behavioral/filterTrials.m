@@ -1,4 +1,4 @@
-function [expInfo, mask, idx] = filterTrials(expInfo, name, conditions)
+function [expInfo, mask, idx] = filterTrials(expInfo, conditions, name)
 % Filters trials from an experiment session that match some condition(s).
 %
 %
@@ -25,9 +25,9 @@ function [expInfo, mask, idx] = filterTrials(expInfo, name, conditions)
 %       movementDir : 'right', 'left'
 %       highRewardSide : 'right', 'left' 
 %       highRewardSideConcordance : 'concordant', 'discordant'
+%       pastResponse : 'correct', 'incorrect'
 %       pastStimulusSide : 'right', 'left', 'zero'
 %       pastMovementDir : 'right', 'left'
-%       pastResponse : 'correct', 'incorrect'
 %       nTrialsPast : <integer greater than 0, less than nTrials>
 %       circaBlockSwitch : 'beforeRight', 'afterRight', 'beforeLeft',
 %                          'afterLeft'
@@ -70,14 +70,15 @@ function [expInfo, mask, idx] = filterTrials(expInfo, name, conditions)
 %                        'response', 'correct');
 %   conditions3 = struct('highRewardSideConcordance', 'discordant',...
 %                        'response', 'correct');
-%   expInfo = toupee.behavioral.filterTrials(expInfo, 'concordantHigh',...
-%                                      conditions1)
 %   expInfo =...
-%       toupee.behavioral.filterTrials(expInfo, 'concordantHighCorrect',...
-%                                      conditions2)
+%       toupee.behavioral.filterTrials(expInfo, conditions1, ...
+%                                      'concordantHigh')
 %   expInfo =...
-%       toupee.behavioral.filterTrials(expInfo, 'discordantHighCorrect',...
-%                                      conditions3)
+%       toupee.behavioral.filterTrials(expInfo, conditions2, ...
+%                                      'concordantHighCorrect')
+%   expInfo =...
+%       toupee.behavioral.filterTrials(expInfo, conditions1, ...
+%                                      'discordantHighCorrect')
 % 
 % 3) For multiple sessions: for the first session find trials where stim
 % was presented on the 'high-reward' side, and for the second session find
@@ -89,15 +90,28 @@ function [expInfo, mask, idx] = filterTrials(expInfo, name, conditions)
 % @todo add more documentation
 % @todo add code for 'past' conditions
 
-% Do some checks on input args
+% Do some checks on input args.
 if ~ischar(name) && (~iscell(name) || ~ischar(name{1}))...
-    || ~isstruct(conditions)
+    || ~isstruct(conditions)  % make sure input args are correct types
     error('toupee:meta:filterTrials:badInput',...
           ['The "name" input arg must be a char array, and the '...
            '"conditions" input arg must be a struct']);
 end
+% See if all provided fieldnames are valid.
+validNames = {'reaction', 'action', 'resoonse', 'outcome', 'repeatType', ....
+              'stimulusSide', 'contrasts', 'movementDir', ...
+              'highRewardSide', 'highRewardSideConcordance', ...
+              'pastResponse', 'pastStimulusSide', 'pastMovementDir', ...
+              'nTrialsBack', 'circaBlockSwitch', 'nTrialsCirca', ...
+              'whichTrials'};
+givenNames = fieldnames(conditions);          
+if numel(find(strcmp(givenNames, validNames))) ~= numel(givenNames) 
+    error('toupee:meta:filterTrials:badInput',...
+          ['At least one of the fields of the "conditions" input arg ',...
+           'does not have a valid name.']);
+end
 
-% Get specified trials for each experiment session
+% Get specified trials for each experiment session.
 for e = 1:numel(expInfo)
     % Extract relevant data from this session.
     b = expInfo(e).block;  % block
@@ -244,8 +258,13 @@ for e = 1:numel(expInfo)
     
     % highRewardSideConcordance
     if isfield(conditions, 'highRewardSideConcordance')
-        concordance = sign(b.events.highRewardSideValues(1:nt))...
-                      == sign(b.events.contrastValues(1:nt));
+        % when stimulus appears on high reward side, or stimulus contrast
+        % is 0 (we include this latter case for ease of plotting
+        % psychometrics)
+        concordance = sign(b.events.contrastValues(1:nt))...
+                      == sign(b.events.highRewardSideValues(1:nt))...
+                      |...
+                      sign(b.events.contrastValues(1:nt)) == 0;
         switch conditions.highRewardSideConcordance
             case 'concordant'
                 mask2 = concordance;
@@ -261,6 +280,14 @@ for e = 1:numel(expInfo)
         mask = mask & mask2;
     end
     
+    % pastResponse
+    if isfield(conditions, 'pastResponse')
+        switch conditions.pastResponse
+            case 'left'
+            case 'right'
+        end
+    end
+    
     % pastStimulusSide
     if isfield(conditions, 'pastStimulusSide')
         switch conditions.pastStimulusSide
@@ -273,14 +300,6 @@ for e = 1:numel(expInfo)
     % pastMovementDir
     if isfield(conditions, 'pastMovementDir')
         switch conditions.pastMovementDir
-            case 'left'
-            case 'right'
-        end
-    end
-    
-    % pastResponse
-    if isfield(conditions, 'pastResponse')
-        switch conditions.pastResponse
             case 'left'
             case 'right'
         end

@@ -8,7 +8,7 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 %   A struct containing relevant information and data for particular
 %   experiment sessions.
 %
-% files : cell array OR char array
+% files : char array OR cell array
 %   File(s) to load into the `expInfo` struct. If loading files for
 %   multiple sessions, use a nested cell array for each session. The
 %   elements in the innermost cells can be:
@@ -79,7 +79,7 @@ if ~(iscell(files) || ischar(files))  % ensure `files` is cell or char
 elseif ischar(files)
     files = {{files}};
 elseif ~iscell(files{1})
-    files = files{1};
+    files = {files};
 end
 % If there are multiple sessions, repmat `file` if necessary.
 if numel(expInfo) > 1 && ~(numel(files) > 1)

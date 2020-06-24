@@ -12,7 +12,7 @@ function [expInfo, fdata] = processExperiment(details, files)
 %   can be a 4th element: series (int array), which is the specs for the
 %   filenames saved by suite2P.
 %
-% files : cell array OR char array
+% files : char array OR cell array
 %   File(s) to load into the `expInfo` struct. If loading files for
 %   multiple sessions, use a nested cell array for each session. The
 %   elements in the innermost cells can be:
