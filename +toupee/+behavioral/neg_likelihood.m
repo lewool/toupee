@@ -35,7 +35,7 @@ pp = data(3,:);
 if any(pars<parmin) || any(pars>parmax)
    l = 10000000;
    return
-end;
+end
 
 probs = eval([P_model,'(pars,xx)']);
 

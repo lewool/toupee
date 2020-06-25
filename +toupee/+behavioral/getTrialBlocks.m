@@ -42,7 +42,7 @@ function [expInfo, blocks] = getTrialBlocks(expInfo)
 %
 % See Also:
 % ---------
-% toupee.behavioral.filterTrials
+% toupee.behavioral.getTrials
 %
 
 ne = numel(expInfo);  % number of experiment sessions
