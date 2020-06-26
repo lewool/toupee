@@ -8,10 +8,6 @@ function [expInfo, mask, idx] = getTrials(expInfo, conditions, name)
 %   A struct containing relevant information and data for particular
 %   experiment sessions.
 %
-% name : cell array
-%   User-defined name for the field in which the trials info will be saved
-%   into in `expInfo.behavioralData.trials.`
-%
 % conditions : struct array
 %   A struct whose fields specify which trials to select. The possible
 %   fields and their values are:
@@ -33,6 +29,10 @@ function [expInfo, mask, idx] = getTrials(expInfo, conditions, name)
 %                          'afterLeft'
 %       nTrialsCirca : <integer greater than 0, less than nTrials>
 %       whichTrials : <boolean mask array OR numeric int idx array>
+%
+% name : chary array OR cell array
+%   User-defined name for the field in which the trials info will be saved
+%   into in `expInfo.behavioralData.trials.`
 %
 %
 % Outputs:
@@ -63,8 +63,8 @@ function [expInfo, mask, idx] = getTrials(expInfo, conditions, name)
 % 'low-reward' side.
 %   details = {{'LEW031', '2020-02-03', 1},...
 %              {'LEW032', '2020-03-12', 1, [1, 2]}};
-%   specs = {'timeline', 'block'};
-%   expInfo = toupee.meta.processExperiment(details, specs);
+%   files = {'timeline', 'block'};
+%   expInfo = toupee.meta.processExperiment(details, files);
 %   conditions1 = struct('highRewardSideConcordance', 'concordant');
 %   conditions2 = struct('highRewardSideConcordance', 'concordant',...
 %                        'response', 'correct');

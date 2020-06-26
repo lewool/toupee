@@ -66,10 +66,10 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 % @todo distinguish neural vs. behavioral datafiles
 % @todo add support for binary (+ other?) file types
 
-% import all other functions in this subpackage.
+% import all other functions in this subpackage and `+misc`.
 import toupee.meta.*
 import toupee.meta.npy.*
-import toupee.misc.iif
+import toupee.misc.*
 
 % Do some checks on input args.
 if ~(iscell(files) || ischar(files))  % ensure `files` is cell or char
@@ -94,76 +94,91 @@ for e = 1:length(expInfo)
     expRef = expInfo(e).expRef;
     allPaths = [getPaths().server, getPaths().local];
     f = files{e};  % files to be loaded for current experiment session
-    % Check each location for exp data.
-    for loc = 1:numel(allPaths)
-        p = allPaths{loc};
-        % Get directory where datafiles would be for this location.
-        eDir = fullfile(p, subject, expDate, num2str(expNum));
-        % Load block file if specified
-        if any(strcmpi(f, 'block'))  
-            blockFilePath = fullfile(eDir, strcat(expRef, '_Block.mat'));
-            if isfile(blockFilePath)  % load file and remove from `f`
-                fprintf('\nLoading %s...', blockFilePath);
-                block = load(blockFilePath);
-                expInfo(e).block = block.block;
-                fdata(e).block = expInfo(e).block;
-                fprintf('\nDone.\n');
-                f(strcmpi(f, 'block')) = [];
-            end
-        end
-        % Load timeline file if specified
-        if any(strcmpi(f, 'timeline'))  
-            timelineFilePath =... 
-                fullfile(eDir, strcat(expRef, '_Timeline.mat'));
-            if isfile(timelineFilePath)  % load file and remove from `f`
-                fprintf('\nLoading %s...', timelineFilePath);
-                timeline = load(timelineFilePath);
-                expInfo(e).timeline = timeline.Timeline;
-                fdata(e).timeline = expInfo(e).timeline;
-                fprintf('\nDone.\n');
-                f(strcmpi(f, 'timeline')) = [];
-            end
-        end
-        % Load any specified misc individual data files.
-        % Create full paths for files in `f`.
-        fullPaths = cellfun(@(x) fullfile(eDir, x), f, 'UniformOutput', 0);
-        % Try to load data from files.
-        fdataE =...  % the loaded data from the datafiles for current `e`
-            cellfun(@(x) loadMiscFile(x), fullPaths, 'UniformOutput', 0);
-        if ~all(cellfun(@(x) isempty(x), fdataE))
-            % Remove empty values for files data wasn't loaded from.
-            nada = cellfun(@(x) isempty(x), fdataE);
-            fdataE(nada) = [];
-            loadedFiles = f(~nada);
-            [~, fnames, ~] = cellfun(@(x) fileparts(x), loadedFiles,...
-                                     'UniformOutput', 0);
-            % Ensure the fieldname is struct compatible, and add the file's
-            % data to `expInfo`.
-            for i = 1:numel(fnames)
-                % Remove expRef from fieldname.
-                if contains(fnames{i}, expRef)
-                    unders = strfind(fnames{i}, '_');
-                    fnames{i} = fnames{i}(unders(end) + 1 : end);
-                end
-                % Replace `.` & '-' with `_`.
-                fnames{i} = strrep(strrep(fnames{i}, '.', '_'), '-', '+');
-                % Add to `expInfo`.
-                expInfo(e).behavioralData.(fnames{i}) = fdataE{i};
-                fdata(e).(fnames{i}) = fdataE{i};
-            end
-            % Remove loaded files from `f`.
-            f(strcmpi(f, loadedFiles)) = [];
+    % Get all possible directories where datafiles could be.
+    eDir = cellfun(@(p) fullfile(p, subject, expDate, num2str(expNum)),...
+                   allPaths, 'uni', 0);
+    
+    % Load block file if specified.
+    if any(strcmpi(f, 'block'))
+        blockFilePath =...
+            cellfun(@(dir) fullfile(dir, strcat(expRef, '_Block.mat')),...
+                    eDir, 'uni', 0);
+        % Load file and remove from `f`.
+        if any(isfile(blockFilePath))
+            idx = find(isfile(blockFilePath), 1);
+            blockFilePath = blockFilePath{idx};
+            fprintf('\nLoading %s...', blockFilePath);
+            block = load(blockFilePath);
+            expInfo(e).block = block.block;
+            fdata(e).block = expInfo(e).block;
+            fprintf('\nDone.\n');
+            f(strcmpi(f, 'block')) = [];
         end
     end
-    % Mention any files that weren't able to be found/loaded.
-    if ~isempty(f)
-        fprintf('\nThe following files for %s were unable to be found:\n',...
-                expRef);
-        disp(f);
+    
+    % Load timeline file if specified
+    if any(strcmpi(f, 'timeline'))
+        timelineFilePath =...
+            cellfun(@(dir) fullfile(dir, strcat(expRef, '_Timeline.mat')),...
+                    eDir, 'uni', 0);
+        % Load file and remove from `f`.
+        if any(isfile(timelineFilePath))
+            idx = find(isfile(timelineFilePath), 1);
+            timelineFilePath = timelineFilePath{idx};
+            fprintf('\nLoading %s...', timelineFilePath);
+            timeline = load(timelineFilePath);
+            expInfo(e).timeline = timeline.Timeline;
+            fdata(e).timeline = expInfo(e).timeline;
+            fprintf('\nDone.\n');
+            f(strcmpi(f, 'timeline')) = [];
+        end
+    end
+
+    % Load any specified misc individual data files.
+    % Create full paths for files in `f`.
+    fullPaths = cellfun(@(x) fullfile(eDir, x), f, 'uni', 0);
+    % Try to load data from files.
+    fdataE =...  % the loaded data from the datafiles for current `e`
+        cellfun(@(x) cellfun(@(y) loadMiscFile(y), x, 'uni', 0), fullPaths, 'uni', 0);
+    fdataE = cellflat(fdataE);
+    % If we loaded some data, then clean file names and assign to `expInfo`
+    % and `fdata`
+    if ~all(cellfun(@(x) isempty(x), fdataE))
+        % Remove empty values for files data wasn't loaded from.
+        nada = cellfun(@(x) isempty(x), fdataE);
+        fdataE(nada) = [];
+        loadedFiles = f(~nada);
+        [~, fnames, ~] = cellfun(@(x) fileparts(x), loadedFiles,...
+            'uni', 0);
+        % Ensure the fieldname is struct compatible, and add the file's
+        % data to `expInfo`.
+        for i = 1:numel(fnames)
+            % Remove expRef from fieldname.
+            if contains(fnames{i}, expRef)
+                unders = strfind(fnames{i}, '_');
+                fnames{i} = fnames{i}(unders(end) + 1 : end);
+            end
+            % Replace `.` & '-' with `_`.
+            fnames{i} = strrep(strrep(fnames{i}, '.', '_'), '-', '+');
+            % Add to `expInfo`.
+            expInfo(e).behavioralData.(fnames{i}) = fdataE{i};
+            fdata(e).(fnames{i}) = fdataE{i};
+        end
+        % Remove loaded files from `f`.
+        f(strcmpi(f, loadedFiles)) = [];
     end
 end
 
+% Mention any files that weren't able to be found/loaded.
+if ~isempty(f)
+    fprintf('\nThe following files for %s were unable to be found:\n',...
+            expRef);
+    disp(f);
 end
+
+
+end
+
 
 function x = loadMiscFile(filepath)
 % Tries to load a single .npy or .mat datafile
@@ -209,5 +224,33 @@ if isfile(filepath)  % ensure file exists
         return
     end
 end
+
+end
+
+
+function clean = cleanFilename(dirty)
+% Cleans a filename to make it compatible as a struct field or table column
+%
+%
+% Inputs:
+% -------
+% dirty : char array
+%   The filename.
+%
+%
+% Outputs:
+% --------
+% clean : char array
+%   The cleaned filename.
+%
+%
+% Examples:
+% ---------
+% 1) Clean filename that begins with numbers and contains dashes:
+%   clean = cleanFilename('2020-02-28_1_LEW032_eye');
+%
+
+
+
 
 end

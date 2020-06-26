@@ -1,4 +1,4 @@
-function eventTimes = getEventTimes(expInfo, signals)
+function [expInfo, eventTimes] = getEventTimes(expInfo, names)
 % for signalsNames, use the exact fieldnames from the block file or you'll get an error
 % e.g. signalsNames = {'stimulusOnTimes' 'interactiveOnTimes' 'stimulusOffTimes'};
 
@@ -50,12 +50,12 @@ flipTimes(whenFlips < 1) = [];
 numCompleteTrials = numel(block.events.endTrialValues);
 
 % find the closest stimWindowUpdate timepoint to every block event
-for iName = 1:length(signals)
-    signalsUpdates{iName} = interp1(block.stimWindowUpdateTimes, block.stimWindowUpdateTimes, block.events.(signals{iName}), 'nearest', 'extrap');
+for iName = 1:length(names)
+    signalsUpdates{iName} = interp1(block.stimWindowUpdateTimes, block.stimWindowUpdateTimes, block.events.(names{iName}), 'nearest', 'extrap');
 end
 
 % set up the corrected-timestamp struct
-eventTimes = struct('event',signals);
+eventTimes = struct('event',names);
 
 for i = 1:length(signalsUpdates)
     updateTimes = signalsUpdates{i}(1:numCompleteTrials);
@@ -75,7 +75,7 @@ for i = 1:length(signalsUpdates)
     end
     
     % save signals event times wrt to stimWindowUpdate times...
-    eventTimes(i).signalsTime = getfield(block.events,signals{i});
+    eventTimes(i).signalsTime = getfield(block.events,names{i});
     eventTimes(i).signalsTime = eventTimes(i).signalsTime(1:numCompleteTrials);
     eventTimes(i).updateTime = updateTimes;
     
@@ -132,7 +132,7 @@ rewardTrialTimes = nan(1,numCompleteTrials);
 rewardTrialTimes(rewardTrialIdx) = realRewardTimes;
 
 % record these values
-l = length(signals);
+l = length(names);
 eventTimes(l+1).event = 'rewardOnTimes';
 eventTimes(l+1).signalsTime = feedbackRewards(1:numCompleteTrials);
 eventTimes(l+1).daqTime = rewardTrialTimes(1:numCompleteTrials);

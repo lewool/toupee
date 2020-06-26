@@ -1,4 +1,4 @@
-function [expInfo, blocks] = getTrialBlocks(expInfo)
+function [expInfo, trialBlocks] = getTrialBlocks(expInfo)
 % Separates trials into the block they came from
 %
 %
@@ -15,7 +15,7 @@ function [expInfo, blocks] = getTrialBlocks(expInfo)
 %   A struct containing relevant information and data for particular
 %   experiment sessions.
 %
-% blocks : cell array
+% trialBlocks : cell array
 %   Contains `numel(expInfo)` number of cells, where each of these cells is
 %   a [nBlocks x 2] cell array, where each row representes a block: the
 %   first element in each row contains an array of the trial indices of
@@ -46,7 +46,7 @@ function [expInfo, blocks] = getTrialBlocks(expInfo)
 %
 
 ne = numel(expInfo);  % number of experiment sessions
-blocks = cell(1, ne);  % initialize `blocks`
+trialBlocks = cell(1, ne);  % initialize `blocks`
 % Get trial blocks for each session
 for e = 1:ne
     % Extract relevant data from this session.
@@ -61,5 +61,5 @@ for e = 1:ne
     curTrialBlocks(:,2) = num2cell(hrsv(startIdx));
     % Assign.
     expInfo(e).behavioralData.trials.blocks = curTrialBlocks;
-    blocks{e} = curTrialBlocks;
+    trialBlocks{e} = curTrialBlocks;
 end

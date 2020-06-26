@@ -9,7 +9,7 @@ function [expInfo, fdata] = processExperiment(details, files)
 %   nested cell array for each session. The elements in the innermost cells
 %   should be subject name (char array), experiment date (char array in 
 %   datestr format), and experiment number (int scalar). Optionally, there
-%   can be a 4th element: series (int array), which is the specs for the
+%   can be a 4th element: series (int array), which is the files for the
 %   filenames saved by suite2P.
 %
 % files : char array OR cell array
@@ -26,13 +26,13 @@ function [expInfo, fdata] = processExperiment(details, files)
 %
 % Outputs:
 % --------
-% expInfo : struct array
+% expInfo : table array
 %   Each array element contains fields with information for a particular
 %   session. The fields for each struct element can include:
 %   'subject', 'expDate', 'expNum', 'expRef', 'expSeries', 'block',
 %   'timeline', 'numPlanes', 'numChannels', 'behavioralData', 'neuralData'.
 %
-% fdata: struct array
+% fdata: table array
 %   Each array element contains the loaded datafiles specified in `files`
 %   for the corresponding experiment session.
 %
@@ -97,7 +97,10 @@ for e = 1:numel(details)
         'timeline', [],...
         'numPlanes', [],...
         'numChannels', [],...
-        'behavioralData', struct(),...
+        'behavioralData', struct(...
+            'trials', [],...
+            'eventTimes', [],...
+            'eventValues', []),...
         'neuralData', struct());  %#ok<*AGROW>
     expInfo(e).expSeries = iif(numel(d) > 3, @() d{4}, []);
 end

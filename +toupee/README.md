@@ -2,11 +2,22 @@
 
 Contains the toupee repository's source code for organizing, analyzing, and plotting behavioral and neural data.
 
-The base datatype of this repository is the `expInfo` struct array returned by `+meta\processExperiment.m`. This struct array contains a struct for each experiment session, where each struct contains meta, behavioral, and neural data for that session. The behavioral and neural data are respectively stored in the `behavioralData` and `neuralData` sub structs. The possible fields in the `behavioralData` struct are `trials` (filtered trials), `eventTimes` (signals and daq times for events of interest),... The possible fields in the `neuralData` struct are... 
+## Data Architecture
 
-Note on function signatures: All the `+meta\` and 'get' functions in `+behavioral\` and `+neural\` require an `expInfo` struct input (though they can output arrays in addition to returning an updated `expInfo` struct). The `+plot\` and analysis functions  in `+behavioral\` and `+neural` accept and return base matlab datatypes (typically cell arrays and/or arrays).
+The base datatype of this repository is `expInfo`, a table returned by `+meta\processExperiment.m`. This table contains a row for each experiment session, and columns for meta, behavioral, and neural data for that session. 
 
-Contents:
+Raw data saved into files from the experiment session (found in the session's directory) can be added to and accessed directly within the `expInfo` table: this data can be loaded via `+meta\loadDatafile.m`, which will make it available in `expInfo` in columns that end with the name `File`. Any number of raw data files can be loaded/added in such a manner.
+
+Specific behavioral and neural data are respectively stored in `expInfo`'s `behavioralData` and `neuralData` sub tables. 
+
+The possible fields in the `behavioralData` table are `trials` (contains indices and masks of relevant trials -> see `+behavioral\filterTrials.m` and `+behavioral\getTrialBlocks.m`), `eventTimes` (signals and daq times for events of interest -> see `+behavioral\getEventTimes.m`), `eventValues` (signals values for events of interest -> see `+behavioral\getEventValues`), and `wheelData` (wheel data from the task -> see `+behavioral\getWheelMoves`). 
+
+The possible fields in the `neuralData` table are... 
+
+Note on function signatures: `+meta\loadDatafile.m` and the 'get' functions in `+behavioral\` and `+neural\` require an `expInfo` table input, and they can return base matlab datatypes in addition to returning an updated `expInfo` table. The `+plot\` and analysis functions  in `+behavioral\` and `+neural` accept and return base matlab datatypes.
+
+## Contents:
+
 `+behavioral\` : Contains code for organizing and computing stats on behavioral data.
 `+meta\` : Contains code for returning meta-information about experiments.
 `+misc\` : Contains miscellaneous helper functions.
