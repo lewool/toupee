@@ -10,11 +10,8 @@ Raw data saved into files from the experiment session (found in the session's di
 
 Specific behavioral and neural data are respectively stored in `expInfo`'s `behavioralData` and `neuralData` sub tables. 
 
-The possible fields in the `behavioralData` table are `trials` (contains indices and masks of relevant trials -> see `+behavioral\filterTrials.m` and `+behavioral\getTrialBlocks.m`), `eventTimes` (signals and daq times for events of interest -> see `+behavioral\getEventTimes.m`), `eventValues` (signals values for events of interest -> see `+behavioral\getEventValues`), and `wheelData` (wheel data from the task -> see `+behavioral\getWheelMoves`). 
 
-The possible fields in the `neuralData` table are... 
-
-Note on function signatures: `+meta\loadDatafile.m` and the 'get' functions in `+behavioral\` and `+neural\` require an `expInfo` table input, and they can return base matlab datatypes in addition to returning an updated `expInfo` table. The `+plot\` and analysis functions  in `+behavioral\` and `+neural` accept and return base matlab datatypes.
+*Note on function signatures*: `+meta\loadDatafile.m` and the 'get' functions in `+behavioral\` and `+neural\` require an `expInfo` table input, and they can return base matlab datatypes in addition to returning an updated `expInfo` table. The `+plot\` and analysis functions  in `+behavioral\` and `+neural` accept and return base matlab datatypes.
 
 ## Contents:
 

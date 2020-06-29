@@ -11,6 +11,7 @@ function paths = getPaths()
 % ---------
 % 1) Get subject data paths:
 %   paths = getPaths();
+%
 
 % Add as many data locations to these fields as you want. Put primary
 % locations first in order to break the search-loop faster.

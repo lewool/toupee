@@ -91,25 +91,13 @@ function [expInfo, fdata] = processExperiment(details, files)
 import toupee.meta.*
 import toupee.misc.iif
 
-% make sure details is cell or char array
-% if char array
-%   check if expRef
-%       make into cell array
-% else if cell array
-%   if all cells are char arrays
-%       check if all are expRefs
-%           fromExpRefs = true
-%   else if all cells are cell arrays
-%       check if each inner cell array can be made into an expRef
-%          fromExpRefs = false
-
 % See if given 1) expRef(s), or 2) subject(s), expDate(s), and expNum(s).
 % Check to make sure good expRefs can be made from all info in `details`.
 % Default assumptions are 1) provided with expRefs, 2) the provided 
 % expRefs, or the details provided to construct expRefs, are good.
 fromExpRefs = true;  
 goodDetails = true;
-% check if given single expRef
+% Check if given single expRef.
 if ischar(details) && isExpRef(details)
     details = {details};  % convert to cell array
     nE = 1;  % number of experiment sessions
@@ -120,7 +108,7 @@ elseif iscell(details) && isExpRef(details{1})
         goodDetails = false; 
     end
     nE = numel(details);
-% check if given single subject, expDate, expNum
+% Check if given single subject, expDate, expNum.
 elseif iscell(details) && ~isExpRef(details{1}) && ~iscell(details{1})...
        && numel(details) >= 3
     if ~isExpRef(constructExpRef(details{1}, details{2}, details{3}))
@@ -130,7 +118,7 @@ elseif iscell(details) && ~isExpRef(details{1}) && ~iscell(details{1})...
     end
     details = {details};  % convert to nested cell array
     nE = 1;
-% check if given multiple subject, expDate, expNum
+% Check if given multiple subject, expDate, expNum.
 elseif iscell(details) && ~isExpRef(details{1}) && iscell(details{1})...
        && numel(details{1}) >= 3
    allExpRefs = cellfun(@(x) isExpRef(constructExpRef(x{1}, x{2}, x{3})),...
@@ -157,11 +145,9 @@ end
 rowNames = iif(fromExpRefs, details,...
                @() cellfun(@(d) constructExpRef(d{1}, d{2}, d{3}), details,...
                            'uni', 0));
-% Specify columns and create `expInfo`.
+% Specify columns and create `expInfo` table.
 columnNames = {'subject', 'expDate', 'expNum', 'expSeries',...
                'nPlanes', 'nChannels', 'behavioralData', 'neuralData'};
-% columnTypes = {'char', 'char', 'uint8', 'char', 'cell',...
-%                'uint8', 'uint8', 'table', 'table'};
 columnTypes = {'cell', 'cell', 'cell', 'cell',...
                'cell', 'cell', 'table', 'table'};
 nC = numel(columnNames);  % number of columns
@@ -183,11 +169,7 @@ else
 end
 
 %% Load datafiles if specified.
-if nargin > 1  
-    if ~(iscell(files) || ischar(files))  % ensure `files` is cell or char
-        error('toupee:meta:processExperiment:badInput',...
-              'The "files" input arg must be a cell or char array')
-    end
+if nargin > 1
     [expInfo, fdata] = loadDatafile(expInfo, files);  % load datafiles
 end
 

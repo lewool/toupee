@@ -1,12 +1,13 @@
-function [expInfo, mask, idx] = getTrials(expInfo, conditions, name)
-% Filters trials from an experiment session that match some condition(s).
+function [expInfo, mask, idx] =...
+    getTrials(expInfo, conditions, colName, sessions)
+% Filters trials from experiment session(s) that match some condition(s)
 %
 %
 % Inputs:
 % -------
-% expInfo : struct array
-%   A struct containing relevant information and data for particular
-%   experiment sessions.
+% expInfo : table
+%   A table containing relevant information and data variables (columns) 
+%   for particular experiment sessions (rows).
 %
 % conditions : struct array
 %   A struct whose fields specify which trials to select. The possible
@@ -30,25 +31,26 @@ function [expInfo, mask, idx] = getTrials(expInfo, conditions, name)
 %       nTrialsCirca : <integer greater than 0, less than nTrials>
 %       whichTrials : <boolean mask array OR numeric int idx array>
 %
-% name : chary array OR cell array
-%   User-defined name for the field in which the trials info will be saved
-%   into in `expInfo.behavioralData.trials.`
+% colName : char array OR cell array
+%   User-defined name for the column in which the trials' info will be
+%   saved into in `expInfo.behavioralData`.
 %
 %
 % Outputs:
 % --------
-% expInfo : struct array
-%   A struct containing relevant information and data for particular
-%   experiment sessions.
+% expInfo : table
+%   The updated `expInfo`.
 %
 % mask : cell array
-%   Contains logical arrays in each cell, with the length of the logical 
-%   arrays equal to the number of trials for the given experiment session.
+%   Contains logical arrays in each cell, with the number of cells equal to
+%   the number of sessions in `expInfo`, and the length of the logical 
+%   arrays equal to the number of completed trials for the given session.
 % 
 % idx : cell array
-%   Contains arrays in each cell, with each array containing the trial
-%   indices that matched the specified conditions for the specified
-%   experiment sessions.
+%   Contains arrays in each cell, with the number of cells equal to
+%   the number of sessions in `expInfo`, and each logical array within a 
+%   cell containing the indices that matched the specified conditions for 
+%   the specified experiment sessions.
 %
 %
 % Examples:
@@ -89,9 +91,11 @@ function [expInfo, mask, idx] = getTrials(expInfo, conditions, name)
 % @todo add explanations for each field in `conditions`
 % @todo add more documentation
 % @todo add code for 'past' conditions
+% @todo add optionality to filter for specific, not all, sessions
+%
 
 % Do some checks on input args.
-if ~ischar(name) && (~iscell(name) || ~ischar(name{1}))...
+if ~ischar(colName) && (~iscell(colName) || ~ischar(colName{1}))...
     || ~isstruct(conditions)  % make sure input args are correct types
     error('toupee:meta:getTrials:badInput',...
           ['The "name" input arg must be a char array, and the '...
@@ -378,8 +382,8 @@ for e = 1:numel(expInfo)
     
     % Finalize `idx`, and add to `expInfo`
     idx = find(mask);
-    maskName = strcat(name, 'Mask');
-    idxName = strcat(name, 'Idx');
+    maskName = strcat(colName, 'Mask');
+    idxName = strcat(colName, 'Idx');
     expInfo(e).behavioralData.trials.(maskName) = mask;
     expInfo(e).behavioralData.trials.(idxName) = idx;
     

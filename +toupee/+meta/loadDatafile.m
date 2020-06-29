@@ -5,8 +5,8 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 % Inputs:
 % -------
 % expInfo : table
-%   A struct containing relevant information and data for particular
-%   experiment sessions.
+%   A table containing relevant information and data variables (columns) 
+%   for particular experiment sessions (rows).
 %
 % files : char array OR cell array
 %   File(s) to load into `expInfo`. If loading files for multiple sessions,
@@ -18,7 +18,7 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 %   files can correspond to block data (e.g. 'wheel.position.npy'),
 %   timeline data (e.g. 'rewardvalve.raw.npy'), or suite2P data (e.g. 
 %   'SVD_plane1.mat')
-% 
+%
 %
 % Outputs:
 % --------
@@ -73,10 +73,11 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 import toupee.meta.*
 import toupee.meta.npy.*
 import toupee.misc.*
-if ~(iscell(files) || ischar(files))  % ensure `files` is cell or char
+% Ensure `files` is cell or char.
+if ~(iscell(files) || ischar(files))
     error('toupee:meta:loadDatafile:badInput',...
           'The "files" input arg must be a cell or char array')
-% convert to nested cell if not already
+% Convert to nested cell if not already.
 elseif ischar(files)
     files = {{files}};
 elseif ~iscell(files{1})
@@ -99,7 +100,7 @@ for iE = 1:nE  % for each experiment session
     expNum = expInfo.('expNum'){iE};
     expRef = expInfo.('Row'){iE};
     f = files{iE};  % files to be loaded for current experiment session
-    % Get all possible directories where datafiles could be.
+    % Get all possible directories of datafiles for this session.
     eDir = cellfun(@(p) fullfile(p, subject, expDate, num2str(expNum)),...
                    allPaths, 'uni', 0);
     
@@ -144,12 +145,12 @@ for iE = 1:nE  % for each experiment session
     % Load any specified misc individual data files.
     % Create full paths for files in `f`.
     fullPaths = cellfun(@(x) fullfile(eDir, x), f, 'uni', 0);
-    % For each file return one path
+    % For each file return one path.
     isPaths = cellfun(@(x) cell2mat(cellfun(@(y) isfile(y), x, 'uni', 0)),...
                       fullPaths, 'uni', 0);
     finalPaths = cellfun(@(x, y) x{y}, fullPaths, isPaths, 'uni', 0);
     % Try to load data from files.
-    % the loaded data from the datafiles for current expRef
+     % the loaded data from the datafiles for current expRef
     fdataE = cellfun(@(x) loadMiscFile(x), finalPaths, 'uni', 0);
     % If we loaded some data, then clean file names and assign to `expInfo`
     % and `fdata`
@@ -160,16 +161,15 @@ for iE = 1:nE  % for each experiment session
             fdataE(sIdxs) = cellfun(@(x) struct2tableNested(x),...
                                     fdataE(sIdxs), 'uni', 0);
         end
-        % Remove empty values for files data wasn't loaded from.
+        % Ensure the filenames are table compatible, and add the files'
+        % data to `expInfo`.
         [~, fnames, exts] =...
             cellfun(@(x) fileparts(x), finalPaths, 'uni', 0);
-        % Ensure the fieldname is table compatible, and add the file's
-        % data to `expInfo`.
         colNames =...
             cellfun(@(x) cleanFilename(x, expRef), fnames, 'uni', 0);
-        % add 'File' suffix
+        % Add 'File' suffix to each column name.
         colNames = cellfun(@(x) strcat(x, 'File'), colNames, 'uni', 0);
-        % Add data as table to `expInfo` and `fdata`
+        % Add the data to the `expInfo` and `fdata` tables.
         expInfo{iE, colNames} = fdataE;
         fdata{iE, colNames} = fdataE;
         % Remove loaded files from `f`.
@@ -208,6 +208,12 @@ function x = loadMiscFile(filepath)
 % ---------
 % 1) Load an .npy file
 %   x = loadMiscFile('path\to\numpy_file.npy');
+%
+%
+% See Also:
+% ---------
+% load
+% readNPY
 %
 
 x = [];  % initialize as empty
@@ -271,7 +277,7 @@ clean = dirty;  % set `clean` to `dirty`, then clean it.
 clean = erase(clean, expRef);
 % Replace `.` & '-' with `_`.
 clean = strrep(strrep(clean, '.', '_'), '-', '_');
-% Remove first letter if incompatible (underscore or number)
+% Remove first letter if incompatible (underscore or number).
 while strcmp(clean(1), '_') || ~isnan(str2double(clean(1)))
     clean(1) = [];
 end

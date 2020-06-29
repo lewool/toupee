@@ -28,6 +28,12 @@ function [expRef, expLog] = constructExpRef(subject, expDate, expNum)
 %   [expRef, expLog] =...
 %       toupee.meta.constructExpRef('LEW031', '2020-02-03', 1);
 %
+%
+% See Also:
+% ---------
+% toupee.meta.deconstructExpRef
+% toupee.meta.isExpRef
+%
 
 % Import all other functions in this subpackage.
 import toupee.meta.*
@@ -35,7 +41,7 @@ import toupee.meta.*
 expRef = sprintf('%s_%i_%s', expDate, expNum, subject);
 % Check to make sure `expRef` is a valid expRef.
 if ~isExpRef(expRef)
-    warning('toupee:meta:constructExpRef:badExpRef',...
+    error('toupee:meta:constructExpRef:badExpRef',...
             ['The constructed expRef, "%s", is not a valid expRef. The ',...
              'input args should be a string, a string in a "yyyy-mm-dd" ',...
              'format, and an int scalar. The input args were: "%s" "%s" ',...

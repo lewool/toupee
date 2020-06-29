@@ -26,14 +26,24 @@ function [subject, expDate, expNum, expSpecs] = deconstructExpRef(expRef)
 %   [subject, expDate, expNum, expSpecs] =...
 %       toupee.meta.deconstructExpRef('2020-02-03_1_LEW031');
 %
+%
+% See Also:
+% ---------
+% toupee.meta.constructExpRef
+% toupee.meta.isExpRef
+%
 
+% Import all other functions in this subpackage and `extractCellVals`.
+import toupee.meta.*
 import toupee.misc.extractCellVals
+
 
 % Ensure `expRef` `isExpRef`
 if ~isExpRef(expRef)
     error('toupee:meta:deconstructExpRef:badInput',...
           'The "expRef" input arg is not a valid expRef');
 end
+% Deconstruct `expRef`.
 expSpecs = strsplit(expRef, '_');
 [expDate, expNum, subject] = extractCellVals(expSpecs);
 expNum = str2double(expNum);
