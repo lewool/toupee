@@ -58,18 +58,18 @@ if ~isequal(class(a), class(b))
           'All input objects must have the same class')
 end
 
+m = a;  % initialize merged obj
 switch class(a)
     case 'struct'  % get fieldnames
-        m = b;
-        fldnmsA = fieldnames(a);
+        fldnmsB = fieldnames(b);
     case 'table'  % get column names
         m = b;
-        fldnmsA = a.Properties.VariableNames;
+        fldnmsB = b.Properties.VariableNames;
 end
 
 % Add each fieldname in `a` to `m`.
-for i = 1:numel(fldnmsA)
-    m.(fldnmsA{i}) = a.(fldnmsA{i});
+for i = 1:numel(fldnmsB)
+    m.(fldnmsB{i}) = b.(fldnmsB{i});
 end
 
 if ~isempty(leftovers)  % make recursive call

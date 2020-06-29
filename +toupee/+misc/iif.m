@@ -27,8 +27,7 @@ end
 
 if isa(result, 'function_handle')
   if nargout == 0 || nargout(result) == 0
-    result();
-    varargout = {};
+    varargout = {result()};
   else
     [varargout{1:nargout}] = result();
   end

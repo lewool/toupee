@@ -1,17 +1,17 @@
 function [expInfo, fdata] = loadDatafile(expInfo, files)
-% Loads data from a file into the `expInfo` struct
+% Loads data from files into the `expInfo` table
 % 
 %
 % Inputs:
 % -------
-% expInfo : struct array
+% expInfo : table
 %   A struct containing relevant information and data for particular
 %   experiment sessions.
 %
 % files : char array OR cell array
-%   File(s) to load into the `expInfo` struct. If loading files for
-%   multiple sessions, use a nested cell array for each session. The
-%   elements in the innermost cells can be:
+%   File(s) to load into `expInfo`. If loading files for multiple sessions,
+%   use a nested cell array for each session. The elements in the innermost
+%   cells can be:
 %   1) 'block': loads the block file
 %   2) 'timeline': loads the timeline file
 %   3) Full names of individual behavioral or neural data files. These
@@ -22,21 +22,21 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 %
 % Outputs:
 % --------
-% expInfo : struct array
-%   A struct containing relevant information and data for particular
-%   experiment sessions.
+% expInfo : table
+%   The updated `expInfo`.
 %
-% fdata: struct array
-%   Each array element contains the loaded datafiles specified in `files`
-%   for the corresponding experiment session.
+% fdata: table
+%   The loaded data from `files`. Each row corresponds to an experiment
+%   session and contains loaded data from `files` in its columns.
+%
 %
 % Examples:
 % ---------
 % 1) For a single session: load the block file.
 %   details = {'LEW031', '2020-02-03', 1};
 %   expInfo = toupee.meta.processExperiment(details);
-%   file = {'block'};
-%   expInfo = toupee.meta.loadDatafile(expInfo, file);
+%   files = 'block';
+%   expInfo = toupee.meta.loadDatafile(expInfo, files);
 %
 % 2) For multiple sessions: load each session's block + timeline files.
 %   details = {{'LEW031', '2020-02-03', 1},... 
@@ -62,38 +62,43 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 % toupee.meta.processExperiment
 % toupee.meta.getPaths
 %
+%
 % @todo make better specs for loading neural data
 % @todo distinguish neural vs. behavioral datafiles
 % @todo add support for binary (+ other?) file types
+%
 
-% import all other functions in this subpackage and `+misc`.
+%% Prerun checks.
+% Import all other functions in this subpackage and `+misc`.
 import toupee.meta.*
 import toupee.meta.npy.*
 import toupee.misc.*
-
-% Do some checks on input args.
 if ~(iscell(files) || ischar(files))  % ensure `files` is cell or char
     error('toupee:meta:loadDatafile:badInput',...
-          'The "file" input arg must be a cell or char array')
+          'The "files" input arg must be a cell or char array')
 % convert to nested cell if not already
 elseif ischar(files)
     files = {{files}};
 elseif ~iscell(files{1})
     files = {files};
 end
-% If there are multiple sessions, repmat `file` if necessary.
-if numel(expInfo) > 1 && ~(numel(files) > 1)
-    files = repmat(files, [1, numel(expInfo)]);
+% If there are multiple experiment sessions, repmat `files` if necessary.
+nE = size(expInfo, 1);  % number of experiment sessions
+if nE > 1 && ~(numel(files) > 1)
+    files = repmat(files, [1, nE]);
 end
 
-% For each experiment session, load datafiles.
-for e = 1:length(expInfo)
-    subject = expInfo(e).subject;
-    expDate = expInfo(e).expDate;
-    expNum = expInfo(e).expNum;
-    expRef = expInfo(e).expRef;
-    allPaths = [getPaths().server, getPaths().local];
-    f = files{e};  % files to be loaded for current experiment session
+%% Load datafiles for each experiment session.
+% Initialize `fdata`.
+fdata = table();
+% Get paths to servers to search for datafiles.
+allPaths = [getPaths().local, getPaths().server];
+for iE = 1:nE  % for each experiment session
+    subject = expInfo.('subject'){iE};
+    expDate = expInfo.('expDate'){iE};
+    expNum = expInfo.('expNum'){iE};
+    expRef = expInfo.('Row'){iE};
+    f = files{iE};  % files to be loaded for current experiment session
     % Get all possible directories where datafiles could be.
     eDir = cellfun(@(p) fullfile(p, subject, expDate, num2str(expNum)),...
                    allPaths, 'uni', 0);
@@ -107,10 +112,11 @@ for e = 1:length(expInfo)
         if any(isfile(blockFilePath))
             idx = find(isfile(blockFilePath), 1);
             blockFilePath = blockFilePath{idx};
-            fprintf('\nLoading %s...', blockFilePath);
+            fprintf('\nLoading %s ...', blockFilePath);
             block = load(blockFilePath);
-            expInfo(e).block = block.block;
-            fdata(e).block = expInfo(e).block;
+            blockTable = struct2tableNested(block.block);
+            expInfo.('blockFile'){iE} = blockTable;
+            fdata.('blockFile'){iE} = blockTable;
             fprintf('\nDone.\n');
             f(strcmpi(f, 'block')) = [];
         end
@@ -125,10 +131,11 @@ for e = 1:length(expInfo)
         if any(isfile(timelineFilePath))
             idx = find(isfile(timelineFilePath), 1);
             timelineFilePath = timelineFilePath{idx};
-            fprintf('\nLoading %s...', timelineFilePath);
+            fprintf('\nLoading %s ...', timelineFilePath);
             timeline = load(timelineFilePath);
-            expInfo(e).timeline = timeline.Timeline;
-            fdata(e).timeline = expInfo(e).timeline;
+            timelineTable = struct2tableNested(timeline.Timeline);
+            expInfo.('timelineFile'){iE} = timelineTable;
+            fdata.('timelineFile'){iE} = timelineTable;
             fprintf('\nDone.\n');
             f(strcmpi(f, 'timeline')) = [];
         end
@@ -137,35 +144,36 @@ for e = 1:length(expInfo)
     % Load any specified misc individual data files.
     % Create full paths for files in `f`.
     fullPaths = cellfun(@(x) fullfile(eDir, x), f, 'uni', 0);
+    % For each file return one path
+    isPaths = cellfun(@(x) cell2mat(cellfun(@(y) isfile(y), x, 'uni', 0)),...
+                      fullPaths, 'uni', 0);
+    finalPaths = cellfun(@(x, y) x{y}, fullPaths, isPaths, 'uni', 0);
     % Try to load data from files.
-    fdataE =...  % the loaded data from the datafiles for current `e`
-        cellfun(@(x) cellfun(@(y) loadMiscFile(y), x, 'uni', 0), fullPaths, 'uni', 0);
-    fdataE = cellflat(fdataE);
+    % the loaded data from the datafiles for current expRef
+    fdataE = cellfun(@(x) loadMiscFile(x), finalPaths, 'uni', 0);
     % If we loaded some data, then clean file names and assign to `expInfo`
     % and `fdata`
     if ~all(cellfun(@(x) isempty(x), fdataE))
-        % Remove empty values for files data wasn't loaded from.
-        nada = cellfun(@(x) isempty(x), fdataE);
-        fdataE(nada) = [];
-        loadedFiles = f(~nada);
-        [~, fnames, ~] = cellfun(@(x) fileparts(x), loadedFiles,...
-            'uni', 0);
-        % Ensure the fieldname is struct compatible, and add the file's
-        % data to `expInfo`.
-        for i = 1:numel(fnames)
-            % Remove expRef from fieldname.
-            if contains(fnames{i}, expRef)
-                unders = strfind(fnames{i}, '_');
-                fnames{i} = fnames{i}(unders(end) + 1 : end);
-            end
-            % Replace `.` & '-' with `_`.
-            fnames{i} = strrep(strrep(fnames{i}, '.', '_'), '-', '+');
-            % Add to `expInfo`.
-            expInfo(e).behavioralData.(fnames{i}) = fdataE{i};
-            fdata(e).(fnames{i}) = fdataE{i};
+        % Convert any structs in `fdataE` to tables
+        sIdxs = cellfun(@(x) isstruct(x), fdataE);
+        if any(sIdxs)
+            fdataE(sIdxs) = cellfun(@(x) struct2tableNested(x),...
+                                    fdataE(sIdxs), 'uni', 0);
         end
+        % Remove empty values for files data wasn't loaded from.
+        [~, fnames, exts] =...
+            cellfun(@(x) fileparts(x), finalPaths, 'uni', 0);
+        % Ensure the fieldname is table compatible, and add the file's
+        % data to `expInfo`.
+        colNames =...
+            cellfun(@(x) cleanFilename(x, expRef), fnames, 'uni', 0);
+        % add 'File' suffix
+        colNames = cellfun(@(x) strcat(x, 'File'), colNames, 'uni', 0);
+        % Add data as table to `expInfo` and `fdata`
+        expInfo{iE, colNames} = fdataE;
+        fdata{iE, colNames} = fdataE;
         % Remove loaded files from `f`.
-        f(strcmpi(f, loadedFiles)) = [];
+        f(strcmpi(f, strcat(fnames, exts))) = [];
     end
 end
 
@@ -211,7 +219,7 @@ if isfile(filepath)  % ensure file exists
         elseif strcmp(ext, '.npy')  % use `readNPY` if .npy
             loadFn = @readNPY;
         end
-        fprintf('\nLoading %s...', filepath);
+        fprintf('\nLoading %s ...', filepath);
         x = loadFn(filepath);
         if isequal(loadFn, @load)  % then get out variable from struct
             fieldname = fieldnames(x);
@@ -228,7 +236,7 @@ end
 end
 
 
-function clean = cleanFilename(dirty)
+function clean = cleanFilename(dirty, expRef)
 % Cleans a filename to make it compatible as a struct field or table column
 %
 %
@@ -236,6 +244,9 @@ function clean = cleanFilename(dirty)
 % -------
 % dirty : char array
 %   The filename.
+% 
+% expRef : char array
+%   The expRef for the given file.
 %
 %
 % Outputs:
@@ -247,10 +258,22 @@ function clean = cleanFilename(dirty)
 % Examples:
 % ---------
 % 1) Clean filename that begins with numbers and contains dashes:
-%   clean = cleanFilename('2020-02-28_1_LEW032_eye');
+%   clean = cleanFilename('2020-02-28_1_LEW032_eye',...
+%                         '2020-02-28_1_LEW032');
+%
+% See Also:
+% ---------
+% genvarname
 %
 
-
-
+clean = dirty;  % set `clean` to `dirty`, then clean it.
+% Remove expRef from filename.
+clean = erase(clean, expRef);
+% Replace `.` & '-' with `_`.
+clean = strrep(strrep(clean, '.', '_'), '-', '_');
+% Remove first letter if incompatible (underscore or number)
+while strcmp(clean(1), '_') || ~isnan(str2double(clean(1)))
+    clean(1) = [];
+end
 
 end

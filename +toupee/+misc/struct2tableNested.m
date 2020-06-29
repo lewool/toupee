@@ -51,21 +51,50 @@ if ~isstruct(s)
           'Input arg must be struct');
 else
     fnames = fieldnames(s);
-    for fnameIdx = 1:numel(fnames)
-        curFld = s.(fnames{fnameIdx});
-        if isequal(class(curFld), 'struct')
+    for iFname = 1 : numel(fnames)  % for each fieldname
+        curFld = s.(fnames{iFname});  % get the field
+        if isequal(class(curFld), 'struct')  % check if its a struct
+            % See if any of the field's fields are structs
             curFldFnames = fieldnames(curFld);
+            curFlds = cellfun(@(fname) curFld.(fname), curFldFnames,...
+                              'uni', 0);
             curFldFnamesStructMask =...
-                cellfun(@(fname) isequal(class(curFld.(fname)), 'struct'),...
-                        curFldFnames);
+                cellfun(@(fld) isequal(class(fld), 'struct'), curFlds);
+            % if field's fields are structs, make recursive call
             if any(curFldFnamesStructMask)
-                s.(fnames{fnameIdx}) = struct2tableNested(curFld);
-            else
-                s.(fnames{fnameIdx}) = struct2table(curFld);
+                s.(fnames{iFname}) = struct2tableNested(curFld);
+            else  % else convert the field to a table
+                % for each struct in the field's struct array
+                for iS = 1:numel(s)  
+                    % If struct fields have different lengths, create
+                    % single-row tables
+                    try
+                        s(iS).(fnames{iFname}) = struct2table(curFld);
+                    catch ex
+                        if strcmp(ex.identifier,...
+                                  ['MATLAB:struct2table:UnequalField'...
+                                   'Lengths'])
+                            s(iS).(fnames{iFname}) =...
+                                struct2table(curFld, 'AsArray', 1);
+                        else
+                            rethrow(ex);
+                        end
+                    end
+                end
             end
         end
     end
-    t = struct2table(s);
+    % If struct fields have different lengths, create single-row tables
+    try
+        t = struct2table(s);
+    catch ex
+        if strcmp(ex.identifier, 'MATLAB:struct2table:UnequalFieldLengths')
+            t = struct2table(s, 'AsArray', 1);
+        else
+            rethrow(ex);
+        end
+    end
 end
 
 end
+
