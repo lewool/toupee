@@ -31,7 +31,7 @@
 % convert text in data var -> categorical data var (example add expDef as
 % data var to `expInfo`)
 
-% combine and split tables
+% combine and split tables (i.e. sessions)
 
 % create custom table properties
 
