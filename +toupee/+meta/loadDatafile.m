@@ -106,10 +106,10 @@ for iE = 1:nE  % for each experiment session
    
    % Get full paths to block and/or timeline files if specified. 
    if any(strcmpi(f, 'block'))
-       f{find(strcmpi(f, 'block'))} = strcat(expRef, '_Block.mat');
+       f{strcmpi(f, 'block')} = strcat(expRef, '_Block.mat');
    end
    if any(strcmpi(f, 'timeline'))
-       f{find(strcmpi(f, 'timeline'))} = strcat(expRef, '_Timeline.mat');
+       f{strcmpi(f, 'timeline')} = strcat(expRef, '_Timeline.mat');
    end
                
     % Load block file if specified.
@@ -192,15 +192,15 @@ for iE = 1:nE  % for each experiment session
         rmIdxs = cellfun(@(x) any(strcmpi(x, strcat(fnames, exts))), f);
         f(rmIdxs) = [];
     end
-end
-
-% Mention any files that weren't able to be found/loaded.
-if ~isempty(f)
-    fprintf('\nThe following files for %s were unable to be found:\n',...
+    
+    % Mention any files that weren't able to be found/loaded.
+    if ~isempty(f)
+        fprintf('\nThe following files for %s were unable to be found:\n',...
             expRef);
-    disp(f);
+        disp(f);
+    end
+    
 end
-
 
 end
 
