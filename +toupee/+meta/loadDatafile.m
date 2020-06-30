@@ -103,62 +103,78 @@ for iE = 1:nE  % for each experiment session
     % Get all possible directories of datafiles for this session.
     eDir = cellfun(@(p) fullfile(p, subject, expDate, num2str(expNum)),...
                    allPaths, 'uni', 0);
-    
+   
+   % Get full paths to block and/or timeline files if specified. 
+   if any(strcmpi(f, 'block'))
+       f{find(strcmpi(f, 'block'))} = strcat(expRef, '_Block.mat');
+   end
+   if any(strcmpi(f, 'timeline'))
+       f{find(strcmpi(f, 'timeline'))} = strcat(expRef, '_Timeline.mat');
+   end
+               
     % Load block file if specified.
-    if any(strcmpi(f, 'block'))
-        blockFilePath =...
-            cellfun(@(dir) fullfile(dir, strcat(expRef, '_Block.mat')),...
-                    eDir, 'uni', 0);
-        % Load file and remove from `f`.
-        if any(isfile(blockFilePath))
-            idx = find(isfile(blockFilePath), 1);
-            blockFilePath = blockFilePath{idx};
-            fprintf('\nLoading %s ...', blockFilePath);
-            block = load(blockFilePath);
-            blockTable = struct2tableNested(block.block);
-            expInfo.('blockFile'){iE} = blockTable;
-            fdata.('blockFile'){iE} = blockTable;
-            fprintf('\nDone.\n');
-            f(strcmpi(f, 'block')) = [];
-        end
-    end
-    
-    % Load timeline file if specified
-    if any(strcmpi(f, 'timeline'))
-        timelineFilePath =...
-            cellfun(@(dir) fullfile(dir, strcat(expRef, '_Timeline.mat')),...
-                    eDir, 'uni', 0);
-        % Load file and remove from `f`.
-        if any(isfile(timelineFilePath))
-            idx = find(isfile(timelineFilePath), 1);
-            timelineFilePath = timelineFilePath{idx};
-            fprintf('\nLoading %s ...', timelineFilePath);
-            timeline = load(timelineFilePath);
-            timelineTable = struct2tableNested(timeline.Timeline);
-            expInfo.('timelineFile'){iE} = timelineTable;
-            fdata.('timelineFile'){iE} = timelineTable;
-            fprintf('\nDone.\n');
-            f(strcmpi(f, 'timeline')) = [];
-        end
-    end
+%     if any(strcmpi(f, 'block'))
+%         blockFilePath =...
+%             cellfun(@(dir) fullfile(dir, strcat(expRef, '_Block.mat')),...
+%                     eDir, 'uni', 0);
+%         % Load file and remove from `f`.
+%         if any(isfile(blockFilePath))
+%             idx = find(isfile(blockFilePath), 1);
+%             blockFilePath = blockFilePath{idx};
+%             fprintf('\nLoading %s ...', blockFilePath);
+%             block = load(blockFilePath);
+%             blockTable = struct2tableNested(block.block);
+%             expInfo.('blockFile'){iE} = blockTable;
+%             fdata.('blockFile'){iE} = blockTable;
+%             fprintf('\nDone.\n');
+%             f(strcmpi(f, 'block')) = [];
+%         end
+%     end
+%     
+%     % Load timeline file if specified
+%     if any(strcmpi(f, 'timeline'))
+%         timelineFilePath =...
+%             cellfun(@(dir) fullfile(dir, strcat(expRef, '_Timeline.mat')),...
+%                     eDir, 'uni', 0);
+%         % Load file and remove from `f`.
+%         if any(isfile(timelineFilePath))
+%             idx = find(isfile(timelineFilePath), 1);
+%             timelineFilePath = timelineFilePath{idx};
+%             fprintf('\nLoading %s ...', timelineFilePath);
+%             timeline = load(timelineFilePath);
+%             timelineTable = struct2tableNested(timeline.Timeline);
+%             expInfo.('timelineFile'){iE} = timelineTable;
+%             fdata.('timelineFile'){iE} = timelineTable;
+%             fprintf('\nDone.\n');
+%             f(strcmpi(f, 'timeline')) = [];
+%         end
+%     end
 
     % Load any specified misc individual data files.
     % Create full paths for files in `f`.
     fullPaths = cellfun(@(x) fullfile(eDir, x), f, 'uni', 0);
-    % For each file return one path.
-    isPaths = cellfun(@(x) cell2mat(cellfun(@(y) isfile(y), x, 'uni', 0)),...
-                      fullPaths, 'uni', 0);
-    finalPaths = cellfun(@(x, y) x{y}, fullPaths, isPaths, 'uni', 0);
+    % Find the first path within each of the possible paths for each file.
+    pathIdxs =...
+        cellfun(@(x) find(cell2mat(cellfun(@(y) isfile(y), x, 'uni', 0)),...
+                          1), fullPaths, 'uni', 0);
+    % Remove all paths for files not found.
+    emptyPathIdxs = cellfun(@(x) isempty(x), pathIdxs);
+    fullPaths(emptyPathIdxs) = [];
+    pathIdxs(emptyPathIdxs) = [];
+    finalPaths = cellfun(@(x, y) x{y}, fullPaths, pathIdxs, 'uni', 0);
     % Try to load data from files.
      % the loaded data from the datafiles for current expRef
     fdataE = cellfun(@(x) loadMiscFile(x), finalPaths, 'uni', 0);
     % If we loaded some data, then clean file names and assign to `expInfo`
     % and `fdata`
     if ~all(cellfun(@(x) isempty(x), fdataE))
-        % Convert any structs in `fdataE` to tables
+        % Convert any structs in `fdataE` to tables, and cellify all data
+        % vars within tables
         sIdxs = cellfun(@(x) isstruct(x), fdataE);
         if any(sIdxs)
             fdataE(sIdxs) = cellfun(@(x) struct2tableNested(x),...
+                                    fdataE(sIdxs), 'uni', 0);
+            fdataE(sIdxs) = cellfun(@(x) cellifyTableVarsNested(x),...
                                     fdataE(sIdxs), 'uni', 0);
         end
         % Ensure the filenames are table compatible, and add the files'
@@ -173,7 +189,8 @@ for iE = 1:nE  % for each experiment session
         expInfo{iE, colNames} = fdataE;
         fdata{iE, colNames} = fdataE;
         % Remove loaded files from `f`.
-        f(strcmpi(f, strcat(fnames, exts))) = [];
+        rmIdxs = cellfun(@(x) any(strcmpi(x, strcat(fnames, exts))), f);
+        f(rmIdxs) = [];
     end
 end
 

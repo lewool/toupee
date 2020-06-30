@@ -35,6 +35,10 @@ function [expInfo, mask, idx] =...
 %   User-defined name for the column in which the trials' info will be
 %   saved into in `expInfo.behavioralData`.
 %
+% sessions : int scalar OR int array OR char array OR cell array (optional)
+%   Specific sessions for which to filter trials from, instead of from all
+%   sessions.
+%
 %
 % Outputs:
 % --------
@@ -94,7 +98,10 @@ function [expInfo, mask, idx] =...
 % @todo add optionality to filter for specific, not all, sessions
 %
 
-% Do some checks on input args.
+%% Prerun checks.
+% Import all functions in `+misc`.
+import toupee.misc.*
+% Ensure input args are of proper type.
 if ~ischar(colName) && (~iscell(colName) || ~ischar(colName{1}))...
     || ~isstruct(conditions)  % make sure input args are correct types
     error('toupee:meta:getTrials:badInput',...
@@ -108,13 +115,20 @@ validNames = {'reaction', 'action', 'resoonse', 'outcome', 'repeatType', ....
               'pastResponse', 'pastStimulusSide', 'pastMovementDir', ...
               'nTrialsBack', 'circaBlockSwitch', 'nTrialsCirca', ...
               'whichTrials'};
-givenNames = fieldnames(conditions);          
-if numel(find(strcmp(givenNames, validNames))) ~= numel(givenNames) 
+givenNames = fieldnames(conditions);
+matchedNames = cellfun(@(x) find(strcmpi(x, validNames)), givenNames,...
+                       'uni', 0);
+% If can't find a match for one of `conditions`' fieldnames, throw error.                   
+if any(cellfun(@(x) isempty(x), matchedNames))
     error('toupee:meta:getTrials:badInput',...
           ['At least one of the fields of the "conditions" input arg ',...
            'does not have a valid name.']);
 end
-
+% Filter though all sessions if `sessions` not specified.
+if nargin < 4
+    sessions = expInfo.('Row');
+end
+%% Filter trials.
 % Get specified trials for each experiment session.
 for e = 1:numel(expInfo)
     % Extract relevant data from this session.

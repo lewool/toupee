@@ -33,15 +33,14 @@ function t = struct2tableNested(s)
 %   t = toupee.misc.struct2tableNested(s);
 %
 
-
 % Import self for recursive call.
 import toupee.misc.struct2tableNested
 
 % Procedure:
 % For each fieldname, check if its a struct. 
-%   If it is, check its fieldnames. 
-%       If any of those nested fieldnames is a struct, make recursive call.
-%       Else convert fieldname to table and add it to struct.
+%  If it is, check its fieldnames. 
+%   If any of those nested fieldnames is a struct, make recursive call.
+%   Else convert fieldname to table and add it to struct.
 %
 % Convert struct to table.
 
@@ -51,17 +50,17 @@ if ~isstruct(s)
           'Input arg must be struct');
 else
     fnames = fieldnames(s);
-    for iFname = 1 : numel(fnames)  % for each fieldname
+    for iFname = 1:numel(fnames)  % for each fieldname
         curFld = s.(fnames{iFname});  % get the field
-        if isequal(class(curFld), 'struct')  % check if its a struct
+        if isstruct(curFld)  % check if its a struct
             % See if any of the field's fields are structs
-            curFldFnames = fieldnames(curFld);
-            curFlds = cellfun(@(fname) curFld.(fname), curFldFnames,...
-                              'uni', 0);
-            curFldFnamesStructMask =...
-                cellfun(@(fld) isequal(class(fld), 'struct'), curFlds);
+            nestedFnames = fieldnames(curFld);
+            nestedFlds =...
+                cellfun(@(fname) curFld.(fname), nestedFnames, 'uni', 0);
+            nestedFldsStructMask =...
+                cellfun(@(fld) isstruct(fld), nestedFlds);
             % if field's fields are structs, make recursive call
-            if any(curFldFnamesStructMask)
+            if any(nestedFldsStructMask)
                 s.(fnames{iFname}) = struct2tableNested(curFld);
             else  % else convert the field to a table
                 % for each struct in the field's struct array
