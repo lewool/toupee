@@ -4,14 +4,14 @@
 
 % sessions = rows; data vars = columns;
 
-% can index with names (char arrays) or numbers (int arrays_
+% can index with names (char arrays) or numbers (int arrays)
 % indexing in with `()`, `{}`, or `.`, -> get subtables, cell arrays, or
 % underlying values within data vars: 
 % expInfo(rows, cols) -> subtable
 % expInfo.(col) -> cell array of full col data
-% expInfo{rows, cols} -> concatenated cell array of rows, cols data
-% expInfo.(col){row} -> underlying data of row, col
-% expInfo{row, col}{1} -> underlying data of row, col
+% [expInfo.col{:}]; -> concatenated underlying data of all cols in row
+% expInfo{rows, cols} -> concatenated cell array of rows, cols
+% [expInfo{rows, cols}{:}] -> concatenated underlying data of rows, cols
 
 % get single data var from single session
 
@@ -36,3 +36,8 @@
 % create custom table properties
 
 % computations & plots with tables
+
+% add a datafile to a particular session
+
+% get blockTable and eventsTable for sessions run on same expDef; show how
+% its impossible for sessions run on different expDefs;

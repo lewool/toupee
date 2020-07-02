@@ -1,4 +1,4 @@
-function [expInfo, mask, idx] =...
+function [expInfo, mask] =...
     getTrials(expInfo, conditions, colName, sessions)
 % Filters trials from experiment session(s) that match some condition(s)
 %
@@ -13,7 +13,7 @@ function [expInfo, mask, idx] =...
 %   A struct whose fields specify which trials to select. The possible
 %   fields and their values are:
 %       reaction : 'early', 'preStimOn', 'preGoCue', 'normal', 'late'
-%       action : 'right', 'left', 'timeout'
+%       choice : 'right', 'left', 'timeout'
 %       response : 'correct', 'incorrect'
 %       outcome : 'rewarded', 'unrewarded'
 %       repeatType : 'random', 'baited'
@@ -22,6 +22,7 @@ function [expInfo, mask, idx] =...
 %       movementDir : 'right', 'left'
 %       highRewardSide : 'right', 'left' 
 %       highRewardSideConcordance : 'concordant', 'discordant'
+%       lowRewardSideConcordance : 'concordant', 'discordant'
 %       pastResponse : 'correct', 'incorrect'
 %       pastStimulusSide : 'right', 'left', 'zero'
 %       pastMovementDir : 'right', 'left'
@@ -49,12 +50,6 @@ function [expInfo, mask, idx] =...
 %   Contains logical arrays in each cell, with the number of cells equal to
 %   the number of sessions in `expInfo`, and the length of the logical 
 %   arrays equal to the number of completed trials for the given session.
-% 
-% idx : cell array
-%   Contains arrays in each cell, with the number of cells equal to
-%   the number of sessions in `expInfo`, and each logical array within a 
-%   cell containing the indices that matched the specified conditions for 
-%   the specified experiment sessions.
 %
 %
 % Examples:
@@ -105,38 +100,42 @@ import toupee.misc.*
 if ~ischar(colName) && (~iscell(colName) || ~ischar(colName{1}))...
     || ~isstruct(conditions)  % make sure input args are correct types
     error('toupee:meta:getTrials:badInput',...
-          ['The "name" input arg must be a char array, and the '...
+          ['The "colName" input arg must be a char array, and the '...
            '"conditions" input arg must be a struct']);
 end
 % See if all provided fieldnames are valid.
-validNames = {'reaction', 'action', 'resoonse', 'outcome', 'repeatType', ....
-              'stimulusSide', 'contrasts', 'movementDir', ...
-              'highRewardSide', 'highRewardSideConcordance', ...
-              'pastResponse', 'pastStimulusSide', 'pastMovementDir', ...
-              'nTrialsBack', 'circaBlockSwitch', 'nTrialsCirca', ...
-              'whichTrials'};
+validNames = {...
+    'reaction', 'choice', 'response', 'outcome', 'repeatType',...
+     'stimulusSide', 'contrasts', 'movementDir', 'highRewardSide',...
+     'highRewardSideConcordance', 'lowRewardSideConcordance',...
+     'pastResponse', 'pastStimulusSide', 'pastMovementDir', ...
+     'nTrialsBack', 'circaBlockSwitch', 'nTrialsCirca', 'whichTrials'};
 givenNames = fieldnames(conditions);
 matchedNames = cellfun(@(x) find(strcmpi(x, validNames)), givenNames,...
                        'uni', 0);
-% If can't find a match for one of `conditions`' fieldnames, throw error.                   
-if any(cellfun(@(x) isempty(x), matchedNames))
-    error('toupee:meta:getTrials:badInput',...
-          ['At least one of the fields of the "conditions" input arg ',...
-           'does not have a valid name.']);
+% If can't find a match for one of `conditions`' fieldnames, throw error.
+badConds = find(cell2mat(cellfun(@(x) isempty(x), matchedNames,...
+                         'uni', 0)));
+if ~isempty(badConds)
+    error('toupee:meta:getTrials:badInput', strcat(['The following ',...
+          'provided fields of the "conditions" input arg do not have ',...
+          'valid names: '], sprintf(' %s', givenNames{badConds})));
 end
 % Filter though all sessions if `sessions` not specified.
 if nargin < 4
     sessions = expInfo.('Row');
 end
 %% Filter trials.
-% Get specified trials for each experiment session.
-for e = 1:numel(expInfo)
+% Get specified trials for each specified experiment session.
+for iE = 1:numel(sessions)
     % Extract relevant data from this session.
-    b = expInfo(e).block;  % block
-    nt = numel(b.events.endTrialValues);  % number of trials
+    expRef = sessions{iE};  % session expRef
+    b = expInfo.BlockFile{expRef};  % block data
+    e = b.events;  % events data
+    nT = numel(b.events.endTrialValues{1});  % number of trials
     % @todo wm = getWheelMoves;
-    % Preassign the mask as all trials
-    mask = true(1, nt);
+    % Preassign the mask to return all trials
+    mask = true(1, nT);
     
     % Start selecting trials from conditions:
     
@@ -151,31 +150,51 @@ for e = 1:numel(expInfo)
         end
     end
     
-    % action
-    if isfield(conditions, 'action')
-        switch conditions.action
+    % choice
+    if isfield(conditions, 'choice')
+        try
+            req = e.responseValues{1}(1:nT);  % required data for condition
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''choice'' condition. Continuing to the next ',...
+                  'session.']), expRef);
+              continue
+        end
+        switch conditions.choice
             case 'right'
-                mask2 = b.events.responseValues(1:nt) == 1;
+                mask2 = req == 1;
             case 'left'
-                mask2 = b.events.responseValues(1:nt) == -1;
+                mask2 = req == -1;
             case 'timeout'
-                mask2 = b.events.responseValues(1:nt) == 0;
+                mask2 = req == 0;
             otherwise
                 error('toupee:behavioral:getTrials:badInput',...
-                      ['''%s'' is not a valid value for "action". The ',...
+                      ['''%s'' is not a valid value for "choice". The ',...
                        'value must be ''right'', ''left'', or ',...
-                       '''timeout''.'], conditions.action);
+                       '''timeout''.'], conditions.choice);
         end
         mask = mask & mask2;
     end
     
     % response
     if isfield(conditions, 'response')
+        try
+            req = e.feedbackValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''response'' condition. Continuing to the next ',...
+                  'session.']), expRef);
+              continue
+        end
         switch conditions.response
             case 'correct'
-                mask2 = b.events.feedbackValues(1:nt);
+                mask2 = req;
             case 'incorrect'
-                mask2 = ~b.events.feedbackValues(1:nt);
+                mask2 = ~req;
             otherwise
                 error('toupee:behavioral:getTrials:badInput',...
                       ['''%s'' is not a valid value for "response". The ',...
@@ -187,7 +206,17 @@ for e = 1:numel(expInfo)
     
     % outcome
     if isfield(conditions, 'outcome')
-        rewardedTrials = b.events.rewardSizeValues(1:nt) > 0;
+        try
+            req = e.rewardSizeValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''outcome'' condition. Continuing to the next ',...
+                  'session.']), expRef);
+              continue
+        end
+        rewardedTrials = req > 0;
         switch conditions.outcome
             case 'rewarded'
                 mask2 = rewardedTrials;
@@ -204,7 +233,17 @@ for e = 1:numel(expInfo)
     
     % repeatType
     if isfield(conditions, 'repeatType')
-        notRepeat = b.events.repeatNumValues(1:nt) == 1;
+        try
+            req = e.repeatNumValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''repeatType'' condition. Continuing to the next ',...
+                  'session.']), expRef);
+              continue
+        end
+        notRepeat = req == 1;
         switch conditions.repeatType
             case 'random'
                 mask2 = notRepeat;
@@ -221,13 +260,23 @@ for e = 1:numel(expInfo)
     
     % stimulusSide
     if isfield(conditions, 'stimulusSide')
+        try
+            req = sign(e.contrastValues{1}(1:nT));
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''stimulusSide'' condition. Continuing to the next ',...
+                  'session.']), expRef);
+              continue
+        end
         switch conditions.stimulusSide
             case 'right'
-                mask2 = b.events.stimulusSide(1:nt) == 1;
+                mask2 = req == 1;
             case 'left'
-                mask2 = b.events.stimulusSide(1:nt) == -1;
+                mask2 = req == -1;
             case 'zero'
-                mask2 = b.events.stimulusSide(1:nt) == 0;
+                mask2 = req == 0;
             otherwise
                 error('toupee:behavioral:getTrials:badInput',...
                       ['''%s'' is not a valid value for "stimulusSide". ',...
@@ -239,20 +288,29 @@ for e = 1:numel(expInfo)
     
     % contrasts
     if isfield(conditions, 'contrasts')
+        try
+            req = e.contrastValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''contrasts'' condition. Continuing to the next ',...
+                  'session.']), expRef);
+              continue
+        end
         if any(conditions.contrasts < -1 | conditions.contrasts > 1)
             error('toupee:behavioral:getTrials:badInput',...
                   ['''%s'' is not a valid value for "contrasts". ',...
                    'The value(s) must be between [-1, 1].'],...
                    num2str(conditions.contrasts));
         end
-        mask2 = any(b.events.contrastValues(1:nt)...
-                    == conditions.contrasts(:), 1);
+        mask2 = any(req == conditions.contrasts(:));
         mask = mask & mask2;
     end
     
     % movementDir @todo need wheel moves
     if isfield(conditions, 'movementDir')
-        switch conditions.movement
+        switch conditions.movementDir
             case 'right'
             case 'left'
         end
@@ -260,11 +318,21 @@ for e = 1:numel(expInfo)
 
     % highRewardSide
     if isfield(conditions, 'highRewardSide')
+        try
+            req = e.highRewardSideValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''highRewardSide'' condition. Continuing to the next ',...
+                  'session.']), expRef);
+              continue
+        end
         switch conditions.highRewardSide
             case 'right'
-                mask2 = b.events.highRewardSideValues(1:nt) == 1;
+                mask2 = req == 1;
             case 'left'
-                mask2 = b.events.highRewardSideValues(1:nt) == -1;
+                mask2 = req == -1;
             otherwise
                 error('toupee:behavioral:getTrials:badInput',...
                       ['''%s'' is not a valid value for ',...
@@ -276,13 +344,21 @@ for e = 1:numel(expInfo)
     
     % highRewardSideConcordance
     if isfield(conditions, 'highRewardSideConcordance')
+        try
+            req = e.contrastValues{1}(1:nT);
+            req2 = e.highRewardSideValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''highRewardSideConcordance'' condition. Continuing ',...
+                  'to the next session.']), expRef);
+              continue
+        end
         % when stimulus appears on high reward side, or stimulus contrast
         % is 0 (we include this latter case for ease of plotting
         % psychometrics)
-        concordance = sign(b.events.contrastValues(1:nt))...
-                      == sign(b.events.highRewardSideValues(1:nt))...
-                      |...
-                      sign(b.events.contrastValues(1:nt)) == 0;
+        concordance = sign(req) == sign(req2) | sign(req) == 0;
         switch conditions.highRewardSideConcordance
             case 'concordant'
                 mask2 = concordance;
@@ -294,6 +370,38 @@ for e = 1:numel(expInfo)
                        '"highRewardSideConcordance". The value must be ',...
                        '''concordant'', or ''discordant''.'],...
                        conditions.highRewardSideConcordance);
+        end
+        mask = mask & mask2;
+    end
+    
+    % lowRewardSideConcordance
+    if isfield(conditions, 'lowRewardSideConcordance')
+        try
+            req = e.contrastValues{1}(1:nT);
+            req2 = -e.highRewardSideValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''lowRewardSideConcordance'' condition. Continuing ',...
+                  'to the next session.']), expRef);
+              continue
+        end
+        % when stimulus appears on low reward side, or stimulus contrast
+        % is 0 (we include this latter case for ease of plotting
+        % psychometrics)
+        concordance = sign(req) == sign(req2) | sign(req) == 0;
+        switch conditions.lowRewardSideConcordance
+            case 'concordant'
+                mask2 = concordance;
+            case 'discordant'
+                mask2 = ~concordance;
+            otherwise
+                error('toupee:behavioral:getTrials:badInput',...
+                      ['''%s'' is not a valid value for ',...
+                       '"lowRewardSideConcordance". The value must be ',...
+                       '''concordant'', or ''discordant''.'],...
+                       conditions.lowRewardSideConcordance);
         end
         mask = mask & mask2;
     end
@@ -334,28 +442,33 @@ for e = 1:numel(expInfo)
         else
             ntc = conditions.nTrialsCirca;
         end
-        hrsv = b.events.highRewardSideValues(1:nt);
-        switch conditions.switchBlocks
+        try
+            req = e.highRewardSideValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                  strcat(ex.message(1:(end-1)),[...
+                  ' in the saved events for %s; cannot compute the ',...
+                  '''circaBlockSwitch'' condition. Continuing ',...
+                  'to the next session.']), expRef);
+              continue
+        end
+        switch conditions.circaBlockSwitch
             case 'beforeRight'
-                switchIdx = find(diff(hrsv) > 0) + 1; 
+                switchIdx = find(diff(req) > 0) + 1; 
                 maskIdx = arrayfun(@(x) [(x - ntc):1:x], switchIdx,...
-                                   'UniformOutput', false); %#ok<*NBRAK>
-                maskIdx = horzcat(maskIdx{:});
+                                   'uni', 0); %#ok<*NBRAK>
             case 'afterRight'
-                switchIdx = find(diff(hrsv) > 0) + 1; 
-                maskIdx = arrayfun(@(x) [(x + ntc):1:x], switchIdx,...
-                                   'UniformOutput', false);
-                maskIdx = horzcat(maskIdx{:});
+                switchIdx = find(diff(req) > 0) + 1; 
+                maskIdx = arrayfun(@(x) [x:1:(x + ntc)], switchIdx,...
+                                   'uni', 0);
             case 'beforeLeft'
-                switchIdx = find(diff(hrsv) < 0) + 1; 
+                switchIdx = find(diff(req) < 0) + 1; 
                 maskIdx = arrayfun(@(x) [(x - ntc):1:x], switchIdx,...
-                                   'UniformOutput', false);
-                maskIdx = horzcat(maskIdx{:});
+                                   'uni', 0);
             case 'afterLeft'
-                switchIdx = find(diff(hrsv) < 0) + 1; 
-                maskIdx = arrayfun(@(x) [(x + ntc):1:x], switchIdx,...
-                                   'UniformOutput', false);
-                maskIdx = horzcat(maskIdx{:});
+                switchIdx = find(diff(req) < 0) + 1; 
+                maskIdx = arrayfun(@(x) [x:1:(x + ntc)], switchIdx,...
+                                   'uni', 0);
             otherwise
                 error('toupee:behavioral:getTrials:badInput',...
                       ['''%s'' is not a valid value for ',...
@@ -364,14 +477,15 @@ for e = 1:numel(expInfo)
                        'or ''afterLeft''.'], conditions.circaBlockSwitch);
         end
         % Remove too high and too low values in mask.
-        if any(maskIdx < 0) || any(maskIdx > nt)
+        maskIdx = horzcat(maskIdx{:});
+        if any(maskIdx < 0) || any(maskIdx > nT)
             warning(['In "circaBlockSwitch", some indices circa the block ',...
                     'switch either exceeded the number of trials, or ',...
                     'deceeded 0. These trials will be removed.']);
             maskIdx(maskIdx < 0) = [];
-            maskIdx(maskIdx > nt) = [];
+            maskIdx(maskIdx > nT) = [];
         end
-        mask2 = false(1, nt);
+        mask2 = false(1, nT);
         mask2(maskIdx) = 1;
         mask = mask & mask2;
     end
@@ -386,7 +500,7 @@ for e = 1:numel(expInfo)
                        'containing the indices of the trials to pass the ',...
                        'filter.']);
         elseif isnumeric(conditions.whichTrials)
-            mask2 = false(1, nt);
+            mask2 = false(1, nT);
             mask2(whichTrials) = 1;
         elseif islogical(conditions.whichTrials)
             mask2 = conditions.whichTrials;
@@ -394,13 +508,11 @@ for e = 1:numel(expInfo)
         mask = mask & mask2;
     end
     
-    % Finalize `idx`, and add to `expInfo`
-    idx = find(mask);
-    maskName = strcat(colName, 'Mask');
-    idxName = strcat(colName, 'Idx');
-    expInfo(e).behavioralData.trials.(maskName) = mask;
-    expInfo(e).behavioralData.trials.(idxName) = idx;
-    
+    % Finalize `mask` and add to `expInfo`
+    if ~contains(colName, 'trials', 'IgnoreCase', true)
+        maskName = strcat(colName, 'Trials');
+    end
+    expInfo.behavioralData.(maskName){iE} = mask;    
 end
 
 end

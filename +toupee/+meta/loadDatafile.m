@@ -33,28 +33,28 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 % Examples:
 % ---------
 % 1) For a single session: load the block file.
-%   details = {'LEW031', '2020-02-03', 1};
-%   expInfo = toupee.meta.processExperiment(details);
+%   deats = {'LEW031', '2020-02-03', 1};
+%   expInfo = toupee.meta.processExperiment(deats);
 %   files = 'block';
-%   expInfo = toupee.meta.loadDatafile(expInfo, files);
+%   [expInfo, fdata] = toupee.meta.loadDatafile(expInfo, files);
 %
 % 2) For multiple sessions: load each session's block + timeline files.
-%   details = {{'LEW031', '2020-02-03', 1},... 
-%              {'LEW037', '2020-03-13', 1},...
-%              {'LEW005', '2018-06-10', 2, [2 3]}};
-%   expInfo = toupee.meta.processExperiment(details);
+%   deats = {{'LEW031', '2020-02-03', 1},... 
+%            {'LEW037', '2020-03-13', 1},...
+%            {'LEW005', '2018-06-10', 2, [2 3]}};
+%   expInfo = toupee.meta.processExperiment(deats);
 %   files = {'block', 'timeline'};
-%   expInfo = toupee.meta.loadDatafile(expInfo, files);
+%   [expInfo, fdata] = toupee.meta.loadDatafile(expInfo, files);
 %
 % 3) For multiple sessions: for the first session load just the timeline
 % file, for the second session load the block file and the raw reward valve 
 % data from timeline, and for the third session load just the block file.
-%   details = {{'LEW031', '2020-02-03', 1},... 
+%   deats = {{'LEW031', '2020-02-03', 1},... 
 %              {'LEW037', '2020-03-13', 1},...
 %              {'LEW005', '2018-06-10', 2, [2 3]}};
-%   expInfo = toupee.meta.processExperiment(details);
+%   expInfo = toupee.meta.processExperiment(deats);
 %   files = {{'timeline'}, {'block', 'rewardvalve.raw.npy'}, {'block'}};
-%   expInfo = toupee.meta.loadDatafile(expInfo, files);
+%   [expInfo, fdata] = toupee.meta.loadDatafile(expInfo, files);
 %
 %
 % See Also:
@@ -126,10 +126,10 @@ for iE = 1:nE  % for each experiment session
    % the loaded data from the datafiles for current expRef
    fdataE = cellfun(@(x) loadMiscFile(x), finalPaths, 'uni', 0);
    % If we loaded some data, then clean file names and assign to `expInfo`
-   % and `fdata`
+   % and `fdata`.
    if ~all(cellfun(@(x) isempty(x), fdataE))
        % Convert any structs in `fdataE` to tables, and cellify all data
-       % vars within tables
+       % vars within tables.
        sIdxs = cellfun(@(x) isstruct(x), fdataE);
        if any(sIdxs)
            fdataE(sIdxs) = cellfun(@(x) struct2tableNested(x),...
@@ -146,8 +146,8 @@ for iE = 1:nE  % for each experiment session
        % Add 'File' suffix to each column name.
        colNames = cellfun(@(x) strcat(x, 'File'), colNames, 'uni', 0);
        % Add the data to the `expInfo` and `fdata` tables.
-       expInfo(iE, colNames) = fdataE;
-       fdata(iE, colNames) = fdataE;
+       expInfo{iE, colNames} = fdataE;
+       fdata{iE, colNames} = fdataE;
        % Remove loaded files from `f`.
        rmIdxs = cellfun(@(x) any(strcmpi(x, strcat(fnames, exts))), f);
        f(rmIdxs) = [];
@@ -249,7 +249,8 @@ function clean = cleanFilename(dirty, expRef)
 % genvarname
 %
 
-clean = dirty;  % set `clean` to `dirty`, then clean it.
+% Set `clean` to `dirty`, then clean it.
+clean = dirty;  
 % Remove expRef from filename.
 clean = erase(clean, expRef);
 % Replace `.` & '-' with `_`.

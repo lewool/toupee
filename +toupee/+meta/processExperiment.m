@@ -92,13 +92,15 @@ function [expInfo, fdata] = processExperiment(deats, files)
 import toupee.meta.*
 import toupee.misc.iif
 
-% See if given 1) expRef(s), or 2) subject(s), expDate(s), and expNum(s).
+% See if inputs args specify either 1) expRef(s), or 2) subject(s), 
+% expDate(s), and expNum(s).
 % Check to make sure good expRefs can be made from all info in `deats`.
-% Default assumptions are 1) provided with expRefs, 2) the provided 
-% expRefs, or the details provided to construct expRefs, are good.
+% Default assumptions are that the function is 1) provided with expRefs, 
+% 2) the provided expRefs, or the details provided to construct expRefs,
+% are good.
 fromExpRefs = true;  
 goodDeats = true;
-% Check if given single expRef.
+% check if given single expRef
 if ischar(deats) && isExpRef(deats)
     deats = {deats};  % convert to cell array
     nE = 1;  % number of experiment sessions
@@ -109,7 +111,7 @@ elseif iscell(deats) && isExpRef(deats{1})
         goodDeats = false; 
     end
     nE = numel(deats);
-% Check if given single subject, expDate, expNum.
+% check if given single subject, expDate, expNum
 elseif iscell(deats) && ~isExpRef(deats{1}) && ~iscell(deats{1})...
        && numel(deats) >= 3
     if ~isExpRef(constructExpRef(deats{1}, deats{2}, deats{3}))
@@ -119,7 +121,7 @@ elseif iscell(deats) && ~isExpRef(deats{1}) && ~iscell(deats{1})...
     end
     deats = {deats};  % convert to nested cell array
     nE = 1;
-% Check if given multiple subject, expDate, expNum.
+% check if given multiple subject, expDate, expNum
 elseif iscell(deats) && ~isExpRef(deats{1}) && iscell(deats{1})...
        && numel(deats{1}) >= 3
    allExpRefs = cellfun(@(x) isExpRef(constructExpRef(x{1}, x{2}, x{3})),...

@@ -54,3 +54,5 @@ Each subdirectory in this repository contains its own `readme` file summarizing 
 - 'experiment session', 'experiment', and 'session' all refer to the same thing: a single, continuous block of time during which a subject was performing a behavioral task and behavioral data was recorded via Rigbox and (possibly) neural data was recorded via ScanImage and later processed via suite2p.
 
 - 'expRef': An 'experiment reference' string, used by Rigbox to refer to a specific experiment session. It takes the form of '<expDate>_<expNum>_<subject>', e.g. '2020-02-03_1_LEW031'.
+
+- A right choice/action indicates choosing the stimulus that appears on the right side: for a task in which the stimulus has to be moved to the center of the screen, this means turning the wheel to the left (i.e. a left wheel movement).

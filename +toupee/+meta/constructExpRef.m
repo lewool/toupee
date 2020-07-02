@@ -1,4 +1,4 @@
-function [expRef, expLog] = constructExpRef(subject, expDate, expNum)
+function [expRef, expSpecs] = constructExpRef(subject, expDate, expNum)
 % Constructs a Rigbox experiment reference ("exp ref") char array
 %
 % An expRef is a char array of form '<expDate>_<expNum>_<subject>'.
@@ -18,14 +18,14 @@ function [expRef, expLog] = constructExpRef(subject, expDate, expNum)
 % --------
 % expRef : char array
 %  The exp ref, taking the form of '<date>_<session>_<subject>'.
-% expLog : cell array
-%  The subject, expDate, and expNum as separate entries in a cell.
+% expSpecs : cell array
+%  Contains `subject`, `expDate`, and `expNum` as cells.
 %
 %
 % Examples:
 % ---------
 % 1) Create exp ref for 'LEW031', '2020-02-03', 1.
-%   [expRef, expLog] =...
+%   [expRef, expSpecs] =...
 %       toupee.meta.constructExpRef('LEW031', '2020-02-03', 1);
 %
 %
@@ -47,6 +47,6 @@ if ~isExpRef(expRef)
              'format, and an int scalar. The input args were: "%s" "%s" ',...
              '"%i'], expRef, subject, expDate, expNum); 
 end
-expLog = {subject, expDate, num2str(expNum)};
+expSpecs = {subject, expDate, num2str(expNum)};
 
 end
