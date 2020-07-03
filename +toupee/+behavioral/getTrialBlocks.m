@@ -1,19 +1,21 @@
-function [expInfo, trialBlocks] = getTrialBlocks(expInfo)
+function [expInfo, trialBlocks] = getTrialBlocks(expInfo, sessions)
 % Separates trials into the block they came from
 %
 %
 % Inputs:
 % -------
-% expInfo : struct array
-%   A struct containing relevant information and data for particular
-%   experiment sessions.
+% expInfo : table
+%   A table containing relevant information and data variables (columns) 
+%   for particular experiment sessions (rows).
 %
+% sessions : int scalar OR int array OR char array OR cell array (optional)
+%   Specific sessions for which to filter trials from, instead of from all
+%   sessions.
 %
 % Outputs:
 % --------
-% expInfo : struct array
-%   A struct containing relevant information and data for particular
-%   experiment sessions.
+% expInfo : table
+%   The updated `expInfo`.
 %
 % trialBlocks : cell array
 %   Contains `numel(expInfo)` number of cells, where each of these cells is
@@ -26,17 +28,16 @@ function [expInfo, trialBlocks] = getTrialBlocks(expInfo)
 % Examples:
 % ---------
 % 1) For a single session, get the trial blocks.
-%   details = {'LEW031', '2020-02-03', 1}
+%   deats = {'LEW031', '2020-02-03', 1};
 %   files = 'block';
-%   expInfo = toupee.meta.processExperiment(details, files);
-%   expInfo = toupee.behavioral.getTrialBlocks(expInfo);
+%   expInfo = toupee.meta.processExperiment(deats, files);
+%   [expInfo, trialBlocks] = toupee.behavioral.getTrialBlocks(expInfo);
 %
 % 2) For multiple sessions, get each session's trial blocks.
-%   details = {{'LEW031', '2020-02-03', 1},... 
-%              {'LEW037', '2020-03-13', 1},...
-%              {'LEW005', '2018-06-10', 2, [2 3]}};
+%   deats = {{'LEW031', '2020-02-03', 1},...
+%            {'LEW032', '2020-02-28', 1, [1, 2]}};
 %   files = 'block';
-%   expInfo = toupee.meta.processExperiment(details, files);
+%   expInfo = toupee.meta.processExperiment(deats, files);
 %   expInfo = toupee.behavioral.getTrialBlocks(expInfo);
 %
 %
@@ -44,22 +45,42 @@ function [expInfo, trialBlocks] = getTrialBlocks(expInfo)
 % ---------
 % toupee.behavioral.getTrials
 %
+% @todo adopt for high probability side experiments
+%
 
-ne = numel(expInfo);  % number of experiment sessions
-trialBlocks = cell(1, ne);  % initialize `blocks`
+%% Prerun checks.
+% Get sessions info
+if nargin < 2  % then use all sessions
+    sessions = expInfo.('Row');
+else
+    sessions = expInfo.Row(sessions);
+end
+
+%% Get trial blocks.
+nE = size(expInfo, 1);  % number of experiment sessions
+trialBlocks = cell(1, nE);  % initialize `blocks`
 % Get trial blocks for each session
-for e = 1:ne
+for iE = 1:nE
     % Extract relevant data from this session.
-    b = expInfo(e).block;  % Rigbox block file
-    nt = numel(b.events.endTrialValues);  % number of trials
-    hrsv = b.events.highRewardSideValues(1:nt);  % block type
-    switchIdx = find(diff(hrsv) ~= 0) + 1;  % trial index at block switch
+    expRef = sessions{iE};  % session expRef
+    b = expInfo.BlockFile{expRef};  % block data
+    e = b.events;  % events data
+    nT = numel(e.endTrialValues{1});  % number of trials
+    try
+        req = e.highRewardSideValues{1}(1:nT);  % contains block type info
+    catch ex
+        warning(ex.identifier,...
+                strcat(ex.message(1:(end-1)),[...
+                ' in the saved events for %s; cannot compute ''%s''. ',...
+                'Continuing to the next session.']), expRef, mfilename);
+    end
+    switchIdx = find(diff(req) ~= 0) + 1;  % trial index at block switch
     startIdx = [1, switchIdx];  % trial idx at block start
-    endIdx = [switchIdx - 1, nt];  % trial index at block end
+    endIdx = [switchIdx - 1, nT];  % trial index at block end
     curTrialBlocks = arrayfun(@(x, y) [x:1:y], startIdx, endIdx,...
-                              'UniformOutput', false)';  %#ok<*NBRAK>
-    curTrialBlocks(:,2) = num2cell(hrsv(startIdx));
-    % Assign.
-    expInfo(e).behavioralData.trials.blocks = curTrialBlocks;
-    trialBlocks{e} = curTrialBlocks;
+                              'uni', 0)';  %#ok<*NBRAK>
+    curTrialBlocks(:,2) = num2cell(req(startIdx));
+    % Assign to `expInfo` and `trialBlocks`.
+    expInfo.behavioralData{expRef, 'trialBlocks'} = {curTrialBlocks};
+    trialBlocks{iE} = curTrialBlocks;
 end
