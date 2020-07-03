@@ -23,7 +23,8 @@
 
 % add and delete sessions and data vars
 
-% assign into an existing or new data var
+% assign into an existing or new data var (depends on data var: how to do
+% this if var is a table??)
 
 % sort/reorder sessions and data vars (sessions: by date or by subject. 
 % data vars: alphabetically)

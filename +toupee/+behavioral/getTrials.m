@@ -22,7 +22,6 @@ function [expInfo, mask] =...
 %       movementDir : 'right', 'left'
 %       highRewardSide : 'right', 'left' 
 %       highRewardSideConcordance : 'concordant', 'discordant'
-%       lowRewardSideConcordance : 'concordant', 'discordant'
 %       pastResponse : 'correct', 'incorrect'
 %       pastStimulusSide : 'right', 'left', 'zero'
 %       pastMovementDir : 'right', 'left'
@@ -56,14 +55,21 @@ function [expInfo, mask] =...
 % ---------
 % 1) For a single session: find trials where stim was presented on the
 %   'high-reward' side:
-%
+%   details = {{'LEW031', '2020-02-03', 1},...
+%              {'LEW032', '2020-02-28', 1, [1, 2]}};
+%   files = {'timeline', 'block'};
+%   expInfo = toupee.meta.processExperiment(details, files);
+%   conditions = struct('highRewardSideConcordance', 'concordant');
+%   [expInfo, mask] =...
+%       toupee.behavioral.getTrials(expInfo, conditions,...
+%                                   'concordantHigh');
 %
 % 2) For multiple sessions: find 1) trials where stim was presented on the
 % 'high-reward' side, 2) correct trials where stim was presented on the
 % 'high-reward' side, and 3) correct trials where stim was presented on the
 % 'low-reward' side.
 %   details = {{'LEW031', '2020-02-03', 1},...
-%              {'LEW032', '2020-03-12', 1, [1, 2]}};
+%              {'LEW032', '2020-02-28', 1, [1, 2]}};
 %   files = {'timeline', 'block'};
 %   expInfo = toupee.meta.processExperiment(details, files);
 %   conditions1 = struct('highRewardSideConcordance', 'concordant');
@@ -78,14 +84,26 @@ function [expInfo, mask] =...
 %       toupee.behavioral.getTrials(expInfo, conditions2, ...
 %                                   'concordantHighCorrect');
 %   expInfo =...
-%       toupee.behavioral.getTrials(expInfo, conditions1, ...
+%       toupee.behavioral.getTrials(expInfo, conditions3, ...
 %                                   'discordantHighCorrect');
 % 
 % 3) For multiple sessions: for the first session find trials where stim
 % was presented on the 'high-reward' side, and for the second session find
 % correct response trials.
-%   conditions(1) = struct('highRewardSideConcordance', 'concordant');
-%   conditions(2) = struct('response', 'correct');
+%   details = {{'LEW031', '2020-02-03', 1},...
+%              {'LEW032', '2020-02-28', 1, [1, 2]}};
+%   files = {'timeline', 'block'};
+%   expInfo = toupee.meta.processExperiment(details, files);
+%   conditions1 = struct('highRewardSideConcordance', 'concordant');
+%   session1 = 1;
+%   conditions2 = struct('response', 'correct');
+%   session2 = 2;
+%   expInfo =...
+%       toupee.behavioral.getTrials(expInfo, conditions1,...
+%                                   'concordantHigh', session1);
+%   expInfo =...
+%       toupee.behavioral.getTrials(expInfo, conditions2,...
+%                                   'correct', session2);
 %
 % @todo add explanations for each field in `conditions`
 % @todo add more documentation
@@ -107,9 +125,9 @@ end
 validNames = {...
     'reaction', 'choice', 'response', 'outcome', 'repeatType',...
      'stimulusSide', 'contrasts', 'movementDir', 'highRewardSide',...
-     'highRewardSideConcordance', 'lowRewardSideConcordance',...
-     'pastResponse', 'pastStimulusSide', 'pastMovementDir', ...
-     'nTrialsBack', 'circaBlockSwitch', 'nTrialsCirca', 'whichTrials'};
+     'highRewardSideConcordance', 'pastResponse', 'pastStimulusSide',...
+     'pastMovementDir', 'nTrialsBack', 'circaBlockSwitch', 'nTrialsCirca',...
+     'whichTrials'};
 givenNames = fieldnames(conditions);
 matchedNames = cellfun(@(x) find(strcmpi(x, validNames)), givenNames,...
                        'uni', 0);
@@ -121,11 +139,15 @@ if ~isempty(badConds)
           'provided fields of the "conditions" input arg do not have ',...
           'valid names: '], sprintf(' %s', givenNames{badConds})));
 end
-% Filter though all sessions if `sessions` not specified.
-if nargin < 4
+% Get sessions info
+if nargin < 4  % then use all sessions
     sessions = expInfo.('Row');
+else
+    sessions = expInfo.Row(sessions);
 end
 %% Filter trials.
+% initialize `maskCell`; each cell will contain mask for that session
+maskCell = cell(1, numel(sessions));  
 % Get specified trials for each specified experiment session.
 for iE = 1:numel(sessions)
     % Extract relevant data from this session.
@@ -374,38 +396,6 @@ for iE = 1:numel(sessions)
         mask = mask & mask2;
     end
     
-    % lowRewardSideConcordance
-    if isfield(conditions, 'lowRewardSideConcordance')
-        try
-            req = e.contrastValues{1}(1:nT);
-            req2 = -e.highRewardSideValues{1}(1:nT);
-        catch ex
-            warning(ex.identifier,...
-                  strcat(ex.message(1:(end-1)),[...
-                  ' in the saved events for %s; cannot compute the ',...
-                  '''lowRewardSideConcordance'' condition. Continuing ',...
-                  'to the next session.']), expRef);
-              continue
-        end
-        % when stimulus appears on low reward side, or stimulus contrast
-        % is 0 (we include this latter case for ease of plotting
-        % psychometrics)
-        concordance = sign(req) == sign(req2) | sign(req) == 0;
-        switch conditions.lowRewardSideConcordance
-            case 'concordant'
-                mask2 = concordance;
-            case 'discordant'
-                mask2 = ~concordance;
-            otherwise
-                error('toupee:behavioral:getTrials:badInput',...
-                      ['''%s'' is not a valid value for ',...
-                       '"lowRewardSideConcordance". The value must be ',...
-                       '''concordant'', or ''discordant''.'],...
-                       conditions.lowRewardSideConcordance);
-        end
-        mask = mask & mask2;
-    end
-    
     % pastResponse
     if isfield(conditions, 'pastResponse')
         switch conditions.pastResponse
@@ -511,8 +501,11 @@ for iE = 1:numel(sessions)
     % Finalize `mask` and add to `expInfo`
     if ~contains(colName, 'trials', 'IgnoreCase', true)
         maskName = strcat(colName, 'Trials');
-    end
-    expInfo.behavioralData.(maskName){iE} = mask;    
+    end 
+    expInfo.behavioralData{expRef, (maskName)} = {mask};
+    maskCell{iE} = mask;
 end
+
+mask = maskCell;  % assign `maskCell` to `mask` to return output
 
 end
