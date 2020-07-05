@@ -105,6 +105,13 @@ function [expInfo, mask] =...
 %       toupee.behavioral.getTrials(expInfo, conditions2,...
 %                                   'correct', session2);
 %
+%
+% See Also:
+% ---------
+% toupee.behavioral.getWheelMoves
+% toupee.behavioral.getTrialBlocks
+% toupee.behavioral.getEventTimes
+%
 % @todo add explanations for each field in `conditions`
 % @todo add more documentation
 % @todo add code for 'past' conditions
@@ -116,8 +123,8 @@ function [expInfo, mask] =...
 import toupee.misc.*
 % Ensure input args are of proper type.
 if ~ischar(colName) && (~iscell(colName) || ~ischar(colName{1}))...
-    || ~isstruct(conditions)  % make sure input args are correct types
-    error('toupee:meta:getTrials:badInput',...
+    || ~isstruct(conditions)
+    error('toupee:behavioral:getTrials:badInput',...
           ['The "colName" input arg must be a char array, and the '...
            '"conditions" input arg must be a struct']);
 end
@@ -135,14 +142,14 @@ matchedNames = cellfun(@(x) find(strcmpi(x, validNames)), givenNames,...
 badConds = find(cell2mat(cellfun(@(x) isempty(x), matchedNames,...
                          'uni', 0)));
 if ~isempty(badConds)
-    error('toupee:meta:getTrials:badInput', strcat(['The following ',...
+    error('toupee:behavioral:getTrials:badInput', strcat(['The following ',...
           'provided fields of the "conditions" input arg do not have ',...
           'valid names: '], sprintf(' %s', givenNames{badConds})));
 end
 % Get sessions info
 if nargin < 4  % then use all sessions
     sessions = expInfo.('Row');
-else
+else  % use specified sessions
     sessions = expInfo.Row(sessions);
 end
 %% Filter trials.

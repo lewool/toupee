@@ -9,8 +9,8 @@ function [expInfo, trialBlocks] = getTrialBlocks(expInfo, sessions)
 %   for particular experiment sessions (rows).
 %
 % sessions : int scalar OR int array OR char array OR cell array (optional)
-%   Specific sessions for which to filter trials from, instead of from all
-%   sessions.
+%   Specific sessions for which to return the trial blocks, instead of from
+%   all sessions.
 %
 % Outputs:
 % --------

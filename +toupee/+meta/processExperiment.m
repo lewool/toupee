@@ -22,9 +22,9 @@ function [expInfo, fdata] = processExperiment(deats, files)
 %    {'<subjectN>', '<expDateN>', '<expNum2N'}}
 %
 % files : char array OR cell array
-%   File(s) to load into the `expInfo` table. If loading files for
-%   multiple sessions, use a nested cell array for each session. The
-%   elements in the innermost cells can be:
+%   File(s) to load into `expInfo`. Nested cell arrays contain the files
+%   for one session when loading files from multiple sessions. The elements
+%   in the innermost cells can be:
 %   1) 'block': loads the block file
 %   2) 'timeline': loads the timeline file
 %   3) Full names of individual behavioral or neural data files. These
