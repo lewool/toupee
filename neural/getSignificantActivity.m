@@ -98,7 +98,7 @@ if matched == 0
 
     %%%%%%%%%%%%%%%% Wilcoxon tests
 
-    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'blockValue'};
+    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'correct'};
     pValues = zeros(size(baselineResps,2),length(labels));
     for iCell = 1:size(baselineResps,2)
         pValues(iCell,1) = signrank(stimResps(stimTrials,iCell),baselineResps(stimTrials,iCell),'tail','right');
@@ -108,7 +108,7 @@ if matched == 0
         pValues(iCell,5) = ranksum(movResps(movleftTrials,iCell),movResps(movrightTrials,iCell),'tail','right');
         pValues(iCell,6) = ranksum(movResps(movrightTrials,iCell),movResps(movleftTrials,iCell),'tail','right');
         pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell));
-        pValues(iCell,8) = ranksum(pmovResps(highleftTrials,iCell),pmovResps(highrightTrials,iCell)); 
+        pValues(iCell,8) = ranksum(stimResps(correctTrials,iCell),stimResps(incorrectTrials,iCell)); 
     end
     
     %%%%%%%%%%%%%%%% Bonferroni correction
@@ -230,7 +230,7 @@ elseif matched == 1
 
     %%%%%%%%%%%%%%%% Wilcoxon tests
 
-    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'blockValue'};
+    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'correct'};
     pValues = zeros(size(baselineResps,2),length(labels));
     for iCell = 1:size(baselineResps,2)
         pValues(iCell,1) = signrank(stimResps(stimTrials,iCell),baselineResps(stimTrials,iCell),'tail','right');
@@ -240,7 +240,7 @@ elseif matched == 1
         pValues(iCell,5) = ranksum(movResps(movleftTrials,iCell),movResps(movrightTrials,iCell),'tail','right');
         pValues(iCell,6) = ranksum(movResps(movrightTrials,iCell),movResps(movleftTrials,iCell),'tail','right');
         pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell));
-        pValues(iCell,8) = ranksum(pmovResps(highleftTrials,iCell),pmovResps(highrightTrials,iCell)); 
+        pValues(iCell,8) = ranksum(stimResps(correctTrials,iCell),stimResps(incorrectTrials,iCell)); 
     end
     
     %%%%%%%%%%%%%%%% Bonferroni correction
