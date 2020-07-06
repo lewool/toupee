@@ -205,19 +205,19 @@ for ex = 1:length(expInfo)
     
     %identify the first movement of the trial, redundant info but easy to
     %do
-    firstMoveOnset = zeros(1,numCompleteTrials);
+    firstMoveOnset = nan(1,numCompleteTrials);
     firstMoveOnset((~isnan(moveOnset_goCue))) = moveOnset_goCue(~isnan(moveOnset_goCue));
     firstMoveOnset((~isnan(moveOnset_early))) = moveOnset_early(~isnan(moveOnset_early));
     
-    firstMoveOffset = zeros(1,numCompleteTrials);
+    firstMoveOffset = nan(1,numCompleteTrials);
     firstMoveOffset((~isnan(moveOffset_goCue))) = moveOffset_goCue(~isnan(moveOffset_goCue));
     firstMoveOffset((~isnan(moveOffset_early))) = moveOffset_early(~isnan(moveOffset_early));
     
-    firstMoveDir = zeros(1,numCompleteTrials);
+    firstMoveDir = nan(1,numCompleteTrials);
     firstMoveDir((~isnan(moveDir_goCue))) = moveDir_goCue(~isnan(moveDir_goCue));
     firstMoveDir((~isnan(moveDir_early))) = moveDir_early(~isnan(moveDir_early));
     
-    firstMoveVel = zeros(1,numCompleteTrials);
+    firstMoveVel = nan(1,numCompleteTrials);
     firstMoveVel((~isnan(peakVel_goCue))) = peakVel_goCue(~isnan(peakVel_goCue));
     firstMoveVel((~isnan(peakVel_early))) = peakVel_early(~isnan(peakVel_early));
 
@@ -273,7 +273,7 @@ for ex = 1:length(expInfo)
      wheelMoves.traces.time = wheelTraceTimes;
      
      allWheelMoves{ex} = wheelMoves;
-     clear wheelMoves
+     clearvars -except ex expInfo allWheelMoves allEventTimes
      
      disp(char(strcat({'session '},num2str(ex),{' completed'})))
      
