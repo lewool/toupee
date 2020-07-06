@@ -56,3 +56,8 @@ Each subdirectory in this repository contains its own `readme` file summarizing 
 - 'expRef': An 'experiment reference' string, used by Rigbox to refer to a specific experiment session. It takes the form of '<expDate>_<expNum>_<subject>', e.g. '2020-02-03_1_LEW031'.
 
 - A right choice/action indicates choosing the stimulus that appears on the right side: for a task in which the stimulus has to be moved to the center of the screen, this means turning the wheel to the left (i.e. a left wheel movement).
+
+- Timings: 
+	- 'signals times' : the times that code updated the value of an event (e.g. new trial, stimulus on, reward, stimulus off, end trial, etc...) on the stimulus computer
+	- 'daq times' : the times of values the ni-daq i/o device read from a sensor (e.g. the wheel or a photodiode) or triggered an actuator (e.g. the reward valve). 
+	- 'rig times' : the times at which an update to an event occurred in the rig.

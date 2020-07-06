@@ -162,7 +162,7 @@ for iE = 1:nE
     expRef = sessions{iE};  % session expRef
     b = expInfo.BlockFile{expRef};  % block data
     e = b.events;  % events data
-    nT = numel(b.events.endTrialValues{1});  % number of trials
+    nT = numel(e.endTrialValues{1});  % number of completed trials
     % @todo wm = getWheelMoves;
     % Preassign the mask to return all trials
     mask = true(1, nT);
@@ -170,7 +170,7 @@ for iE = 1:nE
     % Start selecting trials from conditions:
     
     % reaction @todo need wheel moves
-    if isfield(conditions, 'reaction')  
+    if isfield(conditions, 'reaction')
         switch conditions.reaction
             case 'preStimOn'
             case 'preGoCue'
