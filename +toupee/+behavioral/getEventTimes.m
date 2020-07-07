@@ -1,6 +1,6 @@
 function [expInfo, eventTimes] =...
     getEventTimes(expInfo, eventNames, varargin)
-% Gets event times according to multiple clocks
+% Gets event times for multiple clocks
 %
 % Event times for experiments are recorded in signals times (the times that
 % code updated the value of an event on the stimulus computer) and in
@@ -132,7 +132,7 @@ for iE = 1:nE
     outs = block.outputs;  % signals outputs data
     allEvts = [evts, ins, outs];
     timeline = expInfo.TimelineFile{expRef};  % timeline data
-    timelineTimes = timeline.rawDAQTimestamps{1}';
+    timelineTimes = timeline.rawDAQTimestamps{1}(:);
     nS = timeline.rawDAQSampleCount{1};  % total number of daq samples
     daqFs = diff(timelineTimes(1:2));  % daq sampling rate
     % Use photodiode flip times (i.e. a change in photodiode current value
@@ -162,88 +162,93 @@ for iE = 1:nE
     % the signals time as an estimate of the rig time.
     nT = numel(evts.endTrialValues{1});  % number of completed trials
     for iN = 1:numel(eventNames)
-        switch eventNames
+        if contains(eventNames{iN}, 'reward')
             % Special case for reward: no need to use photodiode, instead
             % use raw reward trace from daq and estimate what the reward
             % time would have been for incorrect trials.
-            case contains('reward')
-                % Get all reward times.
-                % reward trace from daq
-                rewardTrace = timeline.rawDAQData{1}...
-                    (:, strcmp('rewardCommand',...
-                               timeline.hw.inputs{1}.name));
-                % threshold for reward delivery
-                rewardThresh = max(rewardTrace) / 2;
-                % indices of reward trace where reward valve was open
-                % (includes hotkey delivered rewards)
-                allRewardIdxs = find(rewardTrace > rewardThresh);
-                % get just a single time for each reward valve opening
-                allRewardIdxsFirst =...
-                    [allRewardIdxs(1);...
-                     allRewardIdxs(find(diff(allRewardIdxs) > 1) + 1)];
-                allRewardTimes = timelineTimes(allRewardIdxsFirst);
-                % @todo:
-                % Remove hotkey rewards to filter down to task rewards.
-                hotkeyRewardMask = strcmp('r', ins.keyboardValues{1});
-                signalsHotkeyRewardTimes =...
-                    ins.keyboardValues{1}(hotkeyRewardMask);
-                % interpolate signals hotkey reward times to daq reward
-                % times
-                rigHotkeyRewardTimes =...
-                    interp1(allRewardTimes, allRewardTimes,...
-                            signalsHotkeyRewardTimes, 'nearest');
-                [~, hkIdx] = intersect(allRewardTimes,...
-                                       rigHotkeyRewardTimes);
-                taskRewardTimes = allRewardTimes;
-                taskRewardTimes(hkIdx) = [];
-                % Estimate "woulda been" reward times for incorrect trials:
-                % this is the signals incorrect feedback times + (the mean
-                % diff between signals output reward times and signals
-                % correct feedback times) + (the mean diff between rig
-                % output reward times and signals output reward times).
-                signalsIncorrectFeedbackTimes =...
-                    evts.feedbackTimes{1}(~evnts.feedbackValues{1});
-                meanSignalsOutputFeedbackDiff =...
-                    mean(outs.rewardTimes{1}(:)...
-                         - signalsCorrectFeedbackTimes(:));
-                signalsCorrectFeedbackTimes =...
-                    evts.feedbackTimes{1}(evnts.feedbackValues{1});
-                meanSignalsRigRewDiff =...
-                    mean(taskRewardTimes(:)...
-                         - signalsCorrectFeedbackTimes(:));
-                estIncorrectRewardTimes = signalsIncorrectFeedbackTimes(:)...
-                                          + meanSignalsOutputFeedbackDiff...
-                                          + meanSignalsRigRewDiff;
-                estTaskRewardTimes = sort([estIncorrectRewardTimes;...
-                                           taskRewardTimes]);
-                % Assign times to table.
-                curEventTimes.rigTimes{'reward'} = taskRewardTimes;
-                curEventTimes.rigTimes{'estReward'} = estTaskRewardTimes;
-                curEventTimes.signalsTimes{'reward'} =...
-                    outs.rewardTimes{1}(:);
-                curEventTimes.signalsTimes{'estReward'} =...
-                    evts.feedbackTimes{1}(:) + meanSignalsOutputFeedbackDiff;
+            % Get all reward times.
+            % reward trace from daq
+            rewardTrace =...
+                timeline.rawDAQData{1}...
+                (:, strcmp('rewardCommand', timeline.hw.inputs{1}.name));
+            % threshold for reward delivery
+            rewardThresh = max(rewardTrace) / 2;
+            % indices of reward trace where reward valve was open
+            % (includes hotkey delivered rewards)
+            allRewardIdxs = find(rewardTrace > rewardThresh);
+            % get just a single time for each reward valve opening
+            allRewardIdxsFirst =...
+                [allRewardIdxs(1);...
+                 allRewardIdxs(find(diff(allRewardIdxs) > 1) + 1)];
+            allRewardTimes = timelineTimes(allRewardIdxsFirst);
+            % Remove hotkey rewards to filter down to task rewards.
+            hotkeyRewardMask = strcmp('r', ins.keyboardValues{1});
+            signalsHotkeyRewardTimes =...
+                ins.keyboardValues{1}(hotkeyRewardMask);
+            % interpolate signals hotkey reward times to daq reward
+            % times
+            rigHotkeyRewardTimes =...
+                interp1(allRewardTimes, allRewardTimes,...
+                        signalsHotkeyRewardTimes, 'nearest');
+            [~, hkIdx] = intersect(allRewardTimes, rigHotkeyRewardTimes);
+            taskRewardTimes = allRewardTimes;
+            taskRewardTimes(hkIdx) = [];
+            % Estimate "woulda been" reward times for incorrect trials:
+            % this is the signals incorrect feedback times + (the mean
+            % diff between signals output reward times and signals
+            % correct feedback times) + (the mean diff between rig
+            % output reward times and signals output reward times).
+            signalsIncorrectFeedbackTimes =...
+                evts.feedbackTimes{1}(~evts.feedbackValues{1});
+            signalsCorrectFeedbackTimes =...
+                evts.feedbackTimes{1}(evts.feedbackValues{1});
+            meanSignalsOutputFeedbackDiff =...
+                mean(outs.rewardTimes{1}(:)...
+                - signalsCorrectFeedbackTimes(:));
+            meanSignalsRigRewDiff =...
+                mean(taskRewardTimes(:)...
+                - signalsCorrectFeedbackTimes(:));
+            estIncorrectRewardTimes =...
+                signalsIncorrectFeedbackTimes(:)...
+                + meanSignalsOutputFeedbackDiff...
+                + meanSignalsRigRewDiff;
+            % includes reward times for correct trials, and estimated
+            % reward times for incorrect trials
+            estTaskRewardTimes = sort([taskRewardTimes;...
+                                       estIncorrectRewardTimes]);
+            % Assign times to table.
+            curEventTimes.rigTimes{'reward'} = taskRewardTimes;
+            curEventTimes.rigTimes{'estReward'} = estTaskRewardTimes;
+            curEventTimes.signalsTimes{'reward'} =...
+                outs.rewardTimes{1}(:);
+            % includes signals reward times for correct trials, and
+            % estimated signals reward times for incorrect trials
+            curEventTimes.signalsTimes{'estReward'} = sort(...
+                [outs.rewardTimes{1},...
+                 (evts.feedbackTimes{1}((~evts.feedbackValues{1}))...
+                  + meanSignalsOutputFeedbackDiff)])';
             % For all other events, use photodiode flip event to estimate
             % rig time from signals time. @todo this may not be best prac..
-            otherwise
-                name = iif(contains(eventNames{iN}, 'Times'),...
-                           eventNames{iN}, strcat(eventNames{iN}));
-                signalsTimes = allEvts.(name){1}(1:nT);
-                % First find closest 'stimWindowUpdate' time to event time.
-                swut = block.stimWindowUpdateTimes{1};
-                updateTimes = interp1(swut, swut, signalsTimes(:),...
-                                      'nearest', 'extrap');
-                % Then find closest phd flip to 'stimWindowUpdate' time.
-                rigTimes = zeros(nT, 1);
-                for iT = 1:nT
-                    % must be at least a 10 ms delay between 'stimWindowUpdate'
-                    % and nearest phd flip
-                    rigTimes(iT) = find((updateTimes(iT) - flipTimes)...
-                                        < -0.01, 1, 'first');
-                end
-                % Assign times to table.
-                curEventTimes.signalsTimes{(name)} = signalsTimes;
-                curEventTimes.rigTimes{(name)} = rigTimes;  
+        else
+            name = iif(contains(eventNames{iN}, 'Times'),...
+                       eventNames{iN}, strcat(eventNames{iN}, 'Times'));
+            signalsTimes = allEvts.(name){1}(1:nT);
+            % First find closest 'stimWindowUpdate' time to event time.
+            swut = block.stimWindowUpdateTimes{1};
+            updateTimes = interp1(swut, swut, signalsTimes(:),...
+                                  'nearest', 'extrap');
+            % Then find closest phd flip to 'stimWindowUpdate' time.
+            rigTimes = zeros(nT, 1);
+            for iT = 1:nT
+                % must be at least a 10 ms delay between 'stimWindowUpdate'
+                % and nearest phd flip
+                rigTimes(iT) = find((updateTimes(iT) - flipTimes) < -0.01,...
+                                    1, 'first');
+            end
+            % Assign times to table.
+            curEventTimes.signalsTimes{(name(1:(end - 5)))} =...
+                signalsTimes(:);
+            curEventTimes.rigTimes{(name(1:(end - 5)))} = rigTimes(:);
         end
     end
 
