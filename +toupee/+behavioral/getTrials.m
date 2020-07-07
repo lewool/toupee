@@ -115,7 +115,6 @@ function [expInfo, mask] =...
 % @todo add explanations for each field in `conditions`
 % @todo add more documentation
 % @todo add code for 'past' conditions
-% @todo add optionality to filter for specific, not all, sessions
 %
 
 %% Prerun checks.

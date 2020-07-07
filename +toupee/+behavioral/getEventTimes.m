@@ -227,9 +227,9 @@ for iE = 1:nE
                 [outs.rewardTimes{1},...
                  (evts.feedbackTimes{1}((~evts.feedbackValues{1}))...
                   + meanSignalsOutputFeedbackDiff)])';
+        else
             % For all other events, use photodiode flip event to estimate
             % rig time from signals time. @todo this may not be best prac..
-        else
             name = iif(contains(eventNames{iN}, 'Times'),...
                        eventNames{iN}, strcat(eventNames{iN}, 'Times'));
             signalsTimes = allEvts.(name){1}(1:nT);
