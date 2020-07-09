@@ -113,10 +113,11 @@ if any(contains(eventNames, 'reward'))
 else
     rowNames = eventNames;
 end
-colNames = {'signalsTimes', 'rigTimes'};
-colTypes = {'cell', 'cell'};
+colNames = {'signalsTimes', 'rigTimes', 'swuFlipTimes'};
+colTypes = {'cell', 'cell', 'cell'};
 nR = numel(rowNames);  % number of rows
 nC = numel(colNames);  % number of columns
+
 %% Get event times.
 nE = numel(sessions);  % number of experiment sessions
 % Get event times for each session
@@ -238,22 +239,30 @@ for iE = 1:nE
             updateTimes = interp1(swut, swut, signalsTimes(:),...
                                   'nearest', 'extrap');
             % Then find closest phd flip to 'stimWindowUpdate' time.
+            % estimated times events occurred in rig
             rigTimes = zeros(nT, 1);
+            % estimated time diff between swu and flip
+            swuFlipTimes = zeros(nT, 1);
             for iT = 1:nT
                 % must be at least a 10 ms delay between 'stimWindowUpdate'
                 % and nearest phd flip
-                rigTimes(iT) = find((updateTimes(iT) - flipTimes) < -0.01,...
-                                    1, 'first');
+                rigTimes(iT) =...
+                    flipTimes(find((updateTimes(iT) - flipTimes) < -0.01,...
+                                   1, 'first'));
+                swuFlipTimes(iT) = rigTimes(iT) - updateTimes(iT);
             end
             % Assign times to table.
             curEventTimes.signalsTimes{(name(1:(end - 5)))} =...
                 signalsTimes(:);
-            curEventTimes.rigTimes{(name(1:(end - 5)))} = rigTimes(:);
+            curEventTimes.rigTimes{(name(1:(end - 5)))} =...
+                rigTimes(:);
+            curEventTimes.swuFlipTimes{(name(1:(end - 5)))} =...
+                swuFlipTimes(:);
         end
     end
 
     % Assign table for current session to `eventTimes` & `expInfo` tables.
-    eventTimes.(expRef) = curEventTimes;
+    eventTimes.(expRef) = {curEventTimes};
     expInfo.behavioralData{expRef, 'eventTimes'} = {curEventTimes};
     
 end
