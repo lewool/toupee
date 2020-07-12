@@ -20,8 +20,9 @@ function [expInfo, mask] =...
 %       stimulusSide : 'right', 'left', 'zero'
 %       contrasts : <array of values between [-1, 1]>
 %       movementDir : 'right', 'left'
-%       highRewardSide : 'right', 'left' 
+%       highRewardSide : 'right', 'left'
 %       highRewardSideConcordance : 'concordant', 'discordant'
+%       quiescent : 'true', 'false'
 %       pastResponse : 'correct', 'incorrect'
 %       pastStimulusSide : 'right', 'left', 'zero'
 %       pastMovementDir : 'right', 'left'
@@ -47,7 +48,7 @@ function [expInfo, mask] =...
 %
 % mask : cell array
 %   Contains logical arrays in each cell, with the number of cells equal to
-%   the number of sessions in `expInfo`, and the length of the logical 
+%   the number of specified sessions, and the length of the logical 
 %   arrays equal to the number of completed trials for the given session.
 %
 %
@@ -55,8 +56,7 @@ function [expInfo, mask] =...
 % ---------
 % 1) For a single session: find trials where stim was presented on the
 %   'high-reward' side:
-%   deats = {{'LEW031', '2020-02-03', 1},...
-%              {'LEW032', '2020-02-28', 1, [1, 2]}};
+%   deats = {'LEW031', '2020-02-03', 1};
 %   files = {'timeline', 'block'};
 %   expInfo = toupee.meta.processExperiment(deats, files);
 %   conditions = struct('highRewardSideConcordance', 'concordant');
@@ -130,10 +130,10 @@ end
 % See if all provided fieldnames are valid.
 validNames = {...
     'reaction', 'choice', 'response', 'outcome', 'repeatType',...
-    'stimulusSide', 'contrasts', 'movementDir', 'highRewardSide',...
-    'highRewardSideConcordance', 'pastResponse', 'pastStimulusSide',...
-    'pastMovementDir', 'nTrialsBack', 'circaBlockSwitch', 'nTrialsCirca',...
-    'whichTrials'};
+    'stimulusSide', 'contrasts', 'movementDir', 'quiescent',...
+    'highRewardSide', 'highRewardSideConcordance', 'pastResponse',...
+    'pastStimulusSide', 'pastMovementDir', 'nTrialsBack',...
+    'circaBlockSwitch', 'nTrialsCirca', 'whichTrials'};
 givenNames = fieldnames(conditions);
 matchedNames = cellfun(@(x) find(strcmpi(x, validNames)), givenNames,...
                        'uni', 0);
@@ -159,9 +159,9 @@ maskCell = cell(1, nE);
 for iE = 1:nE
     % Extract relevant data from this session.
     expRef = sessions{iE};  % session expRef
-    b = expInfo.BlockFile{expRef};  % block data
-    e = b.events;  % events data
-    nT = numel(e.endTrialValues{1});  % number of completed trials
+    block = expInfo.BlockFile{expRef};  % block data
+    evts = block.events;  % events data
+    nT = numel(evts.endTrialValues{1});  % number of completed trials
     % @todo wm = getWheelMoves;
     % Preassign the mask to return all trials
     mask = true(1, nT);
@@ -182,7 +182,7 @@ for iE = 1:nE
     % choice
     if isfield(conditions, 'choice')
         try
-            req = e.responseValues{1}(1:nT);  % required data for condition
+            req = evts.responseValues{1}(1:nT);  % required data for condition
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -210,7 +210,7 @@ for iE = 1:nE
     % response
     if isfield(conditions, 'response')
         try
-            req = e.feedbackValues{1}(1:nT);
+            req = evts.feedbackValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -236,7 +236,7 @@ for iE = 1:nE
     % outcome
     if isfield(conditions, 'outcome')
         try
-            req = e.rewardSizeValues{1}(1:nT);
+            req = evts.rewardSizeValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -263,7 +263,7 @@ for iE = 1:nE
     % repeatType
     if isfield(conditions, 'repeatType')
         try
-            req = e.repeatNumValues{1}(1:nT);
+            req = evts.repeatNumValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -290,7 +290,7 @@ for iE = 1:nE
     % stimulusSide
     if isfield(conditions, 'stimulusSide')
         try
-            req = sign(e.contrastValues{1}(1:nT));
+            req = sign(evts.contrastValues{1}(1:nT));
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -318,7 +318,7 @@ for iE = 1:nE
     % contrasts
     if isfield(conditions, 'contrasts')
         try
-            req = e.contrastValues{1}(1:nT);
+            req = evts.contrastValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -344,11 +344,38 @@ for iE = 1:nE
             case 'left'
         end
     end
+    
+    % quiescent @todo need wheel moves
+    if isfield(conditions, 'quiescent')
+        try
+        catch ex
+            warning(ex.identifier,...
+                    strcat(ex.message(1:(end-1)),[...
+                    ' in the saved events for %s; cannot compute the ',...
+                    '''quiescent'' condition. Continuing ',...
+                    'to the next session.']), expRef);
+            continue
+        end
+        % when stimulus appears on high reward side, or stimulus contrast
+        % is 0 (we include this latter case for ease of plotting
+        % psychometrics)
+        switch conditions.quiescent
+            case 'true'
+            case 'false'
+            otherwise
+                error('toupee:behavioral:getTrials:badInput',...
+                      ['''%s'' is not a valid value for ',...
+                       '"quiescent". The value must be '...
+                       '''true'', or ''false''.'],...
+                       conditions.quiescent);
+        end
+        mask = mask & mask2;
+    end
 
     % highRewardSide
     if isfield(conditions, 'highRewardSide')
         try
-            req = e.highRewardSideValues{1}(1:nT);
+            req = evts.highRewardSideValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -374,8 +401,8 @@ for iE = 1:nE
     % highRewardSideConcordance
     if isfield(conditions, 'highRewardSideConcordance')
         try
-            req = e.contrastValues{1}(1:nT);
-            req2 = e.highRewardSideValues{1}(1:nT);
+            req = evts.contrastValues{1}(1:nT);
+            req2 = evts.highRewardSideValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -440,7 +467,7 @@ for iE = 1:nE
             ntc = conditions.nTrialsCirca;
         end
         try
-            req = e.highRewardSideValues{1}(1:nT);
+            req = evts.highRewardSideValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
