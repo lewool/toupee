@@ -5,7 +5,7 @@ for ex = 1:length(expInfo)
     %% load data
 
     block = expInfo(ex).block;
-    Timeline = expInfo(ex).Timeline;
+    Timeline = expInfo(ex).timeline;
     eventTimes = allEventTimes{ex};
 
     numCompleteTrials = numel(block.events.endTrialValues);
