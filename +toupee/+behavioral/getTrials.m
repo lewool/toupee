@@ -162,6 +162,7 @@ for iE = 1:nE
     block = expInfo.BlockFile{expRef};  % block data
     evts = block.events;  % events data
     nT = numel(evts.endTrialValues{1});  % number of completed trials
+    eventTimes = expInfo.behavioralData.eventTimes;
     % @todo wm = getWheelMoves;
     % Preassign the mask to return all trials
     mask = true(1, nT);
@@ -272,12 +273,12 @@ for iE = 1:nE
                     'session.']), expRef);
             continue
         end
-        notRepeat = req == 1;
+        repeat = req ~= 1;
         switch conditions.repeatType
             case 'random'
-                mask2 = notRepeat;
+                mask2 = ~repeat;
             case 'baited'
-                mask2 = ~notRepeat;
+                mask2 = repeat;
             otherwise
                 error('toupee:behavioral:getTrials:badInput',...
                       ['''%s'' is not a valid value for "repeatType". ',...
@@ -345,9 +346,17 @@ for iE = 1:nE
         end
     end
     
-    % quiescent @todo need wheel moves
+    % quiescent
+    % if eventTimes{1}.interactiveDur
+    %     if (eventTimes{1}.signalsTimes.interactiveDelayDur - evts.interactiveDelayTimes) < 0.5
+    %         quiescence = true
+    %     else
+    %         quiescence = false
     if isfield(conditions, 'quiescent')
         try
+            req = evts.interactiveOnTimes{1}(1:nT);
+            req2 = evts.stimulusOnTimes{1}(1:nT);
+            req3 = evts.interactiveDelayValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -356,12 +365,15 @@ for iE = 1:nE
                     'to the next session.']), expRef);
             continue
         end
-        % when stimulus appears on high reward side, or stimulus contrast
-        % is 0 (we include this latter case for ease of plotting
-        % psychometrics)
+        % if the interactive delay duration is less than 50 ms longer than
+        % the corresponding interactive delay time for the given trial,
+        % assume this means that the mouse had no early moves that broke
+        % the quiescent period
         switch conditions.quiescent
-            case 'true'
-            case 'false'
+            case true
+                mask2 = (req - req2) - req3 < 0.05;
+            case false
+                mask2 = (req - req2) - req3 >= 0.05;
             otherwise
                 error('toupee:behavioral:getTrials:badInput',...
                       ['''%s'' is not a valid value for ',...
