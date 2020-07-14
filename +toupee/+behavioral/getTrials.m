@@ -347,11 +347,6 @@ for iE = 1:nE
     end
     
     % quiescent
-    % if eventTimes{1}.interactiveDur
-    %     if (eventTimes{1}.signalsTimes.interactiveDelayDur - evts.interactiveDelayTimes) < 0.5
-    %         quiescence = true
-    %     else
-    %         quiescence = false
     if isfield(conditions, 'quiescent')
         try
             req = evts.interactiveOnTimes{1}(1:nT);

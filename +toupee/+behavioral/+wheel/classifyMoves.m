@@ -1,6 +1,6 @@
 
 
-function moveType = classifyWheelMoves(t, pos, moveOnsets, moveOffsets, intStartTime, respTime, resp)
+function moveType = classifyMoves(t, pos, moveOnsets, moveOffsets, intStartTime, respTime, resp)
 % function moveType = classifyWheelMoves(t, pos, moveOnsets, moveOffsets, intStartTime, respTime, resp)
 %
 % Label movements as "left" (1), "right" (2), "flinch" (0), or unclassified

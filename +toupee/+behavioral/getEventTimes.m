@@ -85,20 +85,22 @@ import toupee.misc.iif
 % Ensure input args are of proper type.
 p = inputParser;
 % must be char or cell array of chars
-isValidEvents = @(x) ischar(x) || (iscell(x) && ischar(x{1}));
+isValidEventNames = @(x) ischar(x) || (iscell(x) && ischar(x{1}));
 % must be char or cell array of chars or scalar int or array of ints
-isValidSessions = @(x) isValidEvents(x) || all(mod(x, 1) == 0);
+isValidSessions = @(x) isValidEventNames(x) || all(mod(x, 1) == 0);
 % must be double 2 element array
 isValidPhdFlipThresh = @(x) isnumeric(x) && numel(x) == 2;
+
 addRequired(p, 'expInfo');
-addRequired(p, 'events', isValidEvents);
+addRequired(p, 'eventNames', isValidEventNames);
 % default value is all sessions
 addParameter(p, 'sessions', expInfo.('Row'), isValidSessions);
 % default value is 0.05
 addParameter(p, 'phdFlipThresh', [0.05, 0.01], isValidPhdFlipThresh);
+
 parse(p, expInfo, eventNames, varargin{:});
 expInfo = p.Results.expInfo;
-eventNames = p.Results.events;
+eventNames = p.Results.eventNames;
 if ischar(eventNames), eventNames = {eventNames}; end  % cellify
 sessions = p.Results.sessions;
 phdFlipThresh = p.Results.phdFlipThresh;
