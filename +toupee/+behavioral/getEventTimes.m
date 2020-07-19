@@ -35,6 +35,10 @@ function [expInfo, eventTimes] =...
 %   The percentage change of the photodiode value (wrt to the max 
 %   photodiode value) over a specified amount time to qualify as a visual
 %   stimulus flip event. (default = 5% change over 10 ms)
+% 
+% 'scrnRefreshRate' : int scalar (optional name-value pair)
+%   The refresh rate (in hz) of the physical screen that displays visual
+%   stimuli.
 %
 %
 % Outputs:
@@ -65,7 +69,8 @@ function [expInfo, eventTimes] =...
 %            {'LEW032', '2020-02-28', 1, [1, 2]}};
 %   files = {'block', 'timeline'};
 %   expInfo = toupee.meta.processExperiment(deats, files);
-%   eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', 'reward'};
+%   eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', 'response',...
+%                 'reward'};
 %   [expInfo, eventTimes] =...
 %       toupee.behavioral.getEventTimes(expInfo, eventNames,...
 %                                       'phdFlipThresh', [0.075, 0.01]);
@@ -87,16 +92,21 @@ p = inputParser;
 % must be char or cell array of chars
 isValidEventNames = @(x) ischar(x) || (iscell(x) && ischar(x{1}));
 % must be char or cell array of chars or scalar int or array of ints
-isValidSessions = @(x) isValidEventNames(x) || all(mod(x, 1) == 0);
+isValidSessions = @(x) isValidEventNames(x) ...
+                       || (isnumeric(x) && all(mod(x, 1) == 0));
 % must be double 2 element array
 isValidPhdFlipThresh = @(x) isnumeric(x) && numel(x) == 2;
+isValidScrnRefreshRate = @(x) isscalar(x) && isnumeric(x) ...
+                              && mod(x, 1) == 0;
 
 addRequired(p, 'expInfo');
 addRequired(p, 'eventNames', isValidEventNames);
 % default value is all sessions
 addParameter(p, 'sessions', expInfo.('Row'), isValidSessions);
-% default value is 0.05
+% default value is 5% change over 10 ms
 addParameter(p, 'phdFlipThresh', [0.05, 0.01], isValidPhdFlipThresh);
+% default value is 60 hz
+addParameter(p, 'scrnRefreshRate', 60, isValidScrnRefreshRate);
 
 parse(p, expInfo, eventNames, varargin{:});
 expInfo = p.Results.expInfo;
@@ -104,6 +114,7 @@ eventNames = p.Results.eventNames;
 if ischar(eventNames), eventNames = {eventNames}; end  % cellify
 sessions = p.Results.sessions;
 phdFlipThresh = p.Results.phdFlipThresh;
+scrnRefreshRate = p.Results.scrnRefreshRate;
 % Initialize table for all sessions, and table for individual sesisons:
 eventTimes = table();
 % If 'reward' was specified as an event, add an additional 'estReward' row
@@ -135,6 +146,11 @@ for iE = 1:nE
     timeline = expInfo.TimelineFile{expRef};  % timeline data
     timelineTimes = timeline.rawDAQTimestamps{1}(:);
     nS = timeline.rawDAQSampleCount{1};  % total number of daq samples
+    % Ensure daq timestamps make sense.
+    daqFsErrId = 'toupee:meta:processExperiment:badInput';
+    daqFsErrMsg = 'Daq times were found to be non-linearly sampled.';
+    %#ok<*COMPNOT>
+    assert(all(diff(timelineTimes, 2)) == 0, daqFsErrId, daqFsErrMsg);
     daqFs = diff(timelineTimes(1:2));  % daq sampling rate
     % Use photodiode flip times (i.e. a change in photodiode current value
     % that can be inferred as due to a visual stimulus flip-to-screen 
@@ -145,19 +161,24 @@ for iE = 1:nE
              (:, strcmp('photoDiode', timeline.hw.inputs{1}.name));
     phdRawNorm = phdRaw / max(phdRaw);  % unit normalized photodiode vals
     sThresh = phdFlipThresh(2) / daqFs;  % n samples threshold for flip
-    vThresh = phdFlipThresh(1);  % V % change threshold for flip
+    vThresh = phdFlipThresh(1);  % V change threshold for flip
     flipMask = false(nS, 1);  % mask for flip at sample
     % Get photodiode flip times: changes in `phdRawNorm` of more than 
-    % `vThresh` in less than `sThresh` indicate a flip
-    % @todo gotta be a faster way to compute running peak2peak
+    % `vThresh` in less than `sThresh` indicate a flip.
+    % For each sample, see if it belongs to a flip by looking forward in
+    % time within `sThresh` to see if there is a significant change in V.
     for iS = 1:(nS - sThresh)
-        if peak2peak(phdRawNorm(iS:(iS + sThresh))) > vThresh
-           flipMask(iS) = true;
+        deltaV = max(abs(phdRawNorm(iS) - phdRawNorm(iS:(iS + sThresh))));
+        if deltaV > vThresh
+            flipMask(iS) = true;
         end
     end
     flipIdxsLast = find(flipMask);
-    % get just a single time for each flip event (at the end of the flip)
-    flipIdxsLast = flipIdxsLast(diff(flipIdxsLast) > 1);
+    % Get just a single time for each flip event (at the end of the flip).
+    % get minimum number of samples required between two flips, as a
+    % function of physical screen refresh rate
+    minFlipGap = ceil(1 / scrnRefreshRate * daqFs);
+    flipIdxsLast = flipIdxsLast(diff(flipIdxsLast) > minFlipGap);
     flipTimes = timelineTimes(flipIdxsLast);
     % For each time of an event, take the first photodiode flip time after
     % the signals time as an estimate of the rig time.
@@ -228,7 +249,7 @@ for iE = 1:nE
                 [outs.rewardTimes{1},...
                  (evts.feedbackTimes{1}((~evts.feedbackValues{1}))...
                   + meanSignalsOutputFeedbackDiff)])';
-            % mean signals out -> daq out delay
+            % Compute and assign mean signals -> daq out delay to table.
             expInfo.behavioralData.daqDelay{iE} = meanSignalsRigRewDiff;
         else
             % For all other events, use photodiode flip event to estimate
@@ -262,6 +283,11 @@ for iE = 1:nE
     % Assign table for current session to `eventTimes` & `expInfo` tables.
     eventTimes.(expRef) = {curEventTimes};
     expInfo.behavioralData{expRef, 'eventTimes'} = {curEventTimes};
+    
+    % Add trial durations.
+    trialDurs = evts.endTrialTimes{1}(1:nT) - evts.newTrialTimes{1}(1:nT);
+    expInfo.behavioralData{expRef, 'eventTimes'}{1}...
+        .('signalsTimes'){'trialDur'} = trialDurs;
     
     % Get durations of 'interactiveDelay' periods if got 'stimulusOn' and
     % 'interactiveOn' times: 'interactiveOn' - 'stimulusOn' for each trial
