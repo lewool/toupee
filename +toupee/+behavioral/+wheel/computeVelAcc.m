@@ -78,7 +78,7 @@ gradFn = p.Results.gradFn;
 if ~all(diff(t) == t(1) - t(2))
     tRaw = t;
     t = t(1):(1 / fs):t(end);
-    x = interp1(tRaw, x, t, 'nearest');
+    x = interp1(tRaw, x, t(:), 'nearest');
 end
 
 % Compute derivatives.

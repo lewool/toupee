@@ -29,12 +29,12 @@ function [expInfo, eventTimes] =...
 % 'sessions' : int scalar OR int array OR char array OR cell array 
 % (optional name-value pair)
 %   Specific sessions for which to return the events' times, instead of
-%   from all sessions. (default = all)
+%   from all sessions. (Default: all)
 %
 % 'phdFlipThresh' : double array (optional name-value pair)
 %   The percentage change of the photodiode value (wrt to the max 
 %   photodiode value) over a specified amount time to qualify as a visual
-%   stimulus flip event. (default = 5% change over 10 ms)
+%   stimulus flip event. (Default: 5% change over 10 ms)
 % 
 % 'scrnRefreshRate' : int scalar (optional name-value pair)
 %   The refresh rate (in hz) of the physical screen that displays visual
@@ -163,8 +163,8 @@ for iE = 1:nE
     sThresh = phdFlipThresh(2) / daqFs;  % n samples threshold for flip
     vThresh = phdFlipThresh(1);  % V change threshold for flip
     flipMask = false(nS, 1);  % mask for flip at sample
-    % Get photodiode flip times: changes in `phdRawNorm` of more than 
-    % `vThresh` in less than `sThresh` indicate a flip.
+    % Get photodiode flip times: change in `phdRawNorm` of more than 
+    % `vThresh` in less than `sThresh` indicates a flip.
     % For each sample, see if it belongs to a flip by looking forward in
     % time within `sThresh` to see if there is a significant change in V.
     for iS = 1:(nS - sThresh)
