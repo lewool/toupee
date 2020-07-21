@@ -1,7 +1,9 @@
-function [moveOn, MoveOff, displacement, dir, class, peakVel, peakAcc] =...
-    getMoves(x, t, varargin)
+function ...
+    [moveOn, moveOff, moveDisplacement, moveDir, moveClass, ...
+     movePeakVelocity, movePeakAcceleration] =  getMoves(x, t, varargin)
 % Gets and classifies wheel moves
 %
+% A wheel move can only be in one direction.
 % Algorithm (pseudocode):
 % >> for each sample
 %     >> if displacement b/w (sample) : (`tThresh` samples) > `xThresh`
@@ -35,12 +37,12 @@ function [moveOn, MoveOff, displacement, dir, class, peakVel, peakAcc] =...
 %
 % 'xThresh' : double scalar (optional name-value pair)
 %   The minimum change in position (in m) of the wheel (within `tThresh`) 
-%   for it to be classified as a movement. (Default: 0.001 m)
+%   for it to be classified as a movement. (Default: 0.0015 m)
 %
 % 'tThresh' : double scalar (optional name-value pair)
 %   The maximum duration (in s) in which the wheel position must change by
 %   at least `xThresh` for it to be classified as a movement. 
-%   (Default: 0.2 s)
+%   (Default: 0.150 s)
 %
 % 'tMinGap' : double scalar (optional name-value pair)
 %   The minimum duration (in s) between consecutive wheel movements for the
@@ -60,8 +62,17 @@ function [moveOn, MoveOff, displacement, dir, class, peakVel, peakAcc] =...
 %   The minimum duration (in s) a wheel movement must take place over for
 %   it not to be discarded. (Default: 0 s)
 %
+% 'getVelAcc' : logical (optional name-value pair)
+%   A flag for computing the velocity and acceleration of each move.
+%   (Default: true)
+%
+% 'gradFn' : function handle (optional name-value pair)
+%   A function handle containing the function to use on the wheel position
+%   data to compute the wheel velocity. (Default: The numerical gradient of
+%   a single-pass, moving-average with a 10 ms window)
+%   
 % 'makePlots' : logical (optional name-value pair)
-%   A flag to indicate whether to plot the detected wheel movements.
+%   A flag for plotting the detected wheel moves. (Default: false)
 %
 %
 % Outputs:
@@ -93,189 +104,227 @@ function [moveOn, MoveOff, displacement, dir, class, peakVel, peakAcc] =...
 %
 
 %% Prerun checks.
+% Imports.
+import toupee.misc.*
+import toupee.behavioral.wheel.*
 % Validate inputs.
 p = inputParser;
 isValidX = @(y) isnumeric(y) && isvector(y) && numel(y) == numel(t);
 isValidT = @(y) isnumeric(y) && isvector(y) && numel(y) == numel(x);
-isValidParam = @(y) isnumeric(y) && isscalar(y) && (y > 0);
+isValidNum = @(y) isnumeric(y) && isscalar(y) && (y > 0);
+isValidFlag = @(y) islogical(y) && isscalar(y);
+isValidGradFn = @(y) isa(y, 'function_handle');
 
 addRequired(p, 'x', isValidX);
 addRequired(p, 't', isValidT);
-addParameter(p, 'fs', 1000, isValidParam);
-addParameter(p, 'xThresh', 0.001, isValidParam);
-addParameter(p, 'tThresh', 0.2, isValidParam);
-addParameter(p, 'tMinGap', 0.05, isValidParam);
-addParameter(p, 'xOnThresh', 0.0005, isValidParam);
-addParameter(p, 'xOffThresh', 0.0005, isValidParam);
-addParameter(p, 'minDur', 0, isValidParam);
-addParameter(p, 'makePlots', false, @(x) islogical(x) && isscalar(x));
+addParameter(p, 'fs', 1000, isValidNum);
+addParameter(p, 'xThresh', 0.0015, isValidNum);
+addParameter(p, 'tThresh', 0.150, isValidNum);
+addParameter(p, 'tMinGap', 0.1, isValidNum);
+addParameter(p, 'xOnThresh', 0.0005, isValidNum);
+addParameter(p, 'xOffThresh', 0.0005, isValidNum);
+addParameter(p, 'minDur', 0, isValidNum);
+addParameter(p, 'getVelAcc', true, isValidFlag);
+addParameter(p, 'gradFn', @(y) gradient(movmean(y, 10)), isValidGradFn);
+addParameter(p, 'makePlots', false, isValidFlag);
 
 parse(p, x, t, varargin{:});
 p = p.Results;  % final parameters
 
-%% Compute approximate movement onset and offset samples
+%% Compute approximate movement start and end times.
 % Convert the time threshold for detecting movements into a number of 
 % samples threshold (given the sampling frequency)
+tic
 sThresh = round(p.tThresh * p.fs);
 nS = numel(t);  % total number of samples
 % For each sample, see if it belongs to a movement.
-moveMask = false(nS, 1);
+% Values of `1` in `moveMask` correspond to samples belonging to a 
+% rightwards move, while values of `-1.1` correspond to samples belonging 
+% to a leftwards move.
+dirS = zeros(nS, 1);  % direction of movement of samples
 for iS = 1:(nS - sThresh)
-    % Find all current samples that pass thresh for movement.
-    % displacement for current samples
-    curDis = x(iS) - x(iS:(iS + sThresh));
-    curMoveMask = abs(curDis) > p.xThresh;
-    % If the samples pass thresh in both directions, just keep the move in
-    % the first direction, the second will be caught later.
-    % direction of displacement for current samples
-    curDisDir = sign(diff(curDis(curMoveMask)));
-    if numel(unique(curDisDir)) == 3
-        iFirstMoveStop = find(curDisDir == -curDisDir(1), 1, 'first');
-        iMoves = find(curMoveMask);
-        curMoveMask(iMoves(iFirstMoveStop:end)) = 0;
-    end
-    % If a movement that passes thresh has position change in both
-    % directions, don't count it; it will be caught later.
-    iEndMove = find(curMoveMask, 1, 'last') - 1;
-    % direction of position change for current move
-    curMoveDir = sign(diff(x(iS:(iS + iEndMove))));
-    if numel(find(curMoveDir == -1)) > 2 ...
-       && numel(find(curMoveDir == 1)) > 2 
+    % Find all current samples that pass thresh for movement. If none do,
+    % continue with the next sample.
+    % displacement for current samples: negative vals mean x is increasing,
+    % so rightwards turn, and positive vals mean vice versa
+    disCur = x(iS) - x((iS + 1):(iS + sThresh));
+    moveMaskCur = abs(disCur) > p.xThresh;
+    if ~any(moveMaskCur), continue, end
+    % Find direction of first change in position.
+    moveDirCur = sign(-disCur(find(disCur, 1, 'first')));
+    % If the change in this direction *doesn't* break movement threshold,
+    % continue to next sample.
+    disDirCur = sign(diff([-disCur(1); -disCur(moveMaskCur)]));
+    if ~(disDirCur(1) == moveDirCur)
         continue
-    % Else, keep the movement and mark these samples.
+    % Else, find the last continuous position change in this direction.
     else
-        moveMask(iS:(iS + iEndMove)) = true;
+        moveIdxsCur = find(moveMaskCur);
+        iEndMove = find(sign(diff(-disCur(moveMaskCur))) ...
+                        == -moveDirCur, 1, 'first');
+        % If it's a continuous movement in one direction, mark the end of
+        % the movement as the last sample of the current sample subset.
+        if isempty(iEndMove), iEndMove = numel(moveIdxsCur); end
+        iEndMove = moveIdxsCur(iEndMove);
+        dirS(iS:(iS + iEndMove)) = moveDirCur;
     end
 end
+% Allow for differentiating movement types based on diffs. (If 0-to-left
+% moves were kept as `-1`, then it wouldn't be possible to differentiate
+% 0-to-left from right-to-0 moves).
+dirS(dirS == -1) = -1.1;
 % Make sure final sample allows for a movement end.
-moveMask(end) = false;
-
-
-tic
-warning('off', 'MATLAB:hankel:AntiDiagonalConflict')
-displacement = zeros(nS, 1); % Initialize vector of displacement
-iS = 0;  % index of current sample
-while true
-    iX = (1:p.batchSize) + iS;  % indices of `x` to process
-    % Remove any overflowed indices for last batch.
-    if iX(end) > length(t)
-        iX(iX > length(t)) = []; 
-    end
-    w2e = hankel(x(iX), nan(1, sThresh));
-    displacement(iX) = max(w2e, [], 2) - min(w2e, [], 2);
-    iS = iS + p.batchSize - sThresh;
-    if iX(end) == length(t), break, end
-end
-
-isMoving = displacement > p.xThresh;
-isMoving(end) = false; % make sure we end on an offset
+dirS((end - 1) : end) = false;
 toc
-
-% fill in small gaps - this is like a dilation/contraction
-onsetSamps = find(~isMoving(1:end-1) & isMoving(2:end));
-offsetSamps = find(isMoving(1:end-1) & ~isMoving(2:end));
-tooShort = find((onsetSamps(2:end) - offsetSamps(1:end-1)) / p.fs < p.minGap);
-for q = 1:length(tooShort)
-    isMoving(offsetSamps(tooShort(q)):onsetSamps(tooShort(q)+1)) = true;
-end
-
-%% Compute precise movement onset and offset samples
-% definition of move onset: 
-% - starting from the end of the tThresh window, look back until you find
-% one that's not different from the moveOnset, by some smaller threshold.
-onsetSamps = find(~isMoving(1:end-1) & isMoving(2:end));
-
-% Same as above, this is to replace the two lines below in a memory
-% controlled way without looping on every sample
-%  wheelToepOnsets = wheelToep(moveOnsetSamps,:);
-%  wheelToepOnsetsDev = abs(bsxfun(@minus, wheelToepOnsets, wheelToepOnsets(:,1)));
-wheelToepOnsetsDev = zeros(length(onsetSamps), sThresh);
-iS = 0; cwt = 0;
-while ~isempty(onsetSamps)
-    iX = (1:p.batchSize) + iS;
-    [icomm] = intersect( iX(1:end-sThresh-1), onsetSamps );
-    [~, itpltz] = intersect( iX(1:end-sThresh-1), onsetSamps );
-    iX(iX > length(t)) = [];
-    if ~isempty(icomm)        
-        w2e = hankel(x(iX), nan(1,sThresh));
-        w2e = abs(bsxfun(@minus, w2e, w2e(:,1)));
-        wheelToepOnsetsDev(cwt + (1:length(icomm)), :) =  w2e(itpltz, :);
-        cwt = cwt + length(icomm);
+%% Check whether to merge some movements.
+% Find all movement starts.
+z2r = find(diff(dirS) == 1);     % 0-to-right
+l2r = find(diff(dirS) == 2.1);   % left-to-right
+z2l = find(diff(dirS) == -1.1);  % 0-to-left
+r2l = find(diff(dirS) == -2.1);  % right-to-left
+% specific move type for each move
+moveTypes = [(zeros(numel(z2r), 1) + 1); ...  
+             (zeros(numel(l2r), 1) + 2.1); ... 
+             (zeros(numel(z2l), 1) - 1.1); ...  
+             (zeros(numel(r2l), 1) - 2.1)];
+% Sort movement starts in time.
+[startS, sIdxs] = sort([z2r; l2r; z2l; r2l]);
+startS = startS + 1;
+moveTypes = moveTypes(sIdxs);
+% simply the direction each move is towards         
+moveTypes2 = sign(moveTypes);
+% Merge consecutive, same-direction movements that are separated by less
+% than `p.tMinGap`
+inMinGapMoves = find(diff(startS) < (p.tMinGap * p.fs));
+inSameDirMoves = find(diff(moveTypes2) == 0);
+mergeeMoves = intersect(inMinGapMoves, inSameDirMoves);
+if ~isempty(mergeeMoves)
+    mergerMoves = mergeeMoves + 1;
+    fillIdxs = arrayfun(@(z, z2) [z:1:z2]', startS(mergeeMoves), ... 
+                        startS(mergerMoves), 'uni', 0);
+    fillVals = cellfun(@(z, z2) zeros(numel(z), 1) + moveTypes(z2),...
+                       fillIdxs, num2cell(mergeeMoves), 'uni', 0);
+    for iM = 1:numel(mergeeMoves)
+        dirS(fillIdxs{iM}) = fillVals{iM};
     end
-    iS = iS + p.batchSize - sThresh;
-    if iX(end) >= onsetSamps(end), break, end
-end
-warning('on', 'MATLAB:hankel:AntiDiagonalConflict')
-
-hasOnset = wheelToepOnsetsDev > p.xThreshOnset;
-[a, b] = find(~fliplr(hasOnset));
-onsetLags = sThresh-accumarray(a(:), b(:), [], @min);
-onsetSamps = onsetSamps + onsetLags;
-onsets = t(onsetSamps);
-
-% we won't do the same thing for offsets, instead just take the actual end
-% of the isMoving. This is because we're just not so concerned about being
-% temporally precise with these. 
-offsetSamps = find(isMoving(1:end-1) & ~isMoving(2:end));
-offsets = t(offsetSamps);
-
-moveDurs = offsets - onsets;
-tooShort = moveDurs < p.minDur;
-onsetSamps = onsetSamps(~tooShort);
-onsets = onsets(~tooShort); 
-offsetSamps = offsetSamps(~tooShort);
-offsets = offsets(~tooShort); 
-
-moveGaps = onsets(2:end) - offsets(1:end-1);
-gapTooSmall = moveGaps < p.minGap;
-% for these, drop the offending offset and onset, which effectively joins
-% the two
-if ~isempty(onsets)
-    onsets = onsets([true ~gapTooSmall]); % always keep first onset
-    onsetSamps = onsetSamps([true ~gapTooSmall]);
-    offsets = offsets([~gapTooSmall true]); % always keep last offset
-    offsetSamps = offsetSamps([~gapTooSmall true]); % always keep last offset
-end
-onsets = onsets(:); % return a column
-offsets = offsets(:); % return a column
-% Calculate displacement
-displacement = x(offsetSamps) - x(onsetSamps);
-displacement = displacement(:); % return a column
-% Calculate peak velocity times and peak amplitudes
-vel = conv(diff([0 x]), wheel.gausswin(10), 'same');
-peakVelTimes = nan(size(onsets));
-peakAmps = nan(size(onsets));
-for m = 1:numel(onsets)
-    thisV = abs(vel(onsetSamps(m):offsetSamps(m)));
-    peakVelTimes(m) = onsets(m) + find(thisV == max(thisV), 1) / p.fs;
-    % Get index of maximum absolute position relative to move onset
-    [~,I] = max(abs(x(onsetSamps(m):offsetSamps(m)) - x(onsetSamps(m))));
-    peakAmps(m) = x(onsetSamps(m) + I) - x(onsetSamps(m));
+    % After merging, find all movement starts again.
+    z2r = find(diff(dirS) == 1);     % 0 to right
+    l2r = find(diff(dirS) == 2.1);   % left to right
+    z2l = find(diff(dirS) == -1.1);  % 0 to left
+    r2l = find(diff(dirS) == -2.1);  % right to left
+    % specific move type for each move
+    moveTypes = [(zeros(numel(z2r), 1) + 1); ...
+                 (zeros(numel(l2r), 1) + 2.1); ...
+                 (zeros(numel(z2l), 1) - 1.1); ...
+                 (zeros(numel(r2l), 1) - 2.1)];
+    % Sort movement starts in time.
+    [startS, sIdxs] = sort([z2r; l2r; z2l; r2l]);
+    startS = startS + 1;
+    moveTypes = moveTypes(sIdxs);
+    % simply the direction each move is towards         
+    moveTypes2 = sign(moveTypes);
 end
 
-%% see how it looks
+%% Compute more precise movement start and end times.
+nMoves = numel(startS);
+startS2 = startS;  % will hold more precise movement start samples
+endS2 = zeros(nMoves, 1);  % will hold movement end samples
+for iM = 1:nMoves
+    % Get new estimate of movement start: for left (right) movements, find 
+    % first sample after predefined movement start that decreases 
+    % (increases) by at least `p.xOnThresh`.
+    bookend = iif((startS(iM) + p.fs * 10) > nS, nS, ...
+                  startS(iM) + p.fs * 10);
+    iA = 1;  % index to add
+    if moveTypes(iM) == -1.1  % left
+        iA = find(x(startS(iM):bookend) < (x(startS(iM)) - p.xOnThresh),... (startS(iM) + p.fs * 10)
+                  1, 'first');
+    elseif moveTypes(iM) == 1  % right
+        iA = find(x(startS(iM):bookend) > (x(startS(iM)) + p.xOnThresh),...
+                  1, 'first');
+    end
+    if isempty(iA), iA = p.fs * 10; end
+    startS2(iM) = startS(iM) + iA - 1;
+    % Get new estimate of movement end: find the first sample after the
+    % predefined movement end that has an abs diff of < `p.xOffThresh`
+    bookend = iif((startS2(iM) + p.fs * 10) > nS, nS, ...
+                  startS2(iM) + p.fs * 10);
+    iA = find(dirS(startS2(iM):bookend) ~= dirS(startS2(iM)), 1, 'first');
+    if isempty(iA), iA = p.fs * 10; end
+    endS = startS2(iM) + iA - 1;  % predefined movement end
+    bookend = iif((endS + p.fs * 10) > nS, nS, endS + p.fs * 10);
+    iA = find(abs(diff(x(endS:bookend))) < p.xOffThresh, 1, 'first'); 
+    if iA ~= 1
+        keyboard
+    end
+    if isempty(iA), iA = p.fs * 10; end
+    endS2(iM) = endS + iA;
+end
+
+%% Return Outputs.
+moveOn = startS2 / fs;
+moveOff = endS2 / fs;
+moveDur = moveOff - moveOn;
+% Remove movements below the minimum duration thresh.
+moveDurMask = moveDur > p.minDur;
+startS2 = startS2(moveDurMask);
+endS2 = endS2(moveDurMask);
+nMoves = numel(startS2);
+moveOn = startS2 / fs;
+moveOff = endS2 / fs;
+moveTypes = moveTypes(moveDurMask);
+moveDir = cell(nMoves, 1);
+moveDir(moveTypes == -2.1) = {'right-to-left'};
+moveDir(moveTypes == -1.1) = {'zero-to-left'};
+moveDir(moveTypes == 1) = {'zero-to-right'};
+moveDir(moveTypes == 2.1) = {'left-to-right'};
+moveDur = moveOff - moveOn;
+moveDisplacement = x(endS2) - x(startS2);
+moveClass = repmat({'smooth'}, [nMoves, 1]);
+moveClass(moveDur < 0.1) = {'flinch'};
+
+if p.getVelAcc
+    % Get continuous velocity and acceleration for each move.
+    [moveV, moveA] = ...
+        arrayfun(@(z, z2) computeVelAcc(x(z:z2), t(z:z2), 'fs', fs, ...
+                                        'gradFn', p.gradFn), ...
+                                        startS2, endS2, 'uni', 0);
+    %#ok<*FNDSB> Get peak velocity and acceleration from continuous values.
+    movePeakVelocity = zeros(nMoves, 1);
+    movePeakAcceleration = zeros(nMoves, 1);
+    for iM = 1:nMoves
+        vCur = moveV{iM};
+        [~, iMaxV] = max(abs(vCur));
+        movePeakVelocity(iM) = vCur(iMaxV);
+        aCur = moveA{iM};
+        [~, iMaxA] = max(abs(aCur));
+        movePeakAcceleration(iM) = vCur(iMaxA);
+    end
+end
+
+%% See how it looks.
 if p.makePlots
     figure('Name', 'Wheel movements'); 
     % Plot the wheel position
     ax1 = subplot(2,1,1);
     hold on; 
-    on = plot(onsets, x(onsetSamps), 'go', 'DisplayName', 'onset');
-    off = plot(offsets, x(offsetSamps), 'bo', 'DisplayName', 'offset');
+    on = plot(moveOn, x(startS2), 'go', 'DisplayName', 'moveOn');
+    off = plot(moveOff, x(endS2), 'bo', 'DisplayName', 'moveOff');
     hold on; 
-    inMove = logical(WithinRanges(t, [onsets offsets]));
-    in = plot(t(inMove), x(inMove), 'r.', 'DisplayName', 'in movement');
-    plot(t(~inMove), x(~inMove), 'k.');
+    inMove = logical(withinRanges(t, [moveOn moveOff]));
+    in = plot(t(inMove), x(inMove), 'r.', 'DisplayName', 'inMove');
+    %plot(t(~inMove), x(~inMove), 'k.');
     ylabel('position');
     legend([on off in], 'Location', 'SouthEast')
     
     % Plot the velocity trace
     ax2 = subplot(2,1,2);
-    vel = wheel.computeVelAcc(x, t);
+    vel = computeVelAcc(x, t);
     hold on; 
-    plot(onsets, vel(onsetSamps), 'go');
-    plot(offsets, vel(offsetSamps), 'bo');
+    plot(moveOn, vel(startS2), 'go');
+    plot(moveOff, vel(endS2), 'bo');
     plot(t(inMove), vel(inMove), 'r.');
-    plot(t(~inMove), vel(~inMove), 'k.');
+    %plot(t(~inMove), vel(~inMove), 'k.');
     ylabel('velocity');
     xlabel('time (sec)');
     

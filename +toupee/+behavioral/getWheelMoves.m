@@ -23,10 +23,6 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 %   time window to return: e.g. [-0.5 0.5] represents a half second before
 %   and after the event. (Default: none)
 %
-% 'classificationWindow' : double scalar
-%   The time window (in s) to use for computing wheel movement direction 
-%   and classification. (Default: 10 ms)
-%
 % 'fs' : double scalar (optional name-value pair)
 %   The sampling frequency (in hz) of the data acquisition device that
 %   sampled the wheel. (Default: 1000 hz).
@@ -65,9 +61,13 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 %
 % Examples:
 % ---------
-%   get trials, get event times, get wheel moves
-%
-%
+%   get event times, get trials, get wheel moves
+% 
+% eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', 'response' 'estReward'};
+% eventWindows = {[-0.5 0.5], [-0.5 0.5], [-0.5 0.5], [-0.5 0.5], [-0.5 0.5]};
+% gradFn = @(x) gradient(movmean(x, 10));
+% fs = 1000;
+% 
 % See Also:
 % ---------
 % toupee.behavioral.getTrials
@@ -91,8 +91,6 @@ isValidEventWindows = @(x) isnumeric(x) && numel(x) == 2 && x(2) > x(1)...
                                            isnumeric(y)...
                                            && numel(y) == 2 ...
                                            && y(2) > y(1), x)));
-% must be a double scalar                                       
-isValidClassificationWindow = @(x) isscalar(x) && isnumeric(x);
 % must be an int scalar
 isValidFs = @(x) isnumeric(x) && isscalar(x) && mod(x, 1) == 0;
 % must be a function handle
@@ -108,7 +106,6 @@ isValidWheelSpecs =...
 addParameter(p, 'sessions', expInfo.('Row'), isValidSessions);
 addParameter(p, 'eventNames', {}, isValidEventNames);
 addParameter(p, 'eventWindows', {}, isValidEventWindows);
-addParameter(p, 'classificationWindow', .01, isValidClassificationWindow);
 addParameter(p, 'fs', 1000, isValidFs);
 addParameter(p, 'gradFn', @(x) gradient(movmean(x, 10)), isValidGradFn);
 addParameter(p, 'wheelSpecs',...
@@ -120,7 +117,6 @@ sessions = p.Results.sessions;
 sessions = expInfo.Row(sessions);
 eventNames = p.Results.eventNames;
 eventWindows = p.Results.eventWindows;
-classificationWindow = p.Results.classificationWindow;
 fs = p.Results.fs;
 gradFn = p.Results.gradFn;
 wheelSpecs = p.Results.wheelSpecs;
@@ -133,7 +129,7 @@ rowNames = ['fullTrials', ...
 nR = numel(rowNames);  % number of rows
 colNames = {'rigTimes', 'position', 'velocity', 'acceleration', 'nMoves', ...
             'moveOn', 'moveOff', 'moveDisplacement', 'moveDir', ...
-            'moveClass'};
+            'moveClass', 'movePeakVelocity', 'movePeakAcceleration'};
 nC = numel(colNames);  % number of columns
 colTypes = cellstr(repmat('cell', nC, 1));
 
@@ -159,8 +155,8 @@ for iE = 1:nE
     daqDelay = expInfo.behavioralData.daqDelay{iE};
     tRaw = tRaw - (daqDelay * 2);
     t = timeline.rawDAQTimestamps{1}(:);  % timeline time
-    % Interpolate the wheel trace to evenly sample in rig time.
-    x = interp1(tRaw, xRaw, t, 'linear', 'extrap');
+    % Interpolate the wheel trace to linearly sample in rig time.
+    x = interp1(tRaw, xRaw, t, 'nearest', 'extrap');
     % Compute instantaneous velocity and acceleration for entire session.
     [v, a] = computeVelAcc(x, t, 'fs', fs, 'gradFn', gradFn);
     % Per specified event, per trial, get:
@@ -188,7 +184,8 @@ for iE = 1:nE
     xCur = cellfun(@(z) x(z), idx, 'uni', 0);
     vCur = cellfun(@(z) v(z), idx, 'uni', 0);
     aCur = cellfun(@(z) a(z), idx, 'uni', 0);
-    [moveOn, moveOff, moveDisplacement, moveDir, moveClass] =...
+    [moveOn, moveOff, moveDisplacement, moveDir, moveClass, ...
+     movePeakVelocity, movePeakAcceleration] =...
         cellfun(@(z, z2) getMoves(z, z2, fs), xCur, tCur, 'uni', 0);
     nMoves = cellfun(@(z) numel(z), moveOn);
     wheelMoves{'fullTrials', 'rigTimes'} = tCur;
@@ -201,8 +198,9 @@ for iE = 1:nE
     wheelMoves{'fullTrials', 'moveDisplacement'} = moveDisplacement;
     wheelMoves{'fullTrials', 'moveDirection'} = moveDir;
     wheelMoves{'fullTrials', 'moveClass'} = moveClass;
-    wheelMoves{'fullTrials', 'movePeakVel'} = movePeakVel;
-    wheelMoves{'fullTrials', 'movePeakAcc'} = movePeakAcc;
+    wheelMoves{'fullTrials', 'movePeakVelocity'} = movePeakVelocity;
+    wheelMoves{'fullTrials', 'movePeakAcceleration'} =...
+        movePeakAcceleration;
     
 
 end
