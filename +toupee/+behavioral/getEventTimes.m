@@ -87,6 +87,8 @@ function [expInfo, eventTimes] =...
 %% Prerun checks.
 % Import `iif`.
 import toupee.misc.iif
+% Turn off warning for assigning to a subset of rows of a table at a time.
+warning('off', 'MATLAB:table:RowsAddedNewVars')
 % Ensure input args are of proper type.
 p = inputParser;
 % must be char or cell array of chars

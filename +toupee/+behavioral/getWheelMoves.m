@@ -63,6 +63,7 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 % ---------
 %   get event times, get trials, get wheel moves
 % 
+% sessions = expInfo.('Row');
 % eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', 'response' 'estReward'};
 % eventWindows = {[-0.5 0.5], [-0.5 0.5], [-0.5 0.5], [-0.5 0.5], [-0.5 0.5]};
 % gradFn = @(x) gradient(movmean(x, 10));
@@ -77,7 +78,9 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 
 %% Prerun checks.
 % Imports
-import toupee.behavioral.wheel.*
+import toupee.behavioral.*
+% Turn off warning for assigning to a subset of rows of a table at a time.
+warning('off', 'MATLAB:table:RowsAddedNewVars')
 % Ensure input args are of proper type.
 p = inputParser;
 % must be char or cell array of chars or scalar int or array of ints
@@ -128,13 +131,17 @@ rowNames = ['fullTrials', ...
                              ']'], eventNames, eventWindows, 'uni', 0)]';
 nR = numel(rowNames);  % number of rows
 colNames = {'rigTimes', 'position', 'velocity', 'acceleration', 'nMoves', ...
-            'moveOn', 'moveOff', 'moveDisplacement', 'moveDir', ...
+            'moveOn', 'moveOff', 'moveDisplacement', 'moveDirection', ...
             'moveClass', 'movePeakVelocity', 'movePeakAcceleration'};
 nC = numel(colNames);  % number of columns
 colTypes = cellstr(repmat('cell', nC, 1));
 
 wheelMoves = table('Size', [nR, nC], 'VariableNames', colNames, ...
                    'VariableTypes', colTypes, 'RowNames', rowNames);
+% Create placeholder elements in `eventNames` and `eventWindows` for
+% returning wheel moves for each full trial
+eventNames = [{'fullTrials'}, eventNames];
+eventWindows = [{[0, 0]}, eventWindows];
 % Go experiment-by-experiment, event-by-event, trial-by-trial.
 nE = numel(sessions);  % number of experiment sessions 
 for iE = 1:nE
@@ -163,46 +170,69 @@ for iE = 1:nE
     % continuous position, continuous velocity, peak velocity, continuous
     % acceleration, peak acceleration, continuous direction, initial 
     % direction, final direction, and continuous movement classification.
-
     for iN = 1:numel(eventNames)
+        evt = eventNames{iN};
+        % Initialize cells to get all wheel move info per event.
+        tEvt = cell(nT, 1);
+        xEvt = cell(nT, 1);
+        vEvt = cell(nT, 1);
+        aEvt = cell(nT, 1);
+        nMovesEvt = cell(nT, 1);
+        moveOnEvt = cell(nT, 1);
+        moveOffEvt = cell(nT, 1);
+        moveDisplacementEvt = cell(nT, 1);
+        moveDirectionEvt = cell(nT, 1);
+        moveClassEvt = cell(nT, 1);
+        movePeakVelocityEvt = cell(nT, 1);
+        movePeakAccelerationEvt = cell(nT, 1);
+        % For each trial, get wheel move info for specified time windows
+        % around event.
         for iT = 1:nT
-            if strcmp(eventNames{iN}, 'newTrial')
-                idxFirst = round(newTrialTimes(iT) * fs);
-                idxLast = round(endTrialTimes(iT) * fs);
+            switch evt
+                % special case to get indices for full trials
+                case 'fullTrials'  
+                startTime = evts.newTrialTimes{1}(iT) + daqDelay;
+                endTime = evts.endTrialTimes{1}(iT) + daqDelay;
+                otherwise
+                colName = [evt, 'Times'];
+                startTime = evts.(colName){1}(iT) + daqDelay + eventWindows{iN}(1);
+                endTime = evts.(colName){1}(iT) + daqDelay + eventWindows{iN}(2);
             end
+            iStartEvt = round(startTime * fs);
+            iEndEvt = round(endTime * fs);
+            evtIdxs = iStartEvt:1:iEndEvt;
+            tEvt{iT} = t(evtIdxs);
+            xEvt{iT} = x(evtIdxs);
+            vEvt{iT} = v(evtIdxs);
+            aEvt{iT} = a(evtIdxs);
+            [moveOn, moveOff, moveDisplacement, moveDirection, moveClass, ...
+             movePeakVelocity, movePeakAcceleration] = ...
+                wheel.getMoves(xEvt, tEvt, 'fs', fs, 'gradFn', gradFn);
+            nMovesEvt{iT} = numel(moveOn);
+            moveOnEvt{iT} = moveOn;
+            moveOffEvt{iT} = moveOff;
+            moveDisplacementEvt{iT} = moveDisplacement;
+            moveDirectionEvt{iT} = moveDirection;
+            moveClassEvt{iT} = moveClass;
+            movePeakVelocityEvt{iT} = movePeakVelocity;
+            movePeakAccelerationEvt{iT} = movePeakAcceleration;
         end
+        % For each event, assign cells with wheel move info for all trials
+        % to `wheelMoves` table
+        wheelMoves{evt, 'rigTimes'} = {tEvt};
+        wheelMoves{evt, 'position'} = {xEvt};
+        wheelMoves{evt, 'velocity'} = {vEvt};
+        wheelMoves{evt, 'acceleration'} = {aEvt};
+        wheelMoves{evt, 'nMoves'} = {nMovesEvt};
+        wheelMoves{evt, 'moveOn'} = {moveOnEvt};
+        wheelMoves{evt, 'moveOff'} = {moveOffEvt};
+        wheelMoves{evt, 'moveDisplacement'} = {moveDisplacementEvt};
+        wheelMoves{evt, 'moveDirection'} = {moveDirectionEvt};
+        wheelMoves{evt, 'moveClass'} = {moveClassEvt};
+        wheelMoves{evt, 'movePeakVelocity'} = {movePeakVelocityEvt};
+        wheelMoves{evt, 'movePeakAcceleration'} = ...
+            {movePeakAccelerationEvt};
     end
-    
-    % special case for each full trial
-    % get times in rig times
-    newTrialTimes = evts.newTrialTimes{1}(1:nT) + daqDelay;
-    endTrialTimes = evts.endTrialTimes{1}(1:nT) + daqDelay;
-    idxStart = round(newTrialTimes * fs);
-    idxEnd = round(endTrialTimes * fs);
-    idx = cellfun(@(z, z2) z:1:z2, idxStart, idxEnd, 'uni', 0);
-    tCur = cellfun(@(z) t(z), idx, 'uni', 0);
-    xCur = cellfun(@(z) x(z), idx, 'uni', 0);
-    vCur = cellfun(@(z) v(z), idx, 'uni', 0);
-    aCur = cellfun(@(z) a(z), idx, 'uni', 0);
-    [moveOn, moveOff, moveDisplacement, moveDir, moveClass, ...
-     movePeakVelocity, movePeakAcceleration] =...
-        cellfun(@(z, z2) getMoves(z, z2, fs), xCur, tCur, 'uni', 0);
-    nMoves = cellfun(@(z) numel(z), moveOn);
-    wheelMoves{'fullTrials', 'rigTimes'} = tCur;
-    wheelMoves{'fullTrials', 'position'} = xCur;
-    wheelMoves{'fullTrials', 'velocity'} = vCur;
-    wheelMoves{'fullTrials', 'acceleration'} = aCur;
-    wheelMoves{'fullTrials', 'nMoves'} = nMoves;
-    wheelMoves{'fullTrials', 'moveOn'} = moveOn;
-    wheelMoves{'fullTrials', 'moveOff'} = moveOff;
-    wheelMoves{'fullTrials', 'moveDisplacement'} = moveDisplacement;
-    wheelMoves{'fullTrials', 'moveDirection'} = moveDir;
-    wheelMoves{'fullTrials', 'moveClass'} = moveClass;
-    wheelMoves{'fullTrials', 'movePeakVelocity'} = movePeakVelocity;
-    wheelMoves{'fullTrials', 'movePeakAcceleration'} =...
-        movePeakAcceleration;
-    
-
 end
 
 end

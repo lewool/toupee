@@ -91,7 +91,8 @@ function [expInfo, fdata] = processExperiment(deats, files)
 % Import all other functions in this subpackage and `iif`.
 import toupee.meta.*
 import toupee.misc.iif
-
+% Turn off warning for assigning to a subset of rows of a table at a time.
+warning('off', 'MATLAB:table:RowsAddedNewVars')
 % See if inputs args specify either 1) expRef(s), or 2) subject(s), 
 % expDate(s), and expNum(s).
 % Check to make sure good expRefs can be made from all info in `deats`.

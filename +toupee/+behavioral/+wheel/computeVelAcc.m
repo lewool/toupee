@@ -6,7 +6,9 @@ function [v, a, t] = computeVelAcc(x, t, varargin)
 % function used is the numerical gradient of a single-pass, moving-average,
 % 10-sample window over the position.
 %
+% Returned units for velocity are in units of `x` per second.
 % 
+%
 % Inputs:
 % -------
 % x : numeric array
@@ -34,7 +36,7 @@ function [v, a, t] = computeVelAcc(x, t, varargin)
 %   The computed acceleration at each timepoint in `t` for data in `x`.
 %
 % t : numeric array
-%   The evenly sampled (at `fs`) input arg, `t`.
+%   The linearly sampled (at `fs`) input arg, `t`.
 %
 % Examples:
 % ---------
@@ -82,7 +84,7 @@ if ~all(diff(t) == t(1) - t(2))
 end
 
 % Compute derivatives.
-v = gradFn(x);
-a = gradFn(v);
+v = gradFn(x) * fs;
+a = gradFn(v) * fs;
     
 end

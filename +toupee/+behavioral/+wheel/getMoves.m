@@ -1,5 +1,5 @@
 function ...
-    [moveOn, moveOff, moveDisplacement, moveDir, moveClass, ...
+    [moveOn, moveOff, moveDisplacement, moveDirection, moveClass, ...
      movePeakVelocity, movePeakAcceleration] =  getMoves(x, t, varargin)
 % Gets and classifies wheel moves
 %
@@ -18,10 +18,12 @@ function ...
 %     >> find more exact end of movement by looking in future (from
 %     predefined movement end) for first sample with diff less than 
 %     `xOffThresh` 
+% >> get duration of each movement and discard movements with duration less
+% than `minDur`
 % >> get total displacement of each movement
 % >> get direction of each movement
-% >> get duration of each movement
-% >> classify movement ("flinch" if movement duration < `tThresh`)
+% >> classify each movement ("flinch" if movement duration < `tThresh`)
+% >> get velocity and acceleration of each movement
 %
 % 
 % Inputs:
@@ -83,19 +85,19 @@ function ...
 % moveOff : double array
 %   The times (in s) each movement ended.
 %
-% displacement : double array 
+% moveDisplacement : double array 
 %   The change in position (in m) of each movement.
 % 
-% dir : cell array
+% moveDirection : cell array
 %   The direction ('left' or 'right') of each movement.
 %
-% class : cell array
+% moveClass : cell array
 %   The class ('flinch' or 'smooth') of each movement.
 %
-% peakVel : double array
+% movePeakVelocity : double array
 %   The peak velocity (in m/s) of each movement.
 %
-% peakAcc : double array
+% movePeakAcceleration : double array
 %   The peak acceleration (in m/s^2) of each movement.
 %
 %
@@ -107,6 +109,8 @@ function ...
 % Imports.
 import toupee.misc.*
 import toupee.behavioral.wheel.*
+% Turn off warning for assigning to a subset of rows of a table at a time.
+warning('off', 'MATLAB:table:RowsAddedNewVars')
 % Validate inputs.
 p = inputParser;
 isValidX = @(y) isnumeric(y) && isvector(y) && numel(y) == numel(t);
@@ -134,7 +138,6 @@ p = p.Results;  % final parameters
 %% Compute approximate movement start and end times.
 % Convert the time threshold for detecting movements into a number of 
 % samples threshold (given the sampling frequency)
-tic
 sThresh = round(p.tThresh * p.fs);
 nS = numel(t);  % total number of samples
 % For each sample, see if it belongs to a movement.
@@ -175,13 +178,13 @@ end
 dirS(dirS == -1) = -1.1;
 % Make sure final sample allows for a movement end.
 dirS((end - 1) : end) = false;
-toc
+
 %% Check whether to merge some movements.
 % Find all movement starts.
-z2r = find(diff(dirS) == 1);     % 0-to-right
-l2r = find(diff(dirS) == 2.1);   % left-to-right
-z2l = find(diff(dirS) == -1.1);  % 0-to-left
-r2l = find(diff(dirS) == -2.1);  % right-to-left
+z2r = find(diff(dirS) == 1);     % 0-to-right moves
+l2r = find(diff(dirS) == 2.1);   % left-to-right moves
+z2l = find(diff(dirS) == -1.1);  % 0-to-left moves
+r2l = find(diff(dirS) == -2.1);  % right-to-left moves
 % specific move type for each move
 moveTypes = [(zeros(numel(z2r), 1) + 1); ...  
              (zeros(numel(l2r), 1) + 2.1); ... 
@@ -191,15 +194,17 @@ moveTypes = [(zeros(numel(z2r), 1) + 1); ...
 [startS, sIdxs] = sort([z2r; l2r; z2l; r2l]);
 startS = startS + 1;
 moveTypes = moveTypes(sIdxs);
-% simply the direction each move is towards         
-moveTypes2 = sign(moveTypes);
 % Merge consecutive, same-direction movements that are separated by less
 % than `p.tMinGap`
 inMinGapMoves = find(diff(startS) < (p.tMinGap * p.fs));
-inSameDirMoves = find(diff(moveTypes2) == 0);
+inSameDirMoves = find(diff(sign(moveTypes)) == 0);
+% Get moves that should be merged with subsequent moves.
 mergeeMoves = intersect(inMinGapMoves, inSameDirMoves);
 if ~isempty(mergeeMoves)
+    % Get subsequent moves that should be merged with `mergeeMoves`.
     mergerMoves = mergeeMoves + 1;
+    % Fill in the indices in `sDir` between the moves that should be merged
+    % with info on the type of move.
     fillIdxs = arrayfun(@(z, z2) [z:1:z2]', startS(mergeeMoves), ... 
                         startS(mergerMoves), 'uni', 0);
     fillVals = cellfun(@(z, z2) zeros(numel(z), 1) + moveTypes(z2),...
@@ -221,8 +226,6 @@ if ~isempty(mergeeMoves)
     [startS, sIdxs] = sort([z2r; l2r; z2l; r2l]);
     startS = startS + 1;
     moveTypes = moveTypes(sIdxs);
-    % simply the direction each move is towards         
-    moveTypes2 = sign(moveTypes);
 end
 
 %% Compute more precise movement start and end times.
@@ -254,30 +257,27 @@ for iM = 1:nMoves
     endS = startS2(iM) + iA - 1;  % predefined movement end
     bookend = iif((endS + p.fs * 10) > nS, nS, endS + p.fs * 10);
     iA = find(abs(diff(x(endS:bookend))) < p.xOffThresh, 1, 'first'); 
-    if iA ~= 1
-        keyboard
-    end
     if isempty(iA), iA = p.fs * 10; end
     endS2(iM) = endS + iA;
 end
 
 %% Return Outputs.
-moveOn = startS2 / fs;
-moveOff = endS2 / fs;
+moveOn = startS2 / p.fs;
+moveOff = endS2 / p.fs;
 moveDur = moveOff - moveOn;
 % Remove movements below the minimum duration thresh.
 moveDurMask = moveDur > p.minDur;
 startS2 = startS2(moveDurMask);
 endS2 = endS2(moveDurMask);
 nMoves = numel(startS2);
-moveOn = startS2 / fs;
-moveOff = endS2 / fs;
+moveOn = startS2 / p.fs;
+moveOff = endS2 / p.fs;
 moveTypes = moveTypes(moveDurMask);
-moveDir = cell(nMoves, 1);
-moveDir(moveTypes == -2.1) = {'right-to-left'};
-moveDir(moveTypes == -1.1) = {'zero-to-left'};
-moveDir(moveTypes == 1) = {'zero-to-right'};
-moveDir(moveTypes == 2.1) = {'left-to-right'};
+moveDirection = cell(nMoves, 1);
+moveDirection(moveTypes == -2.1) = {'right-to-left'};
+moveDirection(moveTypes == -1.1) = {'zero-to-left'};
+moveDirection(moveTypes == 1) = {'zero-to-right'};
+moveDirection(moveTypes == 2.1) = {'left-to-right'};
 moveDur = moveOff - moveOn;
 moveDisplacement = x(endS2) - x(startS2);
 moveClass = repmat({'smooth'}, [nMoves, 1]);
@@ -286,10 +286,10 @@ moveClass(moveDur < 0.1) = {'flinch'};
 if p.getVelAcc
     % Get continuous velocity and acceleration for each move.
     [moveV, moveA] = ...
-        arrayfun(@(z, z2) computeVelAcc(x(z:z2), t(z:z2), 'fs', fs, ...
+        arrayfun(@(z, z2) computeVelAcc(x(z:z2), t(z:z2), 'fs', p.fs, ...
                                         'gradFn', p.gradFn), ...
                                         startS2, endS2, 'uni', 0);
-    %#ok<*FNDSB> Get peak velocity and acceleration from continuous values.
+    % Get peak velocity and acceleration from continuous values.
     movePeakVelocity = zeros(nMoves, 1);
     movePeakAcceleration = zeros(nMoves, 1);
     for iM = 1:nMoves
@@ -302,7 +302,7 @@ if p.getVelAcc
     end
 end
 
-%% See how it looks.
+%% Plot position trace and velocity trace with overlaid moves.
 if p.makePlots
     figure('Name', 'Wheel movements'); 
     % Plot the wheel position

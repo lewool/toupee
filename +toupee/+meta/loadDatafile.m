@@ -73,6 +73,8 @@ function [expInfo, fdata] = loadDatafile(expInfo, files)
 import toupee.meta.*
 import toupee.meta.npy.*
 import toupee.misc.*
+% Turn off warning for assigning to a subset of rows of a table at a time.
+warning('off', 'MATLAB:table:RowsAddedNewVars')
 % Ensure `files` is cell or char.
 if ~(iscell(files) || ischar(files))
     error('toupee:meta:loadDatafile:badInput',...
