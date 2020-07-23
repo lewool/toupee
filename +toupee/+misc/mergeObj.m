@@ -62,14 +62,14 @@ m = a;  % initialize merged obj
 switch class(a)
     case 'struct'  % get fieldnames
         fldnmsB = fieldnames(b);
-    case 'table'  % get column names
-        m = b;
-        fldnmsB = b.Properties.VariableNames;
-end
-
-% Add each fieldname in `a` to `m`.
-for i = 1:numel(fldnmsB)
-    m.(fldnmsB{i}) = b.(fldnmsB{i});
+        for i = 1:numel(fldnmsB)
+            m.(fldnmsB{i}) = b.(fldnmsB{i});
+        end
+    case 'table'  % get row names
+        fldnmsB = b.Properties.RowNames;
+        for i = 1:numel(fldnmsB)
+            m(fldnmsB{i}, :) = b(fldnmsB{i}, :);
+        end
 end
 
 if ~isempty(leftovers)  % make recursive call

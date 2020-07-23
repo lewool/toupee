@@ -71,7 +71,7 @@ function [expInfo, eventTimes] =...
 %   expInfo = toupee.meta.processExperiment(deats, files);
 %   eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', 'response',...
 %                 'reward'};
-%   [expInfo, eventTimes] =...
+%   [expInfo2, eventTimes] =...
 %       toupee.behavioral.getEventTimes(expInfo, eventNames,...
 %                                       'phdFlipThresh', [0.075, 0.01]);
 %
@@ -85,8 +85,8 @@ function [expInfo, eventTimes] =...
 % @todo check to merge final table assignments
 
 %% Prerun checks.
-% Import `iif`.
-import toupee.misc.iif
+% Imports.
+import toupee.misc.*
 % Turn off warnings for assigning to a subset of rows of a table at a time.
 warning('off', 'MATLAB:table:RowsAddedNewVars')
 warning('off', 'MATLAB:table:RowsAddedExistingVars')
@@ -137,7 +137,7 @@ nE = numel(sessions);  % number of experiment sessions
 % Get event times for each session
 for iE = 1:nE
     % Initialize table for current session.
-    curEventTimes = table('Size', [nR, nC], 'VariableNames', colNames,...
+    eventTimesCur = table('Size', [nR, nC], 'VariableNames', colNames,...
                           'VariableTypes', colTypes, 'RowNames', rowNames);
     % Extract relevant data from this session.
     expRef = sessions{iE};  % session expRef
@@ -242,13 +242,13 @@ for iE = 1:nE
             estTaskRewardTimes = sort([taskRewardTimes;...
                                        estIncorrectRewardTimes]);
             % Assign times to table.
-            curEventTimes.rigTimes{'reward'} = taskRewardTimes;
-            curEventTimes.rigTimes{'estReward'} = estTaskRewardTimes;
-            curEventTimes.signalsTimes{'reward'} =...
+            eventTimesCur.rigTimes{'reward'} = taskRewardTimes;
+            eventTimesCur.rigTimes{'estReward'} = estTaskRewardTimes;
+            eventTimesCur.signalsTimes{'reward'} =...
                 outs.rewardTimes{1}(:);
             % includes signals reward times for correct trials, and
             % estimated signals reward times for incorrect trials
-            curEventTimes.signalsTimes{'estReward'} = sort(...
+            eventTimesCur.signalsTimes{'estReward'} = sort(...
                 [outs.rewardTimes{1},...
                  (evts.feedbackTimes{1}((~evts.feedbackValues{1}))...
                   + meanSignalsOutputFeedbackDiff)])';
@@ -274,18 +274,24 @@ for iE = 1:nE
             % estimated time diff between swu and flip
             swuFlipTimes = rigTimes - updateTimes;
             % Assign times to table.
-            curEventTimes.('signalsTimes'){(name(1:(end - 5)))} =...
+            eventTimesCur.('signalsTimes'){(name(1:(end - 5)))} =...
                 signalsTimes(:);
-            curEventTimes.('rigTimes'){(name(1:(end - 5)))} =...
+            eventTimesCur.('rigTimes'){(name(1:(end - 5)))} =...
                 rigTimes(:);
-            curEventTimes.('swu-FlipTimes'){(name(1:(end - 5)))} =...
+            eventTimesCur.('swu-FlipTimes'){(name(1:(end - 5)))} =...
                 swuFlipTimes(:);
         end
     end
 
     % Assign table for current session to `eventTimes` & `expInfo` tables.
-    eventTimes.(expRef) = {curEventTimes};
-    expInfo.behavioralData{expRef, 'eventTimes'} = {curEventTimes};
+    eventTimes.(expRef) = {eventTimesCur};
+    if ismember('eventTimes', ...  % then merge tables so don't overwrite
+            expInfo.behavioralData.Properties.VariableNames)
+        eventTimesOld = expInfo.behavioralData.eventTimes{iE};
+        % precedence to `eventTimesCur`
+        eventTimesCur = mergeObj({eventTimesOld, eventTimesCur});
+    end
+    expInfo.behavioralData{expRef, 'eventTimes'} = {eventTimesCur};
     
     % Add trial durations.
     trialDurs = evts.endTrialTimes{1}(1:nT) - evts.newTrialTimes{1}(1:nT);

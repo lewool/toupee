@@ -117,6 +117,7 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 %% Prerun checks.
 % Imports
 import toupee.behavioral.*
+import toupee.misc.*
 % Turn off warning for assigning to a subset of rows of a table at a time.
 warning('off', 'MATLAB:table:RowsAddedNewVars')
 warning('off', 'MATLAB:table:RowsAddedExistingVars')
@@ -165,7 +166,9 @@ gradFn = p.Results.gradFn;
 wheelSpecs = p.Results.wheelSpecs;
 
 %% Get wheel moves.
-% Initialize `wheelMoves` table.
+% Initialize `wheelMoves` table for all sessions, and the table that will
+% get updated for each session.
+wheelMoves = table();
 rowNames = ['fullTrials', cellfun(@(x, y) makeRowName(x, y), eventNames, ...
                                   eventWindows, 'uni', 0)];
 nR = numel(rowNames);  % number of rows
@@ -174,8 +177,6 @@ colNames = {'rigTimes', 'position', 'velocity', 'acceleration', 'nMoves', ...
             'moveClass', 'movePeakVelocity', 'movePeakAcceleration'};
 nC = numel(colNames);  % number of columns
 colTypes = cellstr(repmat('cell', nC, 1));
-wheelMoves = table('Size', [nR, nC], 'VariableNames', colNames, ...
-                   'VariableTypes', colTypes, 'RowNames', rowNames);
 % Create placeholder elements in `eventNames` and `eventWindows` for
 % returning wheel moves for each full trial.
 eventNames = [{'fullTrials'}; eventNames(:)];
@@ -185,6 +186,9 @@ eventWindows = [{[0, 0]}; eventWindows(:)];
 wheelTick2MeterX = (2 * wheelSpecs.radius * pi) / wheelSpecs.res;
 nE = numel(sessions);  % number of experiment sessions 
 for iE = 1:nE
+    % Create table for each session.
+    wheelMovesCur = table('Size', [nR, nC], 'VariableNames', colNames, ...
+                      'VariableTypes', colTypes, 'RowNames', rowNames);
     % Extract relevant data from this session.
     expRef = sessions{iE};  % session expRef
     block = expInfo.BlockFile{expRef};  % block data
@@ -221,6 +225,7 @@ for iE = 1:nE
     % acceleration, peak acceleration, continuous direction, initial 
     % direction, final direction, and continuous movement classification.
     for iN = 1:numel(eventNames)
+        % @todo give estimate of total time function will run for
         rowName = rowNames{iN};
         evt = eventNames{iN};
         % Initialize cells to get all wheel move info per event.
@@ -316,22 +321,29 @@ for iE = 1:nE
         end
         % For each event, assign cells with wheel move info for all trials
         % to `wheelMoves` table
-        wheelMoves{rowName, 'rigTimes'} = {tEvt};
-        wheelMoves{rowName, 'position'} = {xEvt};
-        wheelMoves{rowName, 'velocity'} = {vEvt};
-        wheelMoves{rowName, 'acceleration'} = {aEvt};
-        wheelMoves{rowName, 'nMoves'} = {nMovesEvt};
-        wheelMoves{rowName, 'moveOn'} = {moveOnEvt};
-        wheelMoves{rowName, 'moveOff'} = {moveOffEvt};
-        wheelMoves{rowName, 'moveDisplacement'} = {moveDisplacementEvt};
-        wheelMoves{rowName, 'moveDirection'} = {moveDirectionEvt};
-        wheelMoves{rowName, 'moveClass'} = {moveClassEvt};
-        wheelMoves{rowName, 'movePeakVelocity'} = {movePeakVelocityEvt};
-        wheelMoves{rowName, 'movePeakAcceleration'} = ...
+        wheelMovesCur{rowName, 'rigTimes'} = {tEvt};
+        wheelMovesCur{rowName, 'position'} = {xEvt};
+        wheelMovesCur{rowName, 'velocity'} = {vEvt};
+        wheelMovesCur{rowName, 'acceleration'} = {aEvt};
+        wheelMovesCur{rowName, 'nMoves'} = {nMovesEvt};
+        wheelMovesCur{rowName, 'moveOn'} = {moveOnEvt};
+        wheelMovesCur{rowName, 'moveOff'} = {moveOffEvt};
+        wheelMovesCur{rowName, 'moveDisplacement'} = {moveDisplacementEvt};
+        wheelMovesCur{rowName, 'moveDirection'} = {moveDirectionEvt};
+        wheelMovesCur{rowName, 'moveClass'} = {moveClassEvt};
+        wheelMovesCur{rowName, 'movePeakVelocity'} = {movePeakVelocityEvt};
+        wheelMovesCur{rowName, 'movePeakAcceleration'} = ...
             {movePeakAccelerationEvt};
     end
-    % Assign `wheelMoves` to proper expRef in `expInfo.behavioralData`
-    expInfo.behavioralData{expRef, 'wheelMoves'} = {wheelMoves};
+    % Assign table for current session to `wheelMoves` & `expInfo` tables.
+    wheelMoves.(expRef) = {wheelMovesCur};
+    if ismember('wheelMoves', ...  % then merge tables so don't overwrite
+                expInfo.behavioralData.Properties.VariableNames)
+        wheelMovesOld = expInfo.behavioralData.wheelMoves{iE};
+        % precedence to `wheelMovesCur`
+        wheelMovesCur = mergeObj({wheelMovesOld, wheelMovesCur});
+    end
+    expInfo.behavioralData{expRef, 'wheelMoves'} = {wheelMovesCur};
 end
 
 end
