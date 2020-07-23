@@ -12,7 +12,7 @@ function [expInfo, mask] =...
 % conditions : struct array
 %   A struct whose fields specify which trials to select. The possible
 %   fields and their values are:
-%       reaction : 'early', 'preStimOn', 'preGoCue', 'late'
+%       reaction : 'early', 'preStimOn', 'preGoCue', 'normal', 'late'
 %       choice : 'right', 'left', 'timeout'
 %       response : 'correct', 'incorrect'
 %       outcome : 'rewarded', 'unrewarded'
@@ -139,11 +139,14 @@ function [expInfo, mask] =...
 % @todo add explanations for each field in `conditions`
 % @todo add more documentation
 % @todo add code for 'past' conditions
+% @todo use InputParser and add wheel 'fs' and 'wheelSpecs' as parameters
+% for call to `getWheelMoves`
 %
 
 %% Prerun checks.
 % Import all functions in `+misc`.
 import toupee.misc.*
+import toupee.behavioral.*
 % Ensure input args are of proper type.
 if ~ischar(colName) && (~iscell(colName) || ~ischar(colName{1}))...
     || ~isstruct(conditions)
@@ -186,8 +189,8 @@ for iE = 1:nE
     block = expInfo.BlockFile{expRef};  % block data
     evts = block.events;  % events data
     nT = numel(evts.endTrialValues{1});  % number of completed trials
+    bd = expInfo.behavioralData(expRef, :);  % proc'd behavioral data
     eventTimes = expInfo.behavioralData.eventTimes{iE};  % event times
-    % @todo wm = getWheelMoves;
     % Preassign the mask to return all trials
     mask = true(1, nT);
     
@@ -195,21 +198,112 @@ for iE = 1:nE
     
     % reaction @todo need wheel moves
     if isfield(conditions, 'reaction')
+        % For each case, if required wheel moves are not already found in
+        % `behavioralData.wheelMoves` table, then compute them.
         switch conditions.reaction
-            case 'preStimOn'
-                expInfo.behavioralData.wheelMoves{iE}{'stimulusOn: [-0.5, 0.5]', 'nMoves'};
-                expInfo.behavioralData.wheelMoves{iE}{'newTrial,stimulusOn: [0, 0]', 'nMoves'};
-            case 'preGoCue'
-            case 'early'
-            case 'normal'  % no timeout
-            case 'late'
+            case 'preStimOn'  % between 'newTrial' and 'stimulusOn'
+                try
+                    % required data for condition
+                    req = bd.wheelMoves{iE}...
+                        {'newTrial,stimulusOn: [0, 0]', 'nMoves'}{1};
+                catch ex
+                    % If assignment to `req` failed b/c couldn't find the
+                    % data in `bd.wheelMoves`, then call `getWheelMoves`
+                    if strcmp(ex.identifier, 'MATLAB:table:Unrecognized')
+                        eventNames = {{'newTrial', 'stimulusOn'}};
+                        expInfo = ...
+                            getWheelMoves(expInfo, ...
+                                          'eventNames', eventNames, ...
+                                          'eventWindows', [0, 0]);
+                        req = bd.wheelMoves{iE}...
+                            {'newTrial,stimulusOn: [0, 0]', 'nMoves'}{1};
+                    end
+                end
+            case 'preGoCue'  % between 'stimulusOn' and 'interactiveOn'
+                try
+                    req = bd.wheelMoves{iE}...
+                        {'stimulusOn,interactiveOn: [0, 0]', 'nMoves'}{1};
+                catch ex
+                    if strcmp(ex.identifier, 'MATLAB:table:Unrecognized')
+                        eventNames = {{'stimulusOn', 'interactiveOn'}};
+                        expInfo = ...
+                            getWheelMoves(expInfo, ...
+                            'eventNames', eventNames, ...
+                            'eventWindows', [0, 0]);
+                        req = bd.wheelMoves{iE}...
+                            {'stimulusOn,interactiveOn: [0, 0]', 'nMoves'}...
+                            {1};
+                    end
+                end
+            case 'early'  % preStimOn || preGoCue
+                try
+                    req = bd.wheelMoves{iE}...
+                        {'newTrial,stimulusOn: [0, 0]', 'nMoves'}{1};
+                    req2 = bd.wheelMoves{iE}...
+                        {'stimulusOn,interactiveOn: [0, 0]', 'nMoves'}{1};
+                    req = num2cell(double(...
+                              cellfun(@(x, y) (x > 0) || (y > 0), ...
+                                      req, req2)));
+                catch ex
+                    if strcmp(ex.identifier, 'MATLAB:table:Unrecognized')
+                        eventNames = {{'newTrial', 'stimulusOn'}, ...
+                                      {'stimulusOn', 'interactiveOn'}};
+                        expInfo = ...
+                            getWheelMoves(expInfo, ...
+                            'eventNames', eventNames, ...
+                            'eventWindows', {[0, 0], [0, 0]});
+                        req = bd.wheelMoves{iE}...
+                            {'newTrial,stimulusOn: [0, 0]', 'nMoves'}{1};
+                        req2 = bd.wheelMoves{iE}...
+                            {'stimulusOn,interactiveOn: [0, 0]', 'nMoves'}...
+                            {1};
+                        req = num2cell(double(...
+                                cellfun(@(x, y) (x > 0) || (y > 0), ...
+                                        req, req2)));
+                    end
+                end
+            case 'normal'  % between 'interactiveOn' and 'response'
+                try
+                    req = bd.wheelMoves{iE}...
+                        {'interactiveOn,response: [0, 0]', 'nMoves'}{1};
+                catch ex
+                    if strcmp(ex.identifier, 'MATLAB:table:Unrecognized')
+                        eventNames = {{'interactiveOn', 'response'}};
+                        expInfo = ...
+                            getWheelMoves(expInfo, ...
+                            'eventNames', eventNames, ...
+                            'eventWindows', [0, 0]);
+                        req = bd.wheelMoves{iE}...
+                            {'interactiveOn,response: [0, 0]', 'nMoves'}...
+                            {1};
+                    end
+                end
+            case 'late'  % between 'estReward' and 'endTrial'
+                try
+                    req = bd.wheelMoves{iE}...
+                        {'estReward,endTrial: [0, 0]', 'nMoves'}{1};
+                catch ex
+                    if strcmp(ex.identifier, 'MATLAB:table:Unrecognized')
+                        eventNames = {{'estReward', 'endTrial'}};
+                        expInfo = ...
+                            getWheelMoves(expInfo, ...
+                            'eventNames', eventNames, ...
+                            'eventWindows', [0, 0]);
+                        req = bd.wheelMoves{iE}...
+                            {'estReward,endTrial: [0, 0]', 'nMoves'}{1};
+                    end
+                end
         end
+        % Find trials with at least one wheel move during specified time
+        % window.
+        mask2 = cellfun(@(x) x > 0, req);
+        mask = mask & mask2;
     end
     
     % choice
     if isfield(conditions, 'choice')
         try
-            req = evts.responseValues{1}(1:nT);  % required data for condition
+            req = evts.responseValues{1}(1:nT);
         catch ex
             warning(ex.identifier,...
                     strcat(ex.message(1:(end-1)),[...
@@ -364,12 +458,25 @@ for iE = 1:nE
         mask = mask & mask2;
     end
     
-    % movementDir @todo need wheel moves
+    % movementDir (that resulted in a reward)
     if isfield(conditions, 'movementDir')
+        try
+            req = evts.responseValues{1}(1:nT);
+        catch ex
+            warning(ex.identifier,...
+                strcat(ex.message(1:(end-1)),[...
+                ' in the saved events for %s; cannot compute the ',...
+                '''movementDir'' condition. Continuing to the next ',...
+                'session.']), expRef);
+            continue
+        end
         switch conditions.movementDir
             case 'right'
+                mask2 = req == -1;  % opposite of 'choice'
             case 'left'
+                mask2 = req == 1;
         end
+        mask = mask & mask2;
     end
     
     % quiescent
@@ -568,9 +675,9 @@ for iE = 1:nE
     % Finalize `mask` and add to `expInfo`
     if ~contains(colName, 'trials', 'IgnoreCase', true)
         maskName = strcat(colName, 'Trials');
-    end 
-    expInfo.behavioralData{expRef, (maskName)} = {mask};
+    end
     maskCell{iE} = mask;
+    expInfo.behavioralData{expRef, (maskName)} = {mask};
 end
 
 mask = maskCell;  % assign `maskCell` to `mask` to return output
