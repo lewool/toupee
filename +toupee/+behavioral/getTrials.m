@@ -12,7 +12,7 @@ function [expInfo, mask] =...
 % conditions : struct array
 %   A struct whose fields specify which trials to select. The possible
 %   fields and their values are:
-%       reaction : 'early', 'preStimOn', 'preGoCue', 'normal', 'late'
+%       reaction : 'early', 'preStimOn', 'preGoCue', 'late'
 %       choice : 'right', 'left', 'timeout'
 %       response : 'correct', 'incorrect'
 %       outcome : 'rewarded', 'unrewarded'
@@ -67,7 +67,7 @@ function [expInfo, mask] =...
 % 2) For multiple sessions: find 1) trials where stim was presented on the
 % 'high-reward' side, 2) correct trials where stim was presented on the
 % 'high-reward' side, and 3) correct trials where stim was presented on the
-% 'low-reward' side.
+% 'low-reward' side:
 %   deats = {{'LEW031', '2020-02-03', 1},...
 %            {'LEW032', '2020-02-28', 1, [1, 2]}};
 %   files = {'timeline', 'block'};
@@ -87,9 +87,9 @@ function [expInfo, mask] =...
 %       toupee.behavioral.getTrials(expInfo, conditions3, ...
 %                                   'discordantHighCorrect');
 % 
-% 3) For multiple sessions: for the first session find trials where stim
-% was presented on the 'high-reward' side, and for the second session find
-% correct response trials.
+% 3) For multiple sessions: for the first session, find trials where stim
+% was presented on the 'high-reward' side, and for the second session, find
+% correct response trials:
 %   deats = {{'LEW031', '2020-02-03', 1},...
 %            {'LEW032', '2020-02-28', 1, [1, 2]}};
 %   files = {'timeline', 'block'};
@@ -105,6 +105,30 @@ function [expInfo, mask] =...
 %       toupee.behavioral.getTrials(expInfo, conditions2,...
 %                                   'correct', session2);
 %
+% 4) For multiple sessions, for all trials, get all wheel moves before and
+% after 0.5 seconds of the following events: 'stimulusOn', 'interactiveOn',
+% 'stimulusOff', 'response', 'estReward':
+%   deats = {{'LEW031', '2020-02-03', 1},...
+%            {'LEW032', '2020-02-28', 1, [1, 2]}};
+%   files = {'block', 'timeline'};
+%   expInfo = toupee.meta.processExperiment(deats, files);
+%   eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', 'response',...
+%                 'reward'};
+%   expInfo =...
+%       toupee.behavioral.getEventTimes(expInfo, eventNames,...
+%                                       'phdFlipThresh', [0.075, 0.01]);
+%   eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', 'response',...
+%                 'estReward'};
+%   eventWindows = {[-0.5 0.5], [-0.5 0.5], [-0.5 0.5], [-0.5 0.5],...
+%                   [0.25 2]};
+%   fs = 1000;
+%   gradFn = @(x) gradient(movmean(x, 10));
+%   wheelSpecs.radius = 0.031; wheelSpecs.res = 400; wheelSpecs.gain = 5;
+%   expInfo = ...
+%       toupee.behavioral.getWheelMoves(expInfo, 'eventNames', eventNames, ...
+%                                       'eventWindows', eventWindows, ...
+%                                       'fs', fs, 'gradFn', gradFn, ...
+%                                       'wheelSpecs', wheelSpecs); 
 %
 % See Also:
 % ---------
@@ -162,7 +186,7 @@ for iE = 1:nE
     block = expInfo.BlockFile{expRef};  % block data
     evts = block.events;  % events data
     nT = numel(evts.endTrialValues{1});  % number of completed trials
-    eventTimes = expInfo.behavioralData.eventTimes;  % event times
+    eventTimes = expInfo.behavioralData.eventTimes{iE};  % event times
     % @todo wm = getWheelMoves;
     % Preassign the mask to return all trials
     mask = true(1, nT);
@@ -173,9 +197,11 @@ for iE = 1:nE
     if isfield(conditions, 'reaction')
         switch conditions.reaction
             case 'preStimOn'
+                expInfo.behavioralData.wheelMoves{iE}{'stimulusOn: [-0.5, 0.5]', 'nMoves'};
+                expInfo.behavioralData.wheelMoves{iE}{'newTrial,stimulusOn: [0, 0]', 'nMoves'};
             case 'preGoCue'
             case 'early'
-            case 'normal'
+            case 'normal'  % no timeout
             case 'late'
         end
     end

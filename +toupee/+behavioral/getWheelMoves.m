@@ -15,7 +15,8 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 %
 % 'eventNames' : char array OR cell array (optional name-value pair)
 %   Specified events (used as time-markers) around which wheel info is
-%   returned. Each cell contains the name of an event. (Default: none)
+%   returned. Inner-most cells contain the name of an event. 
+%   (Default: none)
 %
 % 'eventWindows' : numeric array OR cell array (optional name-value pair)
 %   The time windows (in s) around each event specified in `eventNames`.
@@ -64,7 +65,7 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 % ---------
 % 1) For multiple sessions, for all trials, get all wheel moves before and
 % after 0.5 seconds of the following events: 'stimulusOn', 'interactiveOn',
-% 'stimulusOff', 'response', 'estReward'
+% 'stimulusOff', 'response', 'estReward':
 %   deats = {{'LEW031', '2020-02-03', 1},...
 %            {'LEW032', '2020-02-28', 1, [1, 2]}};
 %   files = {'block', 'timeline'};
@@ -74,10 +75,10 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 %   expInfo =...
 %       toupee.behavioral.getEventTimes(expInfo, eventNames,...
 %                                       'phdFlipThresh', [0.075, 0.01]);
-%   eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', 'response',...
-%                 'estReward'};
-%   eventWindows = {[-0.5 0.5], [-0.5 0.5], [-0.5 0.5], [-0.5 0.5],...
-%                   [-0.5 0.5]};
+%   eventNames = {'stimulusOn', 'interactiveOn', 'stimulusOff', ...
+%                 'response', 'estReward'};
+%   eventWindows = {[-0.5; 0.5], [-0.5; 0.5], [-0.5; 0.5], [-0.5; 0.5],...
+%                   [-0.5; 0.5]};
 %   fs = 1000;
 %   gradFn = @(x) gradient(movmean(x, 10));
 %   wheelSpecs.radius = 0.031; wheelSpecs.res = 400; wheelSpecs.gain = 5;
@@ -85,7 +86,22 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 %       toupee.behavioral.getWheelMoves(expInfo, 'eventNames', eventNames, ...
 %                                       'eventWindows', eventWindows, ...
 %                                       'fs', fs, 'gradFn', gradFn, ...
-%                                       'wheelSpecs', wheelSpecs); 
+%                                       'wheelSpecs', wheelSpecs);
+% 
+% 2) For multiple sessions, for all trials, get all wheel moves during the
+% following periods: 
+% preStimOn (newTrial -> stimulusOn), 
+% preGoCue (stimulusOn -> interactiveOn), 
+% early (newTrial -> interactiveOn), 
+% interactive (interactiveOn -> response),
+% late (reward -> endTrial):
+%   eventNames = ...
+%       {{'newTrial', 'stimulusOn'}, ...
+%        {'stimulusOn', 'interactiveOn'}, ...
+%        {'newTrial', 'interactiveOn'}, ...
+%        {'interactiveOn', 'response'}, ...
+%        {'estReward', 'endTrial'}};
+%   eventWindows = {[0; 0], [0; 0], [0; 0], [0; 0], [0; 0]};
 %
 % get event times, get wheel moves, get trials
 % 
@@ -109,14 +125,14 @@ p = inputParser;
 % must be char or cell array of chars or scalar int or array of ints
 isValidSessions = @(x) isValidEvents(x) || all(mod(x, 1) == 0);
 % must be char or cell array of chars
-isValidEventNames = @(x) ischar(x) || (iscell(x) && ischar(x{1}));
+isValidEventNames = ...
+    @(x) ischar(x) || (iscell(x) && (ischar(x{1}) || ischar(x{1}{1})));
 % must be a two-elem vector with second elem greater than first, or a cell
 % array of such vectors
-isValidEventWindows = @(x) isnumeric(x) && numel(x) == 2 && x(2) > x(1) ...
+isValidEventWindows = @(x) isnumeric(x) && numel(x) == 2 ...
                       || (iscell(x) && all(cellfun(@(y) ...
                                            isnumeric(y) ...
-                                           && numel(y) == 2 ...
-                                           && y(2) > y(1), x)));
+                                           && numel(y) == 2, x)));
 % must be an int scalar
 isValidFs = @(x) isnumeric(x) && isscalar(x) && mod(x, 1) == 0;
 % must be a function handle
@@ -150,9 +166,8 @@ wheelSpecs = p.Results.wheelSpecs;
 
 %% Get wheel moves.
 % Initialize `wheelMoves` table.
-rowNames = ['fullTrials', ...
-            cellfun(@(x, y) [x, ': [', num2str(y(1)), ', ', num2str(y(2)), ...
-                             ']'], eventNames, eventWindows, 'uni', 0)]';
+rowNames = ['fullTrials', cellfun(@(x, y) makeRowName(x, y), eventNames, ...
+                                  eventWindows, 'uni', 0)];
 nR = numel(rowNames);  % number of rows
 colNames = {'rigTimes', 'position', 'velocity', 'acceleration', 'nMoves', ...
             'moveOn', 'moveOff', 'moveDisplacement', 'moveDirection', ...
@@ -162,9 +177,9 @@ colTypes = cellstr(repmat('cell', nC, 1));
 wheelMoves = table('Size', [nR, nC], 'VariableNames', colNames, ...
                    'VariableTypes', colTypes, 'RowNames', rowNames);
 % Create placeholder elements in `eventNames` and `eventWindows` for
-% returning wheel moves for each full trial
-eventNames = [{'fullTrials'}, eventNames];
-eventWindows = [{[0, 0]}, eventWindows];
+% returning wheel moves for each full trial.
+eventNames = [{'fullTrials'}; eventNames(:)];
+eventWindows = [{[0, 0]}; eventWindows(:)];
 % Go experiment-by-experiment, event-by-event, trial-by-trial.
 % the resolution of wheel movement in m
 wheelTick2MeterX = (2 * wheelSpecs.radius * pi) / wheelSpecs.res;
@@ -174,9 +189,12 @@ for iE = 1:nE
     expRef = sessions{iE};  % session expRef
     block = expInfo.BlockFile{expRef};  % block data
     timeline = expInfo.TimelineFile{expRef};  % timeline data
-    evts = block.events;  % events data
+    evts = block.events;  % signals events data
+    ins = block.inputs;  % signals inputs data
+    outs = block.outputs;  % signals outputs data
+    allEvts = [evts, ins, outs];
     nT = numel(evts.endTrialValues{1});  % number of completed trials
-    eventTimes = expInfo.behavioralData.eventTimes;  % event times
+    eventTimes = expInfo.behavioralData.eventTimes{iE};  % event times
     % block wheel position converted to m from counter values
     xRaw = block.inputs.wheelValues{1}(2:end)' * wheelTick2MeterX;
     % block time in s
@@ -202,7 +220,6 @@ for iE = 1:nE
     % continuous position, continuous velocity, peak velocity, continuous
     % acceleration, peak acceleration, continuous direction, initial 
     % direction, final direction, and continuous movement classification.
-    tic
     for iN = 1:numel(eventNames)
         rowName = rowNames{iN};
         evt = eventNames{iN};
@@ -222,19 +239,61 @@ for iE = 1:nE
         % For each trial, get wheel move info for specified time windows
         % around event.
         for iT = 1:nT
-            switch evt
-                % Special case to get indices for full trials: don't have
-                % rigTimes for newTrial + endTrial, so estimate them from
-                % block data.
-                case 'fullTrials'  
+            startWin = eventWindows{iN}(1);
+            endWin = eventWindows{iN}(2);
+            % Special case to get indices for full trials: don't have
+            % rigTimes for newTrial + endTrial, so estimate them from
+            % block data.
+            if strcmp(evt, 'fullTrials')
                 startTime = evts.newTrialTimes{1}(iT) + daqDelay;
                 endTime = evts.endTrialTimes{1}(iT) + daqDelay;
-                % For all other events, use `rigTimes` column from
-                % `eventTimes` table
-                otherwise
-                startTime = eventTimes{iE}{evt, 'rigTimes'}{1}(iT) + eventWindows{iN}(1);
-                endTime = eventTimes{iE}{evt, 'rigTimes'}{1}(iT) + eventWindows{iN}(2);
+            % For all other events, try using the `rigTimes` column from
+            % `eventTimes` table, otherwise use `allEvts` times +
+            % `daqDelay`. Check to see if `evt` is a cell array with two
+            % elements (if it is, take a window around the two events in
+            % in the cells, otherwise take a window around the single char
+            % event)
+            else
+                if iscell(evt) && numel(evt) == 2
+                    try  % try to get from 'rigTimes'
+                        startTime = eventTimes{evt{1}, 'rigTimes'}{1}(iT) ...
+                                    + startWin;
+                    catch  % get from 'allEvts'
+                        startTime = allEvts.([evt{1}, 'Times']){1}(iT) ...
+                                    + startWin;
+                    end
+                    try  % try to get from 'rigTimes'
+                        endTime = eventTimes{evt{2}, 'rigTimes'}{1}(iT) ...
+                                  + endWin;
+                    catch  % get from 'allEvts'
+                        endTime = allEvts.([evt{2}, 'Times']){1}(iT) ...
+                                  + endWin;
+                    end
+                elseif ischar(evt) || (iscell(evt) && numel(evt) == 1)
+                    if iscell(evt), evt = evt{1}; end  % pull from cell
+                    try  % try to get from 'rigTimes'
+                        startTime = eventTimes{iE}{evt, 'rigTimes'}{1}(iT) ...
+                                    + startWin;
+                    catch  % get from 'allEvts'
+                        startTime = allEvts.([evt, 'Times']){1}(iT) ...
+                                    + startWin;
+                    end
+                    try  % try to get from 'rigTimes'
+                        endTime = eventTimes{iE}{evt, 'rigTimes'}{1}(iT) ...
+                                  + endWin;
+                    catch  % get from 'allEvts'
+                        endTime = allEvts.([evt, 'Times']){1}(iT) ...
+                                  + endWin;
+                    end
+                end
             end
+            % Ensure `startTime` and `endTime` are valid
+            windowErrId = 'toupee:behavioral:getWheelMoves:badEvtWindow';
+            windowErrMsg = ...
+                sprintf(['The event window %s is impossible. Ensure that ' ...
+                         'the end of the window is after the start ' ...
+                         'of the window.'], rowName);
+            assert(endTime > startTime, windowErrId, windowErrMsg);
             iStartEvt = round(startTime * fs);
             iEndEvt = round(endTime * fs);
             evtIdxs = iStartEvt:1:iEndEvt;
@@ -271,7 +330,6 @@ for iE = 1:nE
         wheelMoves{rowName, 'movePeakAcceleration'} = ...
             {movePeakAccelerationEvt};
     end
-    toc
     % Assign `wheelMoves` to proper expRef in `expInfo.behavioralData`
     expInfo.behavioralData{expRef, 'wheelMoves'} = {wheelMoves};
 end
@@ -279,6 +337,39 @@ end
 end
 
 
+function rowName = makeRowName(eventName, eventWindow)
+% Creates a row name for the `wheelmoves` table
+%
+%
+% Inputs:
+% -------
+% eventName : char array OR cell array
+%
+% eventWindow : numeric array
+%
+% Outputs:
+% --------
+% rowName : char array
+%
+%
+% Examples:
+% ---------
+% 1) Make row name for the trial period between 'stimulusOn' and
+% 'interactiveOn'
+%   eventName = {'stimulusOn', 'interactiveOn'};
+%   eventWindow = [0; 0];
+%   rowName = makeRowName(eventName, eventWindow);
+%
+
+windowTxt = ...
+    [': [', num2str(eventWindow(1)), ', ', num2str(eventWindow(2)), ']'];
+if ischar(eventName)
+    rowName = [eventName, windowTxt];
+elseif iscell(eventName)
+    rowName = [eventName{1}, ',', eventName{2}, windowTxt]; 
+end
+
+end
 
 
 
