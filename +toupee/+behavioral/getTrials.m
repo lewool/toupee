@@ -162,7 +162,7 @@ for iE = 1:nE
     block = expInfo.BlockFile{expRef};  % block data
     evts = block.events;  % events data
     nT = numel(evts.endTrialValues{1});  % number of completed trials
-    eventTimes = expInfo.behavioralData.eventTimes;
+    eventTimes = expInfo.behavioralData.eventTimes;  % event times
     % @todo wm = getWheelMoves;
     % Preassign the mask to return all trials
     mask = true(1, nT);

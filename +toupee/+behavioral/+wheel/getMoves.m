@@ -109,8 +109,9 @@ function ...
 % Imports.
 import toupee.misc.*
 import toupee.behavioral.wheel.*
-% Turn off warning for assigning to a subset of rows of a table at a time.
+% Turn off warnings for assigning to a subset of rows of a table at a time.
 warning('off', 'MATLAB:table:RowsAddedNewVars')
+warning('off', 'MATLAB:table:RowsAddedExistingVars')
 % Validate inputs.
 p = inputParser;
 isValidX = @(y) isnumeric(y) && isvector(y) && numel(y) == numel(t);
@@ -240,24 +241,24 @@ for iM = 1:nMoves
                   startS(iM) + p.fs * 10);
     iA = 1;  % index to add
     if moveTypes(iM) == -1.1  % left
-        iA = find(x(startS(iM):bookend) < (x(startS(iM)) - p.xOnThresh),... (startS(iM) + p.fs * 10)
+        iA = find(x(startS(iM):bookend) < (x(startS(iM)) - p.xOnThresh),...
                   1, 'first');
     elseif moveTypes(iM) == 1  % right
         iA = find(x(startS(iM):bookend) > (x(startS(iM)) + p.xOnThresh),...
                   1, 'first');
     end
-    if isempty(iA), iA = p.fs * 10; end
+    if isempty(iA), iA = 1; end
     startS2(iM) = startS(iM) + iA - 1;
     % Get new estimate of movement end: find the first sample after the
     % predefined movement end that has an abs diff of < `p.xOffThresh`
     bookend = iif((startS2(iM) + p.fs * 10) > nS, nS, ...
                   startS2(iM) + p.fs * 10);
     iA = find(dirS(startS2(iM):bookend) ~= dirS(startS2(iM)), 1, 'first');
-    if isempty(iA), iA = p.fs * 10; end
+    if isempty(iA), iA = 1; end
     endS = startS2(iM) + iA - 1;  % predefined movement end
     bookend = iif((endS + p.fs * 10) > nS, nS, endS + p.fs * 10);
     iA = find(abs(diff(x(endS:bookend))) < p.xOffThresh, 1, 'first'); 
-    if isempty(iA), iA = p.fs * 10; end
+    if isempty(iA), iA = 1; end
     endS2(iM) = endS + iA;
 end
 
