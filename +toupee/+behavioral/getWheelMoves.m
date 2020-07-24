@@ -184,7 +184,12 @@ eventWindows = [{[0, 0]}; eventWindows(:)];
 % Go experiment-by-experiment, event-by-event, trial-by-trial.
 % the resolution of wheel movement in m
 wheelTick2MeterX = (2 * wheelSpecs.radius * pi) / wheelSpecs.res;
-nE = numel(sessions);  % number of experiment sessions 
+nE = numel(sessions);  % number of experiment sessions
+% Get total number of trials across all sessions
+totT = 0;
+for iE = 1:nE
+    totT = totT + numel(expInfo.BlockFile{iE}.events.endTrialValues{1});
+end
 for iE = 1:nE
     % Create table for each session.
     wheelMovesCur = table('Size', [nR, nC], 'VariableNames', colNames, ...
@@ -224,8 +229,8 @@ for iE = 1:nE
     % continuous position, continuous velocity, peak velocity, continuous
     % acceleration, peak acceleration, continuous direction, initial 
     % direction, final direction, and continuous movement classification.
-    for iN = 1:numel(eventNames)
-        % @todo give estimate of total time function will run for
+    nN = numel(eventNames);
+    for iN = 1:nN
         rowName = rowNames{iN};
         evt = eventNames{iN};
         % Initialize cells to get all wheel move info per event.
@@ -244,6 +249,14 @@ for iE = 1:nE
         % For each trial, get wheel move info for specified time windows
         % around event.
         for iT = 1:nT
+            % Give estimate of total time function will run for.
+            if iE == 1 && iT == 1, tic; end
+            if iE == 1 && iN == 1 && iT == 20 
+                t1 = toc;
+                tEst = totT / 20 * t1 / 60 * nN / 3;
+                fprintf(['Getting wheel moves. Estimated time to completion ' ...
+                    'is %.2f mins. (%s)\n'], tEst, datetime('now'));
+            end
             startWin = eventWindows{iN}(1);
             endWin = eventWindows{iN}(2);
             % Special case to get indices for full trials: don't have
@@ -277,14 +290,14 @@ for iE = 1:nE
                 elseif ischar(evt) || (iscell(evt) && numel(evt) == 1)
                     if iscell(evt), evt = evt{1}; end  % pull from cell
                     try  % try to get from 'rigTimes'
-                        startTime = eventTimes{iE}{evt, 'rigTimes'}{1}(iT) ...
+                        startTime = eventTimes{evt, 'rigTimes'}{1}(iT) ...
                                     + startWin;
                     catch  % get from 'allEvts'
                         startTime = allEvts.([evt, 'Times']){1}(iT) ...
                                     + startWin;
                     end
                     try  % try to get from 'rigTimes'
-                        endTime = eventTimes{iE}{evt, 'rigTimes'}{1}(iT) ...
+                        endTime = eventTimes{evt, 'rigTimes'}{1}(iT) ...
                                   + endWin;
                     catch  % get from 'allEvts'
                         endTime = allEvts.([evt, 'Times']){1}(iT) ...
@@ -340,6 +353,9 @@ for iE = 1:nE
     if ismember('wheelMoves', ...  % then merge tables so don't overwrite
                 expInfo.behavioralData.Properties.VariableNames)
         wheelMovesOld = expInfo.behavioralData.wheelMoves{iE};
+        % hack for when a new column is created in a table - by default its
+        % created as type double
+        if ~istable(wheelMovesOld), wheelMovesOld = table(); end
         % precedence to `wheelMovesCur`
         wheelMovesCur = mergeObj({wheelMovesOld, wheelMovesCur});
     end

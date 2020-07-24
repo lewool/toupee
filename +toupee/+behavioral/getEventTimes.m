@@ -288,6 +288,9 @@ for iE = 1:nE
     if ismember('eventTimes', ...  % then merge tables so don't overwrite
             expInfo.behavioralData.Properties.VariableNames)
         eventTimesOld = expInfo.behavioralData.eventTimes{iE};
+        % hack for when a new column is created in a table - by default its
+        % created as type double
+        if ~istable(eventTimesOld), eventTimesOld = table(); end
         % precedence to `eventTimesCur`
         eventTimesCur = mergeObj({eventTimesOld, eventTimesCur});
     end
