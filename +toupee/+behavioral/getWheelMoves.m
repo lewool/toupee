@@ -161,6 +161,7 @@ sessions = p.Results.sessions;
 sessions = expInfo.Row(sessions);
 eventNames = p.Results.eventNames;
 eventWindows = p.Results.eventWindows;
+if ~iscell(eventWindows), eventWindows = {eventWindows}; end  % cellify
 fs = p.Results.fs;
 gradFn = p.Results.gradFn;
 wheelSpecs = p.Results.wheelSpecs;

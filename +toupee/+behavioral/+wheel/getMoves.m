@@ -146,6 +146,8 @@ nS = numel(t);  % total number of samples
 % rightwards move, while values of `-1.1` correspond to samples belonging 
 % to a leftwards move.
 dirS = zeros(nS, 1);  % direction of movement of samples
+% @todo change this to `while` loop so don't iterate over every single
+% sample; use `bookend` for `sThresh` so don't overindex `x`
 for iS = 1:(nS - sThresh)
     % Find all current samples that pass thresh for movement. If none do,
     % continue with the next sample.
@@ -240,17 +242,19 @@ for iM = 1:nMoves
     bookend = iif((startS(iM) + p.fs * 10) > nS, nS, ...
                   startS(iM) + p.fs * 10);
     iA = 1;  % index to add
-    if moveTypes(iM) == -1.1  % left
+    if moveTypes(iM) < 0  % left
         iA = find(x(startS(iM):bookend) < (x(startS(iM)) - p.xOnThresh),...
                   1, 'first');
-    elseif moveTypes(iM) == 1  % right
+    elseif moveTypes(iM) > 0  % right
         iA = find(x(startS(iM):bookend) > (x(startS(iM)) + p.xOnThresh),...
                   1, 'first');
     end
     if isempty(iA), iA = 1; end
     startS2(iM) = startS(iM) + iA - 1;
-    % Get new estimate of movement end: find the first sample after the
-    % predefined movement end that has an abs diff of < `p.xOffThresh`
+    % @todo Get new estimate of movement end: find the first sample
+    % **before (use a 'pre' `bookend` based on `sThresh`) OR after** 
+    % (use a window) the predefined movement end that has an abs diff of
+    % < `p.xOffThresh`
     bookend = iif((startS2(iM) + p.fs * 10) > nS, nS, ...
                   startS2(iM) + p.fs * 10);
     iA = find(dirS(startS2(iM):bookend) ~= dirS(startS2(iM)), 1, 'first');

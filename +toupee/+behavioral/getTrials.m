@@ -160,8 +160,8 @@ function [expInfo, mask] =...
 % toupee.behavioral.getTrialBlocks
 % toupee.behavioral.getEventTimes
 %
-% @todo add explanations for each field in `conditions`
-% @todo add more documentation
+% @todo add explanations for each field in `conditions` in docstring
+% @todo add more documentation in code
 % @todo add code for 'past' conditions
 % @todo use InputParser and add wheel 'fs' and 'wheelSpecs' as parameters
 % for call to `getWheelMoves`

@@ -81,8 +81,6 @@ function [expInfo, eventTimes] =...
 % toupee.behavioral.getWheelMoves
 % toupee.behavioral.getTrials
 %
-% @todo add support for event times not associated with stim flip
-% @todo check to merge final table assignments
 
 %% Prerun checks.
 % Imports.
