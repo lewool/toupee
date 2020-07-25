@@ -276,10 +276,10 @@ for iE = 1:nE
                 if iscell(evt) && numel(evt) == 2
                     try  % try to get from 'rigTimes'
                         startTime = eventTimes{evt{1}, 'rigTimes'}{1}(iT) ...
-                                    + startWin;
+                                    + startWin - 0.1;  % 100 ms buffer
                     catch  % get from 'allEvts'
                         startTime = allEvts.([evt{1}, 'Times']){1}(iT) ...
-                                    + startWin;
+                                    + startWin - 0.1;
                     end
                     try  % try to get from 'rigTimes'
                         endTime = eventTimes{evt{2}, 'rigTimes'}{1}(iT) ...
@@ -292,10 +292,10 @@ for iE = 1:nE
                     if iscell(evt), evt = evt{1}; end  % pull from cell
                     try  % try to get from 'rigTimes'
                         startTime = eventTimes{evt, 'rigTimes'}{1}(iT) ...
-                                    + startWin;
+                                    + startWin - 0.1;
                     catch  % get from 'allEvts'
                         startTime = allEvts.([evt, 'Times']){1}(iT) ...
-                                    + startWin;
+                                    + startWin - 0.1;
                     end
                     try  % try to get from 'rigTimes'
                         endTime = eventTimes{evt, 'rigTimes'}{1}(iT) ...

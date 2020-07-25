@@ -237,8 +237,8 @@ startS2 = startS;  % will hold more precise movement start samples
 endS2 = zeros(nMoves, 1);  % will hold movement end samples
 for iM = 1:nMoves
     % Get new estimate of movement start: for left (right) movements, find 
-    % first sample after predefined movement start that decreases 
-    % (increases) by at least `p.xOnThresh`.
+    % one sample before the first sample after the predefined movement 
+    % start that decreases (increases) by at least `p.xOnThresh`.
     bookend = iif((startS(iM) + p.fs * 10) > nS, nS, ...
                   startS(iM) + p.fs * 10);
     iA = 1;  % index to add
@@ -250,7 +250,8 @@ for iM = 1:nMoves
                   1, 'first');
     end
     if isempty(iA), iA = 1; end
-    startS2(iM) = startS(iM) + iA - 1;  
+    % `- 2` for "one sample before the first sample after"
+    startS2(iM) = startS(iM) + iA - 2;
     % Get predefined movement end: find the first sample in `dirS` after
     % `startS2(iM)` that belongs to a different movement than
     % `startS2(iM)`.
