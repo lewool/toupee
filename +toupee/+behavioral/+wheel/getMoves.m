@@ -146,38 +146,38 @@ nS = numel(t);  % total number of samples
 % rightwards move, while values of `-1.1` correspond to samples belonging 
 % to a leftwards move.
 dirS = zeros(nS, 1);  % direction of movement of samples
-% @todo change this to `while` loop so don't iterate over every single
-% sample; use `bookend` for `sThresh` so don't overindex `x`
-for iS = 1:(nS - sThresh)
-    % Find all current samples that pass thresh for movement. If none do,
-    % continue with the next sample.
-    % displacement for current samples: negative vals mean x is increasing,
-    % so rightwards turn, and positive vals mean vice versa
-    disCur = x(iS) - x((iS + 1):(iS + sThresh));
+iS = 1;  % index of current sample
+while iS < nS
+    % Find all current samples that pass thresh for movement.
+    % ensure `x` isn't over-indexed
+    bookend = iif((iS + sThresh) > nS, nS, iS + sThresh);
+    % displacement of `x` for current samples: negative vals mean `x` is
+    % increasing (rightwards turn), and positive vals mean vice versa
+    disCur = x(iS) - x((iS + 1):bookend);
+    % mask for which current samples belong to a move
     moveMaskCur = abs(disCur) > p.xThresh;
-    if ~any(moveMaskCur), continue, end
-    % Find direction of first change in position.
+    % If no current samples pass thresh for movement, cont to next sample.
+    if ~any(moveMaskCur), iS = iS + 1; continue, end
+    % Else, find direction of first change in position.
     moveDirCur = sign(-disCur(find(disCur, 1, 'first')));
     % If the change in this direction *doesn't* break movement threshold,
     % continue to next sample.
     disDirCur = sign(diff([-disCur(1); -disCur(moveMaskCur)]));
-    if ~(disDirCur(1) == moveDirCur)
-        continue
+    if ~(disDirCur(1) == moveDirCur), iS = iS + 1; continue, end
     % Else, find the last continuous position change in this direction.
-    else
-        moveIdxsCur = find(moveMaskCur);
-        iEndMove = find(sign(diff(-disCur(moveMaskCur))) ...
-                        == -moveDirCur, 1, 'first');
-        % If it's a continuous movement in one direction, mark the end of
-        % the movement as the last sample of the current sample subset.
-        if isempty(iEndMove), iEndMove = numel(moveIdxsCur); end
-        iEndMove = moveIdxsCur(iEndMove);
-        dirS(iS:(iS + iEndMove)) = moveDirCur;
-    end
+    moveIdxsCur = find(moveMaskCur);
+    iEndMove = find(sign(diff(-disCur(moveMaskCur))) ...
+                    == -moveDirCur, 1, 'first');
+    % If it's a continuous movement in one direction, mark the end of
+    % the movement as the last sample of the current sample subset.
+    if isempty(iEndMove), iEndMove = moveIdxsCur(end); end
+    dirS((iS + 1):(iS + iEndMove)) = moveDirCur;
+    iS = iS + iEndMove;
 end
+
 % Allow for differentiating movement types based on diffs. (If 0-to-left
 % moves were kept as `-1`, then it wouldn't be possible to differentiate
-% 0-to-left from right-to-0 moves).
+% 0-to-left moves from right-to-0 stops).
 dirS(dirS == -1) = -1.1;
 % Make sure final sample allows for a movement end.
 dirS((end - 1) : end) = false;
@@ -250,20 +250,26 @@ for iM = 1:nMoves
                   1, 'first');
     end
     if isempty(iA), iA = 1; end
-    startS2(iM) = startS(iM) + iA - 1;
-    % @todo Get new estimate of movement end: find the first sample
-    % **before (use a 'pre' `bookend` based on `sThresh`) OR after** 
-    % (use a window) the predefined movement end that has an abs diff of
-    % < `p.xOffThresh`
-    bookend = iif((startS2(iM) + p.fs * 10) > nS, nS, ...
-                  startS2(iM) + p.fs * 10);
+    startS2(iM) = startS(iM) + iA - 1;  
+    % Get predefined movement end: find the first sample in `dirS` after
+    % `startS2(iM)` that belongs to a different movement than
+    % `startS2(iM)`.
+    bookend = iif((startS2(iM) + p.fs) > nS, nS, startS2(iM) + p.fs);
     iA = find(dirS(startS2(iM):bookend) ~= dirS(startS2(iM)), 1, 'first');
-    if isempty(iA), iA = 1; end
+    % If the move is continuous, set predefined movement end as last
+    % current sample
+    if isempty(iA), iA = bookend - startS2(iM); end
     endS = startS2(iM) + iA - 1;  % predefined movement end
-    bookend = iif((endS + p.fs * 10) > nS, nS, endS + p.fs * 10);
-    iA = find(abs(diff(x(endS:bookend))) < p.xOffThresh, 1, 'first'); 
+    valEndS = x(endS);  % position value at predefined movement end
+    % Get new estimate of movement end: find the first sample in a window
+    % around the predefined movement end that has an abs diff of less than
+    % `p.xOffThresh`
+    bookend = iif((endS + sThresh) > nS, nS, endS + sThresh);
+    iA = find(abs(x(startS2(iM):bookend) - valEndS) ...
+              < p.xOffThresh, 1, 'first');
+    % If couldn't find new estimate of movement, use original estimate.
     if isempty(iA), iA = 1; end
-    endS2(iM) = endS + iA;
+    endS2(iM) = startS2(iM) + iA - 1;
 end
 
 %% Return Outputs.

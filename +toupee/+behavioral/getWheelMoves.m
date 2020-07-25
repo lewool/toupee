@@ -182,6 +182,7 @@ colTypes = cellstr(repmat('cell', nC, 1));
 % returning wheel moves for each full trial.
 eventNames = [{'fullTrials'}; eventNames(:)];
 eventWindows = [{[0, 0]}; eventWindows(:)];
+nN = numel(eventNames);  % total number of events
 % Go experiment-by-experiment, event-by-event, trial-by-trial.
 % the resolution of wheel movement in m
 wheelTick2MeterX = (2 * wheelSpecs.radius * pi) / wheelSpecs.res;
@@ -194,7 +195,7 @@ end
 for iE = 1:nE
     % Create table for each session.
     wheelMovesCur = table('Size', [nR, nC], 'VariableNames', colNames, ...
-                      'VariableTypes', colTypes, 'RowNames', rowNames);
+                          'VariableTypes', colTypes, 'RowNames', rowNames);
     % Extract relevant data from this session.
     expRef = sessions{iE};  % session expRef
     block = expInfo.BlockFile{expRef};  % block data
@@ -230,7 +231,6 @@ for iE = 1:nE
     % continuous position, continuous velocity, peak velocity, continuous
     % acceleration, peak acceleration, continuous direction, initial 
     % direction, final direction, and continuous movement classification.
-    nN = numel(eventNames);
     for iN = 1:nN
         rowName = rowNames{iN};
         evt = eventNames{iN};
