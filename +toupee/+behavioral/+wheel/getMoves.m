@@ -260,12 +260,12 @@ for iM = 1:nMoves
     % If the move is continuous, set predefined movement end as last
     % current sample
     if isempty(iA), iA = bookend - startS2(iM); end
-    endS(iM) = startS2(iM) + iA - 1;  % predefined movement end
-    valEndS = x(endS(iM));  % position value at predefined movement end
+    endS = startS2(iM) + iA - 1;  % predefined movement end
+    valEndS = x(endS);  % position value at predefined movement end
     % Get new estimate of movement end: find the first sample in a window
     % around the predefined movement end that has an abs diff of less than
     % `p.xOffThresh`
-    bookend = iif((endS(iM) + sThresh) > nS, nS, endS(iM) + sThresh);
+    bookend = iif((endS + sThresh) > nS, nS, endS + sThresh);
     iA = find(abs(x(startS2(iM):bookend) - valEndS) ...
               < p.xOffThresh, 1, 'first');
     % If couldn't find new estimate of movement, use original estimate.
