@@ -113,6 +113,10 @@ function [expInfo, wheelMoves] = getWheelMoves(expInfo, varargin)
 % toupee.behavioral.getEventTimes
 % toupee.behavioral.wheel.getMoves
 % toupee.behavioral.wheel.computeVelAcc
+%
+%
+% @todo add optional input args for `wheel.getMoves`
+%
 
 %% Prerun checks.
 % Imports

@@ -39,12 +39,12 @@ function ...
 %
 % 'xThresh' : double scalar (optional name-value pair)
 %   The minimum change in position (in m) of the wheel (within `tThresh`) 
-%   for it to be classified as a movement. (Default: 0.0015 m)
+%   for it to be classified as a movement. (Default: 0.001 m)
 %
 % 'tThresh' : double scalar (optional name-value pair)
 %   The maximum duration (in s) in which the wheel position must change by
 %   at least `xThresh` for it to be classified as a movement. 
-%   (Default: 0.150 s)
+%   (Default: 0.5 s)
 %
 % 'tMinGap' : double scalar (optional name-value pair)
 %   The minimum duration (in s) between consecutive wheel movements for the
@@ -123,8 +123,8 @@ isValidGradFn = @(y) isa(y, 'function_handle');
 addRequired(p, 'x', isValidX);
 addRequired(p, 't', isValidT);
 addParameter(p, 'fs', 1000, isValidNum);
-addParameter(p, 'xThresh', 0.0015, isValidNum);
-addParameter(p, 'tThresh', 0.150, isValidNum);
+addParameter(p, 'xThresh', 0.0001, isValidNum);
+addParameter(p, 'tThresh', 0.5, isValidNum);
 addParameter(p, 'tMinGap', 0.1, isValidNum);
 addParameter(p, 'xOnThresh', 0.0005, isValidNum);
 addParameter(p, 'xOffThresh', 0.0005, isValidNum);
@@ -180,7 +180,7 @@ end
 % 0-to-left moves from right-to-0 stops).
 dirS(dirS == -1) = -1.1;
 % Make sure final sample allows for a movement end.
-dirS((end - 1) : end) = false;
+dirS((end - 1) : end) = 0;
 
 %% Check whether to merge some movements.
 % Find all movement starts.
