@@ -243,16 +243,28 @@ nFwgScd = zeros(nE, 1);  % first wig dir, same correct dir
 for iE = 1:nE
     bd = expInfo{iE, 'behavioralData'};
     wm = bd.wheelMoves{1};
-    wigMovesMask = cellfun(@(x) x >= 3, wm{'interactiveOn,response: [0, 0]', 'nMoves'}{1});
+    % mask for number of moves
+    wigMaskN1 = cellfun(@(x) x >= 3, ...
+                        wm{'interactiveOn,response: [0, 0]', 'nMoves'}{1});
+    % mask for direction change
+    wigMaskD1 = ...
+        cellfun(@(x) numel(unique(sign(cell2mat(x(:,2))))) == 2, ...
+                wm{'interactiveOn,response: [0, 0]', 'moveDirection'}{1});
+    % mask for max time b/w moves
+    wigMaskT1 = cellfun(@(x, y) all((x - y) < 0.5), ...
+                        wm{'interactiveOn,response: [0, 0]', 'moveOff'}{1}, ...
+                        wm{'interactiveOn,response: [0, 0]', 'moveOn'}{1});
+    % wiggle mask as combination of above
+    wigMask = wigMaskN1 & wigMaskD1 & wigMaskT1;
     contrasts = expInfo{iE, 'BlockFile'}{1}{1, 'events'}{1, 'contrastValues'}{1}';
-    if numel(contrasts) > numel(wigMovesMask), contrasts = contrasts(1:(end - 1)); end
-    wigMoveContrasts{iE} = contrasts(wigMovesMask);
-    firstWigDir = cellfun(@(x) sign(x(1)), wm{'interactiveOn,response: [0, 0]', 'moveDisplacement'}{1}(wigMovesMask));
+    if numel(contrasts) > numel(wigMask), contrasts = contrasts(1:(end - 1)); end
+    wigMoveContrasts{iE} = contrasts(wigMask);
+    firstWigDir = cellfun(@(x) sign(x(1)), wm{'interactiveOn,response: [0, 0]', 'moveDisplacement'}{1}(wigMask));
     cr = expInfo{iE, 'BlockFile'}{1}{1, 'events'}{1, 'correctResponseValues'}{1}';  % correct responses
-    if numel(cr) > numel(wigMovesMask), cr = cr(1:(end - 1)); end
+    if numel(cr) > numel(wigMask), cr = cr(1:(end - 1)); end
     cr = -cr;  % flip sign
-    nWigMoves(iE) = numel(find(wigMovesMask));
-    nFwgScd(iE) = numel(find(cr(wigMovesMask) == firstWigDir));
+    nWigMoves(iE) = numel(find(wigMask));
+    nFwgScd(iE) = numel(find(cr(wigMask) == firstWigDir));
 end
 
 wigMoveContrastsAll = cell2mat(wigMoveContrasts);

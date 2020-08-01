@@ -1,6 +1,7 @@
 function ...
-    [moveOn, moveOff, moveDisplacement, moveDirection, moveClass, ...
-     movePeakVelocity, movePeakAcceleration] =  getMoves(x, t, varargin)
+    [moveOn, moveOff, moveDisplacement, moveDirection, moveDuration, ...
+     moveClass, movePeakVelocity, movePeakAcceleration] = ...
+        getMoves(x, t, varargin)
 % Gets and classifies wheel moves
 %
 % A wheel move can only be in one direction.
@@ -89,7 +90,11 @@ function ...
 %   The change in position (in m) of each movement.
 % 
 % moveDirection : cell array
-%   The direction ('left' or 'right') of each movement.
+%   The direction ('zero-to-left' (-1.1), or 'right-to-left' (-2.1), or
+%   'zero-to-right' (1), or 'left-to-right' (2.1)) of each movement.
+%
+% moveDuration : double array
+%   The duration (in s) of each movement.
 %
 % moveClass : cell array
 %   The class ('flinch' or 'smooth') of each movement.
@@ -279,9 +284,9 @@ end
 %% Return Outputs.
 moveOn = startS2 / p.fs;
 moveOff = endS2 / p.fs;
-moveDur = moveOff - moveOn;
+moveDuration = moveOff - moveOn;
 % Remove movements below the minimum duration thresh.
-moveDurMask = moveDur > p.minDur;
+moveDurMask = moveDuration > p.minDur;
 startS2 = startS2(moveDurMask);
 endS2 = endS2(moveDurMask);
 moveTypes = moveTypes(moveDurMask);
@@ -301,10 +306,10 @@ moveDirection(moveTypes == -2.1, 1) = {'right-to-left'};
 moveDirection(moveTypes == -1.1, 1) = {'zero-to-left'};
 moveDirection(moveTypes == 1, 1) = {'zero-to-right'};
 moveDirection(moveTypes == 2.1, 1) = {'left-to-right'};
-moveDur = moveOff - moveOn;
+moveDuration = moveOff - moveOn;
 moveDisplacement = x(endS2) - x(startS2);
 moveClass = repmat({'smooth'}, [nMoves, 1]);
-moveClass(moveDur < 0.1) = {'flinch'};
+moveClass(moveDuration < 0.1) = {'flinch'};
 
 if p.getVelAcc
     % Get continuous velocity and acceleration for each move.

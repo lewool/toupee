@@ -248,6 +248,7 @@ for iE = 1:nE
         moveOffEvt = cell(nT, 1);
         moveDisplacementEvt = cell(nT, 1);
         moveDirectionEvt = cell(nT, 1);
+        moveDurationEvt = cell(nT, 1);
         moveClassEvt = cell(nT, 1);
         movePeakVelocityEvt = cell(nT, 1);
         movePeakAccelerationEvt = cell(nT, 1);
@@ -324,8 +325,9 @@ for iE = 1:nE
             xEvt{iT} = x(evtIdxs);
             vEvt{iT} = v(evtIdxs);
             aEvt{iT} = a(evtIdxs);
-            [moveOn, moveOff, moveDisplacement, moveDirection, moveClass, ...
-             movePeakVelocity, movePeakAcceleration] = ...
+            [moveOn, moveOff, moveDisplacement, moveDirection, ...
+             moveDuration, moveClass, movePeakVelocity, ...
+             movePeakAcceleration] = ...
                 wheel.getMoves(xEvt{iT}, tEvt{iT}, 'fs', fs, ...
                                'gradFn', gradFn);
             nMovesEvt{iT} = numel(moveOn);
@@ -333,6 +335,7 @@ for iE = 1:nE
             moveOffEvt{iT} = moveOff;
             moveDisplacementEvt{iT} = moveDisplacement;
             moveDirectionEvt{iT} = moveDirection;
+            moveDurationEvt{iT} = moveDuration;
             moveClassEvt{iT} = moveClass;
             movePeakVelocityEvt{iT} = movePeakVelocity;
             movePeakAccelerationEvt{iT} = movePeakAcceleration;
@@ -348,6 +351,7 @@ for iE = 1:nE
         wheelMovesCur{rowName, 'moveOff'} = {moveOffEvt};
         wheelMovesCur{rowName, 'moveDisplacement'} = {moveDisplacementEvt};
         wheelMovesCur{rowName, 'moveDirection'} = {moveDirectionEvt};
+        wheelMovesCur{rowName, 'moveDuration'} = {moveDurationEvt};
         wheelMovesCur{rowName, 'moveClass'} = {moveClassEvt};
         wheelMovesCur{rowName, 'movePeakVelocity'} = {movePeakVelocityEvt};
         wheelMovesCur{rowName, 'movePeakAcceleration'} = ...
