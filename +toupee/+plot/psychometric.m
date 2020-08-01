@@ -115,10 +115,10 @@ for iC = 1:nC
     % Plot curves.
     % Get figure to plot on (dependent on `figType`).
     try figure(figList(iC)), catch, figure(figList(1)), end; hold on
-    % psychometric
+    % handle to psychometric graphics
     hp = plot(xvals, yCMean, 'Marker', 'o', 'LineWidth', 1.5);
     hp.MarkerFaceColor = hp.Color;
-    % bounds
+    % handle to bounds graphic
     hb = fill([xvals; flipud(xvals)], [yCBounds(:,1); ...
                flipud(yCBounds(:,2))], round(hp.Color, 1, 'significant'), ...
                'edgecolor', 'none', 'facealpha', 0.2);  
