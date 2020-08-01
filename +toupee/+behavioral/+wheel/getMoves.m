@@ -104,6 +104,9 @@ function ...
 % Examples:
 % ---------
 %
+%
+% @todo add examples
+%
 
 %% Prerun checks.
 % Imports.
@@ -281,19 +284,23 @@ moveDur = moveOff - moveOn;
 moveDurMask = moveDur > p.minDur;
 startS2 = startS2(moveDurMask);
 endS2 = endS2(moveDurMask);
+moveTypes = moveTypes(moveDurMask);
 % Remove movements which have been detected more than once.
 [~, finMoveIdxs] = unique(endS2, 'last');
 endS2 = endS2(finMoveIdxs);
 startS2 = startS2(finMoveIdxs);
+moveTypes = moveTypes(finMoveIdxs);
 nMoves = numel(startS2);
 moveOn = startS2 / p.fs;
 moveOff = endS2 / p.fs;
-moveTypes = moveTypes(moveDurMask);
-moveDirection = cell(nMoves, 1);
-moveDirection(moveTypes == -2.1) = {'right-to-left'};
-moveDirection(moveTypes == -1.1) = {'zero-to-left'};
-moveDirection(moveTypes == 1) = {'zero-to-right'};
-moveDirection(moveTypes == 2.1) = {'left-to-right'};
+% Store move directions as numeric values used above, and as informative
+% char arrays.
+moveDirection = cell(nMoves, 2);
+moveDirection(:, 2) = num2cell(moveTypes);
+moveDirection(moveTypes == -2.1, 1) = {'right-to-left'};
+moveDirection(moveTypes == -1.1, 1) = {'zero-to-left'};
+moveDirection(moveTypes == 1, 1) = {'zero-to-right'};
+moveDirection(moveTypes == 2.1, 1) = {'left-to-right'};
 moveDur = moveOff - moveOn;
 moveDisplacement = x(endS2) - x(startS2);
 moveClass = repmat({'smooth'}, [nMoves, 1]);
