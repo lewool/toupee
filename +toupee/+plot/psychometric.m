@@ -18,11 +18,16 @@ function figList = psychometric(x, y, varargin)
 %   The number of figures to return. Options:
 %   'single' : a single figure containing one curve for each row in `x`
 %   'multiple' : one figure each with a single curve for each row in `x`
+%   (Default : 'single')
 % 'cb' : double scalar OR char array
 %   The confidence bound to plot around each unique value in `x`. Must be a
 %   value (0,1) or 'none' to specify no bounds. (Default: 0.99)
 % 'fig' : figure
 %   Handle to figure to plot on top of. (Default: none)
+% 'dataLabel' : logical
+%   Whether to include a label for each datapoint in each psychometric
+%   curve that gives the number of events that contribute to that point.
+%   (Default : true)
 %
 %
 % Ouputs:
@@ -49,7 +54,7 @@ isValidY = @(z) all(size(z) == size(x));
 isValidResponseVal = @(z) isscalar(z);
 isValidFitFn = @(z) isa(z, 'function_handle') || isempty(z);
 isValidFigType = @(z) strcmpi(z, 'single') || strcmpi(z, 'multiple');
-isValidCb = @(z) (z > 0 && z < 1) || strcmpi(z, 'none');
+isValidCb = @(z) (isnumeric(z) && (z > 0 && z < 1)) || strcmpi(z, 'none');
 isValidFig = @(z) isa(z, 'matlab.ui.Figure');
 
 addRequired(p, 'x', isValidX);
@@ -59,6 +64,7 @@ addParameter(p, 'fitFn', [], isValidFitFn);
 addParameter(p, 'figType', 'single', isValidFigType);
 addParameter(p, 'cb', 0.99, isValidCb);
 addParameter(p, 'fig', [], isValidFig);
+addParameter(p, 'dataLabel', true, @islogical);
 
 parse(p, x, y, varargin{:});
 x = p.Results.x;
@@ -68,7 +74,9 @@ fitFn = p.Results.fitFn;
 figType = p.Results.figType;
 cb = p.Results.cb;
 fig = p.Results.fig;
+dataLabel = p.Results.dataLabel;
 
+if strcmpi(cb, 'none'), cb = 0; end
 if ~iscell(x), x = {x}; end; if ~iscell(y), y = {y}; end  % cellify
 
 % - flags:
@@ -96,6 +104,7 @@ for iC = 1:nC
     yC = y{iC};  % y vals for current curve
     % Get unique x values.
     xvals = unique(xC)';
+    xvals = xvals(:);
     nX = numel(xvals);  % number of unique xvals
     % For each unique x val, find the total number of associated y vals, 
     % the total number of hits for each associated y val, and the mean and 
@@ -115,13 +124,22 @@ for iC = 1:nC
     % Plot curves.
     % Get figure to plot on (dependent on `figType`).
     try figure(figList(iC)), catch, figure(figList(1)), end; hold on
-    % handle to psychometric graphics
+    % handle to psychometric graphic
     hp = plot(xvals, yCMean, 'Marker', 'o', 'LineWidth', 1.5);
     hp.MarkerFaceColor = hp.Color;
     % handle to bounds graphic
-    hb = fill([xvals; flipud(xvals)], [yCBounds(:,1); ...
-               flipud(yCBounds(:,2))], round(hp.Color, 1, 'significant'), ...
-               'edgecolor', 'none', 'facealpha', 0.2);  
+    if cb
+        hb = fill([xvals; flipud(xvals)], [yCBounds(:,1); ...
+                                           flipud(yCBounds(:,2))], ...
+                  round(hp.Color, 1, 'significant'), ...
+                  'edgecolor', 'none', 'facealpha', 0.2);
+    end
+    % Add labels to datapoints if specified.
+    if dataLabel
+        ht = text(xvals, yCMean, num2str(yCTot), 'FontSize', 9, ...
+                  'VerticalAlignment', 'top', ...
+                  'HorizontalAlignment', 'right');
+    end
     % Assign `fig` into `figList` if returning multiple figures.
     if strcmpi(figType, 'multiple'), figList(iC) = fig; end
 end

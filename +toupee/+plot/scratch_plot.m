@@ -236,41 +236,168 @@ title('Predicting intOn direction and response from early moves', 'FontSize', 14
 % 2) >= 2 moves, at least one direction change, < 0.5s between moves
 % 3) >= 2 moves, < 0.5s between moves
 
-wigMoveContrasts = cell(nE, 1);
-nWigMoves = zeros(nE, 1);
-nFwgScd = zeros(nE, 1);  % first wig dir, same correct dir
+% for each experiment, get number of wig trials, contrasts on each wig
+% trial, contrasts on non-wig trials, number of wig trials where 
+% first direction matched last direction, each wig trial's normalized trial
+% number, each wig trial's responses values, and each non-wig trial's
+% response values
+
+nWig1Trials = zeros(nE, 1);
+nWig2Trials = zeros(nE, 1);
+nWig3Trials = zeros(nE, 1);
+wig1TrialContrasts = cell(nE, 1);
+wig2TrialContrasts = cell(nE, 1);
+wig3TrialContrasts = cell(nE, 1);
+nonwig1TrialContrasts = cell(nE, 1);
+nonwig2TrialContrasts = cell(nE, 1);
+nonwig3TrialContrasts = cell(nE, 1);
+nFw1dScd = zeros(nE, 1);  % first wig dir, same correct dir
+nFw2dScd = zeros(nE, 1);
+nFw3dScd = zeros(nE, 1);
+wig1NormTrialNum = cell(nE, 1);
+wig2NormTrialNum = cell(nE, 1);
+wig3NormTrialNum = cell(nE, 1);
+wig1Response = cell(nE, 1);
+wig2Response = cell(nE, 1);
+wig3Response = cell(nE, 1);
+nonwig1Response = cell(nE, 1);
+nonwig2Response = cell(nE, 1);
+nonwig3Response = cell(nE, 1);
+
 
 for iE = 1:nE
     bd = expInfo{iE, 'behavioralData'};
     wm = bd.wheelMoves{1};
     % mask for number of moves
-    wigMaskN1 = cellfun(@(x) x >= 3, ...
+    wig1MaskN = cellfun(@(x) x >= 3, ...
                         wm{'interactiveOn,response: [0, 0]', 'nMoves'}{1});
+    wig2MaskN = cellfun(@(x) x >= 2, ...
+                        wm{'interactiveOn,response: [0, 0]', 'nMoves'}{1});
+    wig3MaskN = wig2MaskN;             
     % mask for direction change
-    wigMaskD1 = ...
+    wig1MaskD = ...
         cellfun(@(x) numel(unique(sign(cell2mat(x(:,2))))) == 2, ...
                 wm{'interactiveOn,response: [0, 0]', 'moveDirection'}{1});
+    wig2MaskD = wig1MaskD;
     % mask for max time b/w moves
-    wigMaskT1 = cellfun(@(x, y) all((x - y) < 0.5), ...
+    wig1MaskT = cellfun(@(x, y) all((x - y) < 0.5), ...
                         wm{'interactiveOn,response: [0, 0]', 'moveOff'}{1}, ...
                         wm{'interactiveOn,response: [0, 0]', 'moveOn'}{1});
+    wig2MaskT = wig1MaskT;
+    wig3MaskT = wig2MaskT;
     % wiggle mask as combination of above
-    wigMask = wigMaskN1 & wigMaskD1 & wigMaskT1;
+    wigMask1 = wig1MaskN & wig1MaskD & wig1MaskT;
+    wigMask2 = wig2MaskN & wig2MaskD & wig2MaskT;
+    wigMask3 = wig3MaskN & wig3MaskT;
     contrasts = expInfo{iE, 'BlockFile'}{1}{1, 'events'}{1, 'contrastValues'}{1}';
-    if numel(contrasts) > numel(wigMask), contrasts = contrasts(1:(end - 1)); end
-    wigMoveContrasts{iE} = contrasts(wigMask);
-    firstWigDir = cellfun(@(x) sign(x(1)), wm{'interactiveOn,response: [0, 0]', 'moveDisplacement'}{1}(wigMask));
+    if numel(contrasts) > numel(wigMask1), contrasts = contrasts(1:(end - 1)); end
+    wig1TrialContrasts{iE} = contrasts(wigMask1);
+    wig2TrialContrasts{iE} = contrasts(wigMask2);
+    wig3TrialContrasts{iE} = contrasts(wigMask3);
+    nonwig1TrialContrasts{iE} = contrasts(~wigMask1);
+    nonwig2TrialContrasts{iE} = contrasts(~wigMask2);
+    nonwig3TrialContrasts{iE} = contrasts(~wigMask3);
+    firstWig1Dir = cellfun(@(x) sign(x(1)), wm{'interactiveOn,response: [0, 0]', 'moveDisplacement'}{1}(wigMask1));
+    firstWig2Dir = cellfun(@(x) sign(x(1)), wm{'interactiveOn,response: [0, 0]', 'moveDisplacement'}{1}(wigMask2));
+    firstWig3Dir = cellfun(@(x) sign(x(1)), wm{'interactiveOn,response: [0, 0]', 'moveDisplacement'}{1}(wigMask3));
     cr = expInfo{iE, 'BlockFile'}{1}{1, 'events'}{1, 'correctResponseValues'}{1}';  % correct responses
-    if numel(cr) > numel(wigMask), cr = cr(1:(end - 1)); end
+    r = expInfo{iE, 'BlockFile'}{1}{1, 'events'}{1, 'responseValues'}{1}';  % responses
+    evts = expInfo{iE, 'BlockFile'}{1}.events;
+    nT = numel(evts.endTrialValues{1});
+    cr = cr(1:nT);
     cr = -cr;  % flip sign
-    nWigMoves(iE) = numel(find(wigMask));
-    nFwgScd(iE) = numel(find(cr(wigMask) == firstWigDir));
+    nWig1Trials(iE) = numel(find(wigMask1)) / nT;
+    nWig2Trials(iE) = numel(find(wigMask2)) / nT;
+    nWig3Trials(iE) = numel(find(wigMask3)) / nT;
+    nFw1dScd(iE) = numel(find(cr(wigMask1) == firstWig1Dir));
+    nFw2dScd(iE) = numel(find(cr(wigMask2) == firstWig2Dir));
+    nFw3dScd(iE) = numel(find(cr(wigMask3) == firstWig3Dir));
+    wig1NormTrialNum{iE} = find(wigMask1) / nT;
+    wig2NormTrialNum{iE} = find(wigMask2) / nT;
+    wig3NormTrialNum{iE} = find(wigMask3) / nT;
+    wig1Response{iE} = r(wigMask1);
+    wig2Response{iE} = r(wigMask2);
+    wig3Response{iE} = r(wigMask3);
+    nonwig1Response{iE} = r(~wigMask1);
+    nonwig2Response{iE} = r(~wigMask2);
+    nonwig3Response{iE} = r(~wigMask3);
+    % plot psychometrics of wig vs nonwig for each individual session
+%     toupee.plot.psychometric(...
+%         {wig1TrialContrasts{iE}, nonwig1TrialContrasts{iE}},...
+%         {wig1Response{iE}, nonwig1Response{iE}}, 'cb', 'none');
 end
 
-wigMoveContrastsAll = cell2mat(wigMoveContrasts);
-xContrasts = unique(wigMoveContrastsAll);
 
-figure, histogram(wigMoveContrastsAll, [-1.05:0.025:1.05])
+title('2020-03-02 1 LEW031 Wiggle vs. Non-wiggle', 'FontSize', 14)
+xlabel('Contrasts')
+ylabel('P(right)')
+legend('wiggle', 'non-wiggle', 'location', 'southeast')
+
+
+% For each of 3 classifications of wig trials:
+
+% Create psychometrics of wig and nonwig trials across all sessions
+wig1TrialContrastsAll = cell2mat(wig1TrialContrasts);
+nonwig1TrialContrastsAll = cell2mat(nonwig1TrialContrasts);
+wig1ResponseAll = cell2mat(wig1Response);
+nonwig1ResponseAll = cell2mat(nonwig1Response);
+toupee.plot.psychometric(...
+    {wig1TrialContrastsAll, nonwig1TrialContrastsAll},...
+    {wig1ResponseAll, nonwig1ResponseAll});
+title('LEW031 Wiggle vs. Non-wiggle Psychometrics: Type 1', 'FontSize', 14)
+xlabel('Contrasts')
+ylabel('P(right)')
+legend('wiggle', '', 'non-wiggle', '', 'location', 'southeast')
+
+wig2TrialContrastsAll = cell2mat(wig2TrialContrasts);
+nonwig2TrialContrastsAll = cell2mat(nonwig2TrialContrasts);
+wig2ResponseAll = cell2mat(wig2Response);
+nonwig2ResponseAll = cell2mat(nonwig2Response);
+toupee.plot.psychometric(...
+    {wig2TrialContrastsAll, nonwig2TrialContrastsAll},...
+    {wig2ResponseAll, nonwig2ResponseAll});
+title('LEW031 Wiggle vs. Non-wiggle Psychometrics: Type 2', 'FontSize', 14)
+xlabel('Contrasts')
+ylabel('P(right)')
+legend('wiggle', '', 'non-wiggle', '', 'location', 'southeast')
+
+wig3TrialContrastsAll = cell2mat(wig3TrialContrasts);
+nonwig3TrialContrastsAll = cell2mat(nonwig3TrialContrasts);
+wig3ResponseAll = cell2mat(wig3Response);
+nonwig3ResponseAll = cell2mat(nonwig3Response);
+toupee.plot.psychometric(...
+    {wig3TrialContrastsAll, nonwig3TrialContrastsAll},...
+    {wig3ResponseAll, nonwig3ResponseAll});
+title('LEW031 Wiggle vs. Non-wiggle Psychometrics: Type 3', 'FontSize', 14)
+xlabel('Contrasts')
+ylabel('P(right)')
+legend('wiggle', '', 'non-wiggle', '', 'location', 'southeast')
+
+
+% Create psychometrics of wig and nonwig trials across good sessions
+goodSes = [1, 7, 8, 11, 13, 14, 15]; % good behavioral sessions (as on notion)
+
+% Create psychometrics of wig and nonwig trials across individual good
+% sessions
+
+% Plot number of wig trials across sessions
+figure, hp = plot(nWig1Trials);
+hp.LineWidth = 1.5;
+hp.Marker = 'x';
+hp.MarkerSize = 8;
+ylabel('Proportion of wig trials')
+xlabel('Days')
+title('Wig Trials over Days')
+
+% Plot number of wig trials within sessions
+wig1NormTrialNumAll = cell2mat(wig1NormTrialNum);
+figure, hh = histogram(wig1NormTrialNumAll, 20);
+ylabel('count')
+xlabel('normalized trial num')
+title('counts of wig trials within sessions')
+
+% For each session, plot proportion of early moves (both punitive and
+% non-punitive) vs weight
 
 
 %% How does early movement change as a function of task experience?
@@ -302,4 +429,6 @@ y{2} = evts2.responseValues{1}(1:nT2);
 
 allContrastsMask = xC == xvals;
 [zrow, zcol] = find(allContrastsMask);
-cnts = histcounts(zrow, numel(xvals)); 
+cnts = histcounts(zrow, numel(xvals));
+
+toupee.plot.psychometric(x, y);
