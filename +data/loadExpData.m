@@ -32,6 +32,7 @@ for i = 1:length(dataLocations)
     try
         load(blockFilePath);
         if exist('block')
+            server = char(dataLocations{i});
             break
         end
     catch
@@ -41,6 +42,7 @@ end
 if ~exist('block')
     warning('No block file was found')
     block = [];
+    server = [];
 end
 
 % load the timeline file
@@ -49,6 +51,7 @@ for i = 1:length(dataLocations)
     try
         load(timelineFilePath);
         if exist('Timeline')
+            server = char(dataLocations{i});
             break
         end
     catch
@@ -58,10 +61,12 @@ end
 if ~exist('Timeline')
     warning('No timeline file was found')
     Timeline = [];
+    server = [];
 end
 
 expInfo(ex).block = block;
 expInfo(ex).Timeline = Timeline;
+expInfo(ex).server = server;
 end
 end
 

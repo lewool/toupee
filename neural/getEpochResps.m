@@ -24,7 +24,7 @@ baselineResps = squeeze(mean(stim_alignedTraces(:,baselineIdx,:),2));
 %% compute peristimulus activity
 
 %designate a peristimulus window
-stimTime = [0 0.3] / Fs;
+stimTime = [0 0.4] / Fs;
 stimIdx = stim_eventIdx + stimTime(1) :stim_eventIdx + stimTime(2);
 
 %compute the mean peristimulus activity per cell, per trial (trials x neurons)
@@ -51,7 +51,7 @@ movResps = squeeze(mean(mov_alignedTraces(:,movIdx,:),2));
 
 %designate a movement window
 pmov_eventIdx = find(mov_eventWindow == 0);
-pmovTime = [-0.7 -0.1] / Fs;
+pmovTime = [-0.7 -0.2] / Fs;
 pmovIdx = pmov_eventIdx + pmovTime(1) : pmov_eventIdx + pmovTime(2);
 
 %compute the mean perimovement activity per cell, per trial (trials x neurons)

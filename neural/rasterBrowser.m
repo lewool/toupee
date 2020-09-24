@@ -1,13 +1,16 @@
-function figName = rasterBrowser(expInfo, behavioralData, neuralData, whichCells, compareSides,k)
+function figName = rasterBrowser(expInfo, behavioralData, neuralData, whichCells,pickTrials, trialStruct, k)
 
+% pickTrials = {'side_direction', 'side_direction', 'outcome_direction'};
+% contrastOverride = 'contrast_direction';
+% trialStruct = trialTypes.intVar.cb2D;
 %% initialize experiment details
 
-    alignedResps = neuralData.eta.alignedResps;
-    eventWindow = neuralData.eta.eventWindow;
-    bfcH = neuralData.stats.bfcH;
-    pLabels = neuralData.stats.labels;
-    et = behavioralData.eventTimes;
-    wm = behavioralData.wheelMoves;
+alignedResps = neuralData.eta.alignedResps;
+eventWindow = neuralData.eta.eventWindow;
+bfcH = neuralData.stats.bfcH;
+pLabels = neuralData.stats.labels;
+et = behavioralData.eventTimes;
+wm = behavioralData.wheelMoves;
 
 
 %% choose cells
@@ -19,100 +22,60 @@ else
     plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
 end
 
-%% set up trial conditions to compare
-contrasts = getUniqueContrasts(expInfo);
-if strcmp(compareSides,'all')
+%%
 
-    [~, stimConds{1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('movementTime','late'));
-    [~, stimConds{2}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('movementTime','late'));
-    [~, stimConds{3}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('movementTime','late'));
-    allLabels{1} = {'Left' 'Zero' 'Right'};
 
-    [~, moveConds{1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('movementDir','cw','movementTime','late'));
-    [~, moveConds{2}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('movementDir','ccw','movementTime','late'));
-    allLabels{2} = {'Left' 'Right'};
-
-    [~, rewConds{1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('responseType','correct','movementTime','late'));
-    [~, rewConds{2}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('responseType','incorrect','movementTime','late'));
-    allLabels{3} = {'Correct' 'Incorrect'};
-
-    allConds = {stimConds moveConds rewConds};
-    
-elseif strcmp(compareSides,'blocks')
-    
-    [~, stimConds{1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('highRewardSide','left','movementTime','late'));
-    [~, stimConds{2}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('highRewardSide','right','movementTime','late'));
-    [~, stimConds{3}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('highRewardSide','left','movementTime','late'));
-    [~, stimConds{4}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('highRewardSide','right','movementTime','late'));
-    [~, stimConds{5}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('highRewardSide','left','movementTime','late'));
-    [~, stimConds{6}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('highRewardSide','right','movementTime','late'));
-    allLabels{1} = {'L' 'L' '0' '0' 'R' 'R'};
-
-    [~, moveConds{1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('highRewardSide','left','movementDir','cw','movementTime','late'));
-    [~, moveConds{2}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('highRewardSide','right','movementDir','cw','movementTime','late'));
-    [~, moveConds{3}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('highRewardSide','left','movementDir','ccw','movementTime','late'));
-    [~, moveConds{4}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('highRewardSide','right','movementDir','ccw','movementTime','late'));
-    allLabels{2} = {'L' 'L' 'R' 'R'};
-
-    [~, rewConds{1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('highRewardSide','left','responseType','correct','movementTime','late'));
-    [~, rewConds{2}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('highRewardSide','right','responseType','correct','movementTime','late'));
-    [~, rewConds{3}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('highRewardSide','left','responseType','incorrect','movementTime','late'));
-    [~, rewConds{4}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('highRewardSide','right','responseType','incorrect','movementTime','late'));
-    allLabels{3} = {'Cor' 'Cor' 'Inc' 'Inc'};
-
-    allConds = {stimConds moveConds rewConds};
-    
-elseif strcmp(compareSides,'stimmove')
-    
-    [~, stimConds{1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('movementDir','cw','movementTime','late'));
-    [~, stimConds{2}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('movementDir','ccw','movementTime','late'));
-    [~, stimConds{3}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('movementDir','cw','movementTime','late'));
-    [~, stimConds{4}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('movementDir','ccw','movementTime','late'));
-    [~, stimConds{5}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('movementDir','cw','movementTime','late'));
-    [~, stimConds{6}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('movementDir','ccw','movementTime','late'));
-    allLabels{1} = {'L' 'L' '0' '0' 'R' 'R'};
-
-    [~, moveConds{1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('movementDir','cw','movementTime','late'));
-    [~, moveConds{2}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('movementDir','ccw','movementTime','late'));
-    [~, moveConds{3}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('movementDir','cw','movementTime','late'));
-    [~, moveConds{4}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('movementDir','ccw','movementTime','late'));
-    [~, moveConds{5}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('movementDir','cw','movementTime','late'));
-    [~, moveConds{6}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('movementDir','ccw','movementTime','late'));
-    allLabels{2} = {'L' 'L' '0' '0' 'R' 'R'};
-
-    [~, rewConds{1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('responseType','correct','movementTime','late'));
-    [~, rewConds{2}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('responseType','correct','movementTime','late'));
-    [~, rewConds{3}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('responseType','incorrect','movementTime','late'));
-    [~, rewConds{4}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('responseType','incorrect','movementTime','late'));
-    allLabels{3} = {'Cor' 'Cor' 'Inc' 'Inc'};
-
-    allConds = {stimConds moveConds rewConds};
-    
+for iA = 1:length(pickTrials)
+    trialLists{iA} = reshape(getfield(trialStruct,pickTrials{iA})',[1 numel(getfield(trialStruct,pickTrials{iA}))])';
+    trialArrays{iA} = getfield(trialStruct,pickTrials{iA});
 end
+
 %% set up some plot values
 
 %compute the total size of the figure based on trials
-% if numel(cell2mat(stimConds)) == numel(cell2mat(moveConds))
-    for a = 1:length(allConds)
-        for iCond = 1:length(allConds{a})
-            tl{a}(iCond) = numel(allConds{a}{iCond});
-        end
-    end
-% else
-%     error('Trials got dropped...check trial conditions')
-% end
-
-buffer = 1;
-total_raster = sum(tl{1}) + buffer*(length(stimConds)+1);
+totalTrials = sum(sum(cellfun(@length, getfield(trialStruct,pickTrials{1}))));
+totalRasters = max(cellfun(@numel, trialLists));
+border = 1;
+total_raster = totalTrials + border*(totalRasters+1);
 psth = round(total_raster*.5);
-total_length = sum(tl{1})+ buffer*(length(stimConds)+1) + psth;
+total_length = total_raster + psth;
 
-if strcmp(compareSides,'all')
-    rasterColors = {[0 0 1; 0 0 0; 1 0 0],[0 0 1; 1 0 0],[.5 1 .5; 1 0 0]};
-elseif strcmp(compareSides,'blocks')
-    rasterColors = {[0 0 1; 0 0 1; 0 0 0; 0 0 0; 1 0 0; 1 0 0],[0 0 1; 0 0 1; 1 0 0; 1 0 0],[.5 1 .5; .5 1 .5; 1 0 0; 1 0 0]};
-elseif strcmp(compareSides,'stimmove')
-    rasterColors = {[0 0 1; 0 0 1; 0 0 0; 0 0 0; 1 0 0; 1 0 0],[0 0 1; 0 0 1; 0 0 0; 0 0 0; 1 0 0; 1 0 0],[.5 1 .5; .5 1 .5; 1 0 0; 1 0 0]};
+for iETA = 1:3
+    if contains(pickTrials{iETA},'side')
+        if contains(pickTrials{iETA},'_direction') || contains(pickTrials{iETA},'_block')
+            rasterColors{iETA} = [0 0 1; 0 0 1; 0 0 0; 0 0 0; 1 0 0; 1 0 0];
+            rasterLabels{iETA} = {'L' 'L' '0' '0' 'R' 'R'};
+            psthColors{iETA} = [0 .4 1; .75 .75 .75; 1 0 0];
+        else
+            rasterColors{iETA} = [0 0 1; 0 0 0; 1 0 0];
+            rasterLabels{iETA} = {'Left' 'Zero' 'Right'};
+            psthColors{iETA} = [0 .4 1; .75 .75 .75; 1 0 0];
+        end
+    elseif contains(pickTrials{iETA},'outcome')
+        if contains(pickTrials{iETA},'_direction') || contains(pickTrials{iETA},'_block')
+            rasterColors{iETA} = [.5 1 .5; .5 1 .5; 1 0 0; 1 0 0];
+            rasterLabels{iETA} = {'Cor' 'Cor' 'Inc' 'Inc'};
+            psthColors{iETA} = [.1 .7 .1; .75 0 0];
+        else
+            rasterColors{iETA} = [.5 1 .5; 1 0 0];
+            rasterLabels{iETA} = {'Cor' 'Inc'};
+            psthColors{iETA} = [.1 .7 .1; .75 0 0];
+        end
+    elseif contains(pickTrials{iETA},'direction')
+        if contains(pickTrials{iETA},'_block')
+            rasterColors{iETA} = [0 0 1; 0 0 1; 1 0 0; 1 0 0];
+            rasterLabels{iETA} = {'L' 'L' 'R' 'R'};
+            psthColors{iETA} = [0 .4 1; 1 0 0];
+        else
+            rasterColors{iETA} = [0 0 1; 1 0 0];
+            rasterLabels{iETA} = {'L' 'R'};
+            psthColors{iETA} = [0 .4 1; 1 0 0];
+        end
+    elseif contains(pickTrials{iETA},'block')
+        rasterColors{iETA} = [0 0 1; 1 0 0];
+        rasterLabels{iETA} = {'L' 'R'};
+        psthColors{iETA} = [0 0 1; .5 0 0];
+    end
 end
 
 %% plot (all trials)
@@ -129,15 +92,15 @@ max_k = length(plotCells);
 while k <= max_k
 
     %clear subplots
-    for a = 1:length(allConds)
-        for iCond = 1:length(allConds{a})
-            [spidx1, spidx2] = goToRasterSubplot(length(allConds), total_length, tl{a}, a, iCond, 1, psth);
-            subplot(total_length,length(allConds),[spidx1 spidx2])
+    for a = 1:length(trialLists)
+        for iCond = 1:length(trialLists{a})
+            [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
+            subplot(total_length,length(trialLists),[spidx1 spidx2])
             cla;
         end
-        spidxA = sub2ind([length(allConds) total_length], a, 1);
-        spidxB = sub2ind([length(allConds) total_length], a, psth);    
-        subplot(total_length,length(allConds),[spidxA spidxB])
+        spidxA = sub2ind([length(trialLists) total_length], a, 1);
+        spidxB = sub2ind([length(trialLists) total_length], a, psth);    
+        subplot(total_length,length(trialLists),[spidxA spidxB])
         cla;
     end
     
@@ -145,24 +108,23 @@ while k <= max_k
     iMax = [];
     yMin = [];
     yMax = [];
-    
-    for a = 1:length(allConds)
-        
-        %plot rasters
-        for iCond = 1:length(allConds{a})
 
+    for a = 1:3
+        for iCond = 1:length(trialLists{a})
+            
             % extract the relevant trials for that condition
-            whichTrials = allConds{a}{iCond};
+            whichTrials = trialLists{a}{iCond};
             numTrials = size(whichTrials,2);
-
+            
+            % sort the trials by event time
             [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);
-
-            [spidx1, spidx2] = goToRasterSubplot(length(allConds), total_length, tl{a}, a, iCond, 1, psth);
-            ax = subplot(total_length,length(allConds),[spidx1 spidx2]);
+            
+            [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
+            ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
             f = imagesc(eventWindow,1:numTrials,alignedResps{a}(whichTrials(sortIdx),:,plotCells(k)));
             colormap(ax,rasterColor(rasterColors{a}(iCond,:)));
             hold on;
-%             line([0 0],[1 length(whichTrials)],'LineStyle','-','Color',[0 0 0]);
+            %             line([0 0],[1 length(whichTrials)],'LineStyle','-','Color',[0 0 0]);
             mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
             st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
             rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
@@ -170,128 +132,60 @@ while k <= max_k
             box off
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
-            ylabel(allLabels{a}(iCond))
-            if iCond < length(allConds{a})
+            ylabel(rasterLabels{a}(iCond))
+            if iCond < length(trialLists{a})
             set(gca,'xtick',[]);
             end
-
             iMax(end+1) = max(max(f.CData));
             iMin(end+1) = min(min(f.CData));
-            
+            if a > 1
+            xlim([-2 1]);
+            else
+            xlim([-1 2]);
+            end
+        end
+    
+
+        %plot psth at the top
+        spidxA = sub2ind([length(trialLists) total_length], a, 1);
+        spidxB = sub2ind([length(trialLists) total_length], a, psth);
+        subplot(total_length,length(trialLists),[spidxA spidxB])
+        [meanPSTH, semPSTH, rasters] = computePSTHs(alignedResps{a}(:,:,plotCells(k)),trialArrays{a});
+        for d = 1:size(meanPSTH,2)
+            if d == 1
+                ls = '-';
+            else
+                ls = ':';
+            end
+            plotPSTHs(eventWindow, cell2mat(meanPSTH(:,d)), cell2mat(semPSTH(:,d)), psthColors{a},ls);
             if a > 1
                 xlim([-2 1]);
             else
                 xlim([-1 2]);
             end
+            yMin(end+1) = min(min(cell2mat(meanPSTH)-cell2mat(semPSTH)));
+            yMax(end+1) = max([.01 max(max(cell2mat(meanPSTH)+cell2mat(semPSTH)))]);
         end
         
-        %plot psth at the top
-        spidxA = sub2ind([length(allConds) total_length], a, 1);
-        spidxB = sub2ind([length(allConds) total_length], a, psth);    
-        subplot(total_length,length(allConds),[spidxA spidxB])
-        
-        if strcmp(compareSides,'all')
-            if a == 1
-                [meanResp, semResp, plotColors] = computeContrastCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementTime','late'),'side');
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                xlim([-1 2]);
-            elseif a == 2
-                [meanResp, semResp, plotColors] = computeMoveDirCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementTime','late'));
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                xlim([-2 1]);
-            elseif a == 3
-                [meanResp, semResp, plotColors] = computeRewardCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementTime','late'));
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                xlim([-2 1]);
-            end
-        elseif strcmp(compareSides,'blocks')
-            if a == 1
-                [meanResp, semResp, plotColors] = computeContrastCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('highRewardSide','left','movementTime','late'),'side');
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-                [meanResp, semResp, plotColors] = computeContrastCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('highRewardSide','right','movementTime','late'),'side');
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,':');
-                xlim([-1 2]);
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-            elseif a == 2
-                [meanResp, semResp, plotColors] = computeMoveDirCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('highRewardSide','left','movementTime','late'));
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-                [meanResp, semResp, plotColors] = computeMoveDirCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('highRewardSide','right','movementTime','late'));
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,':');
-                xlim([-2 1]);
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-            elseif a == 3
-                [meanResp, semResp, plotColors] = computeRewardCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('highRewardSide','left','movementTime','late'));
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-                [meanResp, semResp, plotColors] = computeRewardCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('highRewardSide','right','movementTime','late'));
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,':');
-                xlim([-2 1]);
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-            end
-        elseif strcmp(compareSides,'stimmove')
-            if a == 1
-                [meanResp, semResp, plotColors] = computeContrastCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementDir','cw','movementTime','late'),'balanced');
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-                [meanResp, semResp, plotColors] = computeContrastCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementDir','ccw','movementTime','late'),'balanced');
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,':');
-                xlim([-1 2]);
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-            elseif a == 2
-                [meanResp, semResp, plotColors] = computeContrastCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementDir','cw','movementTime','late'),'balanced');
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-                [meanResp, semResp, plotColors] = computeContrastCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementDir','ccw','movementTime','late'),'balanced');
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,':');
-                xlim([-2 1]);
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-            elseif a == 3
-                [meanResp, semResp, plotColors] = computeRewardCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementDir','cw','movementTime','late'));
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,'-');
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-                [meanResp, semResp, plotColors] = computeRewardCurves(alignedResps{a}(:,:,plotCells(k)),expInfo,behavioralData,initTrialConditions('movementDir','ccw','movementTime','late'));
-                plotContrastCurves(eventWindow, meanResp, semResp, plotColors,':');
-                xlim([-2 1]);
-                yMin(end+1) = min(min(min(meanResp-semResp)));
-                yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
-            end
-        end
-            
         ln = line([0 0],[0 1],'LineStyle','-','Color',[0 0 0],'linewidth',1);
         uistack(ln,'bottom');
         set(gca,'xtick',[]);
         set(gca,'TickDir','out');
-        
-        yMin(end+1) = min(min(min(meanResp-semResp)));
-        yMax(end+1) = max([.1 max(max(max(meanResp+semResp)))]);
     end
     
     %unify axis limits across plots and add labels as appropriate
-    for a = 1:length(allConds)
-        for iCond = 1:length(allConds{a})
-            [spidx1, spidx2] = goToRasterSubplot(length(allConds), total_length, tl{a}, a, iCond, 1, psth);
-            subplot(total_length,length(allConds),[spidx1 spidx2])
+    for a = 1:3
+        for iCond = 1:length(trialLists{a})
+            [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
+            subplot(total_length,length(trialLists),[spidx1 spidx2])
             caxis([min(iMin) max(.4)]);
-            if iCond == length(allConds{a})
+            if iCond == length(trialLists{a})
                 xlabel('Time (s)')
             end
         end
-        spidxA = sub2ind([length(allConds) total_length], a, 1);
-        spidxB = sub2ind([length(allConds) total_length], a, psth);    
-        subplot(total_length,length(allConds),[spidxA spidxB])
+        spidxA = sub2ind([length(trialLists) total_length], a, 1);
+        spidxB = sub2ind([length(trialLists) total_length], a, psth);    
+        subplot(total_length,length(trialLists),[spidxA spidxB])
         box off
         ylim([min(0) max(yMax)]);
         if a == 1 
@@ -300,6 +194,7 @@ while k <= max_k
 
     end    
 
+    
     was_a_key = waitforbuttonpress;
     
     if was_a_key && strcmp(get(fig, 'CurrentKey'), 'leftarrow')
@@ -308,9 +203,9 @@ while k <= max_k
       k = min(max_k, k + 1);
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'return')
         disp(k)
-        if strcmp(compareSides,'blocks')
+        if contains(pickTrials,'block')
             figName = strcat(expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)),'_blocks');
-        elseif strcmp(compareSides,'stimmove')
+        elseif contains(pickTrials,'direction')
             figName = strcat(expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)),'_stimmove');
         else
             figName = strcat(expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
@@ -318,6 +213,4 @@ while k <= max_k
         printfig(gcf, figName)
         break
     end
-    
 end
-    

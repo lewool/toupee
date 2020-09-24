@@ -35,7 +35,7 @@ Fs = 0.1;
 
 %%
 
-[baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(neuralData);
+[baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(neuralData.eta);
 
 %% set up trial conditions to compare
 

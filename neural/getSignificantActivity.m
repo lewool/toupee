@@ -52,7 +52,7 @@ if matched == 0
 
     %designate a movement window
     pmov_eventIdx = find(mov_eventWindow == 0);
-    pmovTime = [-0.7 -0.1] / Fs;
+    pmovTime = [-0.7 -0.2] / Fs;
     pmovIdx = pmov_eventIdx + pmovTime(1) : pmov_eventIdx + pmovTime(2);
 
     %compute the mean perimovement activity per cell, per trial (trials x neurons)
@@ -98,7 +98,7 @@ if matched == 0
 
     %%%%%%%%%%%%%%%% Wilcoxon tests
 
-    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'correct'};
+    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'value','advanceMov'};
     pValues = zeros(size(baselineResps,2),length(labels));
     for iCell = 1:size(baselineResps,2)
         pValues(iCell,1) = signrank(stimResps(stimTrials,iCell),baselineResps(stimTrials,iCell),'tail','right');
@@ -108,7 +108,8 @@ if matched == 0
         pValues(iCell,5) = ranksum(movResps(movleftTrials,iCell),movResps(movrightTrials,iCell),'tail','right');
         pValues(iCell,6) = ranksum(movResps(movrightTrials,iCell),movResps(movleftTrials,iCell),'tail','right');
         pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell));
-        pValues(iCell,8) = ranksum(stimResps(correctTrials,iCell),stimResps(incorrectTrials,iCell)); 
+        pValues(iCell,8) = ranksum(stimResps(highleftTrials,iCell),stimResps(highrightTrials,iCell)); 
+        pValues(iCell,9) = signrank(pmovResps(:,iCell),baselineResps(:,iCell)); 
     end
     
     %%%%%%%%%%%%%%%% Bonferroni correction
@@ -183,7 +184,7 @@ elseif matched == 1
 
     %designate a movement window
     pmov_eventIdx = find(mov_eventWindow == 0);
-    pmovTime = [-0.7 -0.1] / Fs;
+    pmovTime = [-0.7 -0.2] / Fs;
     pmovIdx = pmov_eventIdx + pmovTime(1) : pmov_eventIdx + pmovTime(2);
 
     %compute the mean perimovement activity per cell, per trial (trials x neurons)
@@ -230,7 +231,7 @@ elseif matched == 1
 
     %%%%%%%%%%%%%%%% Wilcoxon tests
 
-    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'correct'};
+    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'advanceMov'};
     pValues = zeros(size(baselineResps,2),length(labels));
     for iCell = 1:size(baselineResps,2)
         pValues(iCell,1) = signrank(stimResps(stimTrials,iCell),baselineResps(stimTrials,iCell),'tail','right');
@@ -240,7 +241,7 @@ elseif matched == 1
         pValues(iCell,5) = ranksum(movResps(movleftTrials,iCell),movResps(movrightTrials,iCell),'tail','right');
         pValues(iCell,6) = ranksum(movResps(movrightTrials,iCell),movResps(movleftTrials,iCell),'tail','right');
         pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell));
-        pValues(iCell,8) = ranksum(stimResps(correctTrials,iCell),stimResps(incorrectTrials,iCell)); 
+        pValues(iCell,8) = ranksum(pmovResps(movleftTrials,iCell),pmovResps(movrightTrials,iCell)); 
     end
     
     %%%%%%%%%%%%%%%% Bonferroni correction
