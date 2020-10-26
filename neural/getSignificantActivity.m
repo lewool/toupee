@@ -132,20 +132,13 @@ if matched == 0
 
 elseif matched == 1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% MATCHED STATS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    %check if there is a matched substruct, otherwise error
-    try
-        check = neuralData.matched;
-    catch
-        error('No field "matched" found');
-    end
     
     %%%%%%%%%%%%%%%% compute baseline activity
     
     % align traces to stim onset
     event = 'stimulusOnTimes';
-    stim_alignedTraces = neuralData.matched.eta.alignedResps{strcmp(neuralData.matched.eta.events,event)};
-    stim_eventWindow = neuralData.matched.eta.eventWindow;
+    stim_alignedTraces = neuralData.eta.alignedResps{strcmp(neuralData.eta.events,event)};
+    stim_eventWindow = neuralData.eta.eventWindow;
 
     %designate a baseline window
     stim_eventIdx = find(stim_eventWindow == 0);
@@ -169,8 +162,8 @@ elseif matched == 1
 
     % align traces to movement onset
     event = 'firstMoveTimes';
-    mov_alignedTraces = neuralData.matched.eta.alignedResps{strcmp(neuralData.matched.eta.events,event)};
-    mov_eventWindow = neuralData.matched.eta.eventWindow;
+    mov_alignedTraces = neuralData.eta.alignedResps{strcmp(neuralData.eta.events,event)};
+    mov_eventWindow = neuralData.eta.eventWindow;
 
     %designate a movement window
     mov_eventIdx = find(mov_eventWindow == 0);
@@ -194,8 +187,8 @@ elseif matched == 1
 
     % align traces to movement onset
     event = 'feedbackTimes';
-    rew_alignedTraces = neuralData.matched.eta.alignedResps{strcmp(neuralData.matched.eta.events,event)};
-    rew_eventWindow = neuralData.matched.eta.eventWindow;
+    rew_alignedTraces = neuralData.eta.alignedResps{strcmp(neuralData.eta.events,event)};
+    rew_eventWindow = neuralData.eta.eventWindow;
 
     %designate a movement window
     rew_eventIdx = find(rew_eventWindow == 0);
@@ -252,7 +245,7 @@ elseif matched == 1
     bfcH = pValues < bfcAlpha;
     
     %%%%%%%%%%%%%%%% collect into struct
-    neuralData.matched.stats = struct(...
+    neuralData.stats = struct(...
         'pValues',pValues,...
         'labels',{labels},...
         'alpha',alpha,...
