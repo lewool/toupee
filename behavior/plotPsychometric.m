@@ -216,7 +216,6 @@ if length(unique(allRewardSideValues)) < 2
         plot(c, erf_psycho_2gammas(pars, c), 'Color', lineColor, 'LineWidth', 1,'LineStyle','-')
         xlabel('Left Contrast (%)       Right Contrast (%)')
         ylabel('P(rightward choice)')
-        text(75,0,strcat(num2str(length(allChoiceValues)),{' trials'}));
         hold on;
 
         % compute CIs
