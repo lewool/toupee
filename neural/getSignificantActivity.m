@@ -1,12 +1,11 @@
-function neuralData = getSignificantActivity(expInfo, behavioralData, neuralData, ifmatched)
+function neuralData = getSignificantActivity(expInfo, behavioralData, neuralData, matched)
 % Determine which neurons are active for different aspects of the task:
 % stimulus onset, movement onset, movement direction, reward onset, block
 % identity (ITI)
 
 Fs = 0.1;
-
-if nargin < 4
     
+if matched == 0
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% UNMATCHED STATS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
     for ex = 1:length(expInfo)
         
@@ -53,7 +52,7 @@ if nargin < 4
 
     %designate a movement window
     pmov_eventIdx = find(mov_eventWindow == 0);
-    pmovTime = [-0.7 -0.1] / Fs;
+    pmovTime = [-0.7 -0.2] / Fs;
     pmovIdx = pmov_eventIdx + pmovTime(1) : pmov_eventIdx + pmovTime(2);
 
     %compute the mean perimovement activity per cell, per trial (trials x neurons)
@@ -99,7 +98,7 @@ if nargin < 4
 
     %%%%%%%%%%%%%%%% Wilcoxon tests
 
-    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'blockValue'};
+    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'value','advanceMov'};
     pValues = zeros(size(baselineResps,2),length(labels));
     for iCell = 1:size(baselineResps,2)
         pValues(iCell,1) = signrank(stimResps(stimTrials,iCell),baselineResps(stimTrials,iCell),'tail','right');
@@ -109,7 +108,8 @@ if nargin < 4
         pValues(iCell,5) = ranksum(movResps(movleftTrials,iCell),movResps(movrightTrials,iCell),'tail','right');
         pValues(iCell,6) = ranksum(movResps(movrightTrials,iCell),movResps(movleftTrials,iCell),'tail','right');
         pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell));
-        pValues(iCell,8) = ranksum(pmovResps(highleftTrials,iCell),pmovResps(highrightTrials,iCell)); 
+        pValues(iCell,8) = ranksum(stimResps(highleftTrials,iCell),stimResps(highrightTrials,iCell)); 
+        pValues(iCell,9) = signrank(pmovResps(:,iCell),baselineResps(:,iCell)); 
     end
     
     %%%%%%%%%%%%%%%% Bonferroni correction
@@ -130,22 +130,15 @@ if nargin < 4
     
     end
 
-elseif nargin == 4
+elseif matched == 1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% MATCHED STATS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    %check if there is a matched substruct, otherwise error
-    try
-        check = neuralData.matched;
-    catch
-        error('No field "matched" found');
-    end
     
     %%%%%%%%%%%%%%%% compute baseline activity
     
     % align traces to stim onset
     event = 'stimulusOnTimes';
-    stim_alignedTraces = neuralData.matched.eta.alignedResps{strcmp(neuralData.matched.eta.events,event)};
-    stim_eventWindow = neuralData.matched.eta.eventWindow;
+    stim_alignedTraces = neuralData.eta.alignedResps{strcmp(neuralData.eta.events,event)};
+    stim_eventWindow = neuralData.eta.eventWindow;
 
     %designate a baseline window
     stim_eventIdx = find(stim_eventWindow == 0);
@@ -168,9 +161,9 @@ elseif nargin == 4
     %%%% compute perimovement activity
 
     % align traces to movement onset
-    event = 'prestimulusQuiescenceEndTimes';
-    mov_alignedTraces = neuralData.matched.eta.alignedResps{strcmp(neuralData.matched.eta.events,event)};
-    mov_eventWindow = neuralData.matched.eta.eventWindow;
+    event = 'firstMoveTimes';
+    mov_alignedTraces = neuralData.eta.alignedResps{strcmp(neuralData.eta.events,event)};
+    mov_eventWindow = neuralData.eta.eventWindow;
 
     %designate a movement window
     mov_eventIdx = find(mov_eventWindow == 0);
@@ -184,7 +177,7 @@ elseif nargin == 4
 
     %designate a movement window
     pmov_eventIdx = find(mov_eventWindow == 0);
-    pmovTime = [-0.7 -0.1] / Fs;
+    pmovTime = [-0.7 -0.2] / Fs;
     pmovIdx = pmov_eventIdx + pmovTime(1) : pmov_eventIdx + pmovTime(2);
 
     %compute the mean perimovement activity per cell, per trial (trials x neurons)
@@ -194,8 +187,8 @@ elseif nargin == 4
 
     % align traces to movement onset
     event = 'feedbackTimes';
-    rew_alignedTraces = neuralData.matched.eta.alignedResps{strcmp(neuralData.matched.eta.events,event)};
-    rew_eventWindow = neuralData.matched.eta.eventWindow;
+    rew_alignedTraces = neuralData.eta.alignedResps{strcmp(neuralData.eta.events,event)};
+    rew_eventWindow = neuralData.eta.eventWindow;
 
     %designate a movement window
     rew_eventIdx = find(rew_eventWindow == 0);
@@ -231,7 +224,7 @@ elseif nargin == 4
 
     %%%%%%%%%%%%%%%% Wilcoxon tests
 
-    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'blockValue'};
+    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'advanceMov'};
     pValues = zeros(size(baselineResps,2),length(labels));
     for iCell = 1:size(baselineResps,2)
         pValues(iCell,1) = signrank(stimResps(stimTrials,iCell),baselineResps(stimTrials,iCell),'tail','right');
@@ -241,7 +234,7 @@ elseif nargin == 4
         pValues(iCell,5) = ranksum(movResps(movleftTrials,iCell),movResps(movrightTrials,iCell),'tail','right');
         pValues(iCell,6) = ranksum(movResps(movrightTrials,iCell),movResps(movleftTrials,iCell),'tail','right');
         pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell));
-        pValues(iCell,8) = ranksum(pmovResps(highleftTrials,iCell),pmovResps(highrightTrials,iCell)); 
+        pValues(iCell,8) = ranksum(pmovResps(movleftTrials,iCell),pmovResps(movrightTrials,iCell)); 
     end
     
     %%%%%%%%%%%%%%%% Bonferroni correction
@@ -252,7 +245,7 @@ elseif nargin == 4
     bfcH = pValues < bfcAlpha;
     
     %%%%%%%%%%%%%%%% collect into struct
-    neuralData.matched.stats = struct(...
+    neuralData.stats = struct(...
         'pValues',pValues,...
         'labels',{labels},...
         'alpha',alpha,...

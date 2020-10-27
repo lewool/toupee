@@ -26,6 +26,7 @@ pastResponseType = trialConditions.pastResponseType;
 trialsBack = trialConditions.trialsBack;
 switchBlocks = trialConditions.switchBlocks;
 whichTrials = trialConditions.whichTrials;
+specificRTs = trialConditions.specificRTs;
 
 %% 
 
@@ -135,9 +136,11 @@ for iExp = 1:numExps
 
     switch responseType
         case 'correct'
+%             idxCorrect = firstMoveDirs == b.events.correctResponseValues(1:nt);
             idxCorrect = b.events.feedbackValues == 1;
             idxCorrect = idxCorrect(1:nt);
         case 'incorrect'
+%             idxCorrect = firstMoveDirs ~= b.events.correctResponseValues(1:nt);
             idxCorrect = b.events.feedbackValues == 0;
             idxCorrect = idxCorrect(1:nt);
         case 'all'
@@ -264,6 +267,16 @@ for iExp = 1:numExps
         error('Choose a valid indexing range, or "all"');
     end
 
+    if isnumeric(specificRTs)
+        RTs = wm.epochs(5).onsetTimes - et(1).daqTime;
+        idxRT = RTs >= specificRTs(1) & RTs <= specificRTs(2);
+        idxRT = idxRT(1:nt);
+    elseif ~isnumeric(whichTrials)
+        idxRT = true(1,nt);
+    else
+        error('Choose a valid indexing range, or "all"');
+    end
+
 %%%%%%%%%%%%%%%%%%%%%% END ASSIGNMENT SEGMENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
     
     % find the trials that pass all conditions (logical vector)
@@ -279,7 +292,8 @@ for iExp = 1:numExps
         idxPastDirection .* ...
         idxPastCorrect .* ...
         idxSwitch .* ...
-        idxWhich;
+        idxWhich .* ...
+        idxRT;
     
     % add logical vector to previous ones
     condLogical = [condLogical,cl];

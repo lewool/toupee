@@ -1,11 +1,16 @@
 function allPCs = getPCs(alignedResps)
 
 %% do PCA on the 3d matrix (cells x time x trials)
+otl = size(alignedResps,1);
+[i,j,k] = find(isnan(alignedResps));
+nanTrials = unique(i);
+for t = fliplr(nanTrials')
+    alignedResps(t,:,:) = [];
+end
 
-for a = 1:length(alignedResps)
 %reshape the matrix to cells x time x trials
-M = permute(alignedResps{a},[3 2 1]);
-[i,~] = find(isnan(M));
+M = permute(alignedResps,[3 2 1]);
+[i,j,k] = find(isnan(M));
 nanCells = unique(i);
 
 for c = fliplr(nanCells')
@@ -26,9 +31,17 @@ Mresh = reshape(Mcent,size(Mcent,1), size(Mcent,2)*size(Mcent,3));
 newM = S*abs(V');
 newMresh = reshape(newM,size(M,1),size(M,2), size(M,3));
 
+
+
 %% reshape back into the original dimensions
 %output is a matrix of size trials x time x PCs
 
-allPCs{a} = permute(newMresh(1:numPCs,:,:),[3 2 1]);
-
+allPCs = permute(newMresh(:,:,:),[3 2 1]);
+tidx = [1 nanTrials'];
+if ~isempty(nanTrials)
+    for f = 1:length(tidx)-1
+        apcs{f,:} = cat(1,allPCs(tidx(f):tidx(f+1)-1,:,:),nan(1,size(alignedResps,2),size(alignedResps,3)));
+    end
+    apcs{length(apcs)+1,:} = allPCs(tidx(end):end,:,:);
+    allPCs = cell2mat(apcs);
 end

@@ -1,6 +1,7 @@
 %% initialize experiment details
 
-expInfo = initExpInfo({{'LEW032'}},{{'2020-02-14',3,[3]}});
+clear all
+expInfo = initExpInfo({{'LEW031'}},{{'2020-02-14',1,[1]}});
 matched = 0;
 
 % expInfo = initExpInfo('LEW031');
@@ -45,6 +46,7 @@ end
 
 clear contrastConditions trialConditions labels condIdx
 contrasts = getUniqueContrasts(expInfo);
+allContrasts = getAllContrasts(expInfo);
 
 %set up trial conditions for hi-L and hi-R blocks
 trialConditions{1} = initTrialConditions('highRewardSide','left','movementDir','cw','movementTime','late');
@@ -91,12 +93,55 @@ for c = 1:length(contrastConditions)
     end
 end
 
+%% equalize contrasts between correct and incorrect trials
+
+%decide whether to use this
+balanced = 1;
+% balanced = 0;
+
+matchList = {...
+    'bAll_mL_sL' , 'bAll_mR_sL';...
+    'bAll_mL_sR' , 'bAll_mR_sR';...
+    'bL_mL_sL' , 'bL_mR_sL';...
+    'bL_mL_sR' , 'bL_mR_sR';...
+    'bR_mL_sL' , 'bR_mR_sL';...
+    'bR_mL_sR' , 'bR_mR_sR'...
+    };
+
+for iM = 1:size(matchList,1)
+    mLTrials = condIdx{strcmp(labels,matchList{iM,1})}.all; 
+    mRTrials = condIdx{strcmp(labels,matchList{iM,2})}.all; 
+    mLContrasts = allContrasts(mLTrials);
+    mRContrasts = allContrasts(mRTrials);
+    
+    subsetmLTrials = [];
+    subsetmRTrials = [];
+    
+    for c = 1:length(contrasts)
+        nmLT = sum(mLContrasts == contrasts(c));
+        nmRT = sum(mRContrasts == contrasts(c));
+        minShared = min([nmLT nmRT]);
+        subsetmLTrials = [subsetmLTrials randsample(mLTrials(mLContrasts == contrasts(c)),minShared)];
+        subsetmRTrials = [subsetmRTrials randsample(mRTrials(mRContrasts == contrasts(c)),minShared)];
+    end
+    
+    whichMatchTrials{iM,1} = subsetmLTrials;
+    whichMatchTrials{iM,2} = subsetmRTrials;
+end
+
 %% set up some plot values
 
 et = behavioralData.eventTimes;
+wm = behavioralData.wheelMoves;
 
 %which conditions from 'condIdx'/'labels' you want to plot (each gets a subplot)
 condList = {...
+%     'bL_mL_sL' ... 
+%     'bL_mR_sL' ...
+%     'bL_mL_s0' ...
+%     'bL_mR_s0' ...
+%     'bL_mL_sR' ...
+%     'bL_mR_sR' ...
     'bAll_mL_sL' ... 
     'bAll_mR_sL' ...
     'bAll_mL_s0' ...
@@ -112,7 +157,13 @@ stimTimeColors = [...
     .4 .4 .4;
     .4 .4 .4;
     1 0 0;
-    1 0 0 ...
+    1 0 0;
+%     0 .4 1;
+%     0 .4 1;
+%     .4 .4 .4;
+%     .4 .4 .4;
+%     1 0 0;
+%     1 0 0; ...
 ];
 
 moveTimeColors = [...
@@ -121,15 +172,25 @@ moveTimeColors = [...
     0 0 1;
     .5 0 0;
     0 0 1;
-    .5 0 0 ...
+    .5 0 0;
+%     0 0 1;
+%     .5 0 0;
+%     0 0 1;
+%     .5 0 0;
+%     0 0 1;
+%     .5 0 0 ...
 ];  
 
 %compute the total size of the figure based on trials
 for iCond = 1:length(condList)
-    tl(iCond) = size(condIdx{strcmp(labels,condList{iCond})}.all,2);
+    if balanced && sum(sum(strcmp(condList(iCond),matchList)))
+         tl(iCond) = size(whichMatchTrials{strcmp(condList(iCond),matchList)},2);
+    else
+        tl(iCond) = size(condIdx{strcmp(labels,condList{iCond})}.all,2);
+    end
 end
-psth = 30;
-buffer = 5;
+psth = 60;
+buffer = 1;
 total_length = sum(tl)+ buffer*(length(condList)+1) + psth;
 
 %choose which events to plot
@@ -138,9 +199,9 @@ plotEvents = events(1:2);
 %reset plotter to the beginning
 k = 1;
 
-%% plot
+%% plot (all trials)
 fig = figure;
-set(fig, 'Position', [680 76 876 912]);
+set(fig, 'Position', [680 540 1080 420]);
 hold on;
 
 if ~exist('k') == 1
@@ -154,13 +215,13 @@ while k <= max_k
     %clear subplots
     for e = 1:length(plotEvents)
         for iCond = 1:length(condList)
-            spidx1 = sub2ind([length(plotEvents) total_length], e, sum(tl(1:iCond))-tl(iCond)+buffer*iCond);
-            spidx2 = sub2ind([length(plotEvents) total_length], e, buffer*iCond+sum(tl(1:iCond)));
+            spidx1 = sub2ind([length(plotEvents) total_length], e, psth+sum(tl(1:iCond))-tl(iCond)+buffer*iCond);
+            spidx2 = sub2ind([length(plotEvents) total_length], e, psth+buffer*iCond+sum(tl(1:iCond)));
             subplot(total_length,length(plotEvents),[spidx1 spidx2])
             cla;
         end
-        spidxA = sub2ind([length(plotEvents) total_length], e, total_length-psth);
-        spidxB = sub2ind([length(plotEvents) total_length], e, total_length);    
+        spidxA = sub2ind([length(plotEvents) total_length], e, 1);
+        spidxB = sub2ind([length(plotEvents) total_length], e, psth);    
         subplot(total_length,length(plotEvents),[spidxA spidxB])
         cla;
     end
@@ -169,20 +230,24 @@ while k <= max_k
         
         % for each condition in 'condList' (above)
         for iCond = 1:length(condList)
-
+            
             % extract the relevant trials for that condition
-            whichTrials = condIdx{strcmp(labels,condList{iCond})}.all;
+            if balanced && sum(sum(strcmp(condList(iCond),matchList)))
+                whichTrials = whichMatchTrials{strcmp(condList(iCond),matchList)};
+            else
+                whichTrials = condIdx{strcmp(labels,condList{iCond})}.all;
+            end
             numTrials = size(whichTrials,2);
 
             %find time diff between stimOn and movOn, sort trials by this
             %difference
-            timeDiffs = et(7).daqTime(whichTrials) - et(1).daqTime(whichTrials);
+            timeDiffs = wm.epochs(5).onsetTimes(whichTrials) - et(1).daqTime(whichTrials);
             [~,sortIdx] = sort(timeDiffs,'ascend');
 
             %record stimOn, movOn, rewardOn times per trial
             trialTimes = [...
                 et(1).daqTime(whichTrials(sortIdx))',...
-                et(7).daqTime(whichTrials(sortIdx))',...
+                wm.epochs(5).onsetTimes(whichTrials(sortIdx))',...
                 et(5).daqTime(whichTrials(sortIdx))',...
             ];
 
@@ -191,8 +256,8 @@ while k <= max_k
             relativeTimes(:,:,2) = trialTimes - trialTimes(:,2);
             relativeTimes(:,:,3) = trialTimes - trialTimes(:,3);
 
-            spidx1 = sub2ind([length(plotEvents) total_length], e, sum(tl(1:iCond))-tl(iCond)+buffer*iCond);
-            spidx2 = sub2ind([length(plotEvents) total_length], e, buffer*iCond+sum(tl(1:iCond)));
+            spidx1 = sub2ind([length(plotEvents) total_length], e, psth+sum(tl(1:iCond))-tl(iCond)+buffer*iCond);
+            spidx2 = sub2ind([length(plotEvents) total_length], e, psth+buffer*iCond+sum(tl(1:iCond)));
             subplot(total_length,length(plotEvents),[spidx1 spidx2])
             f = imagesc(eventWindow,1:numTrials,alignedResps{e}(whichTrials(sortIdx),:,plotCells(k)));
             colormap(flipud(gray));
@@ -223,17 +288,18 @@ while k <= max_k
                 xlim([-2 1]);
             end
             
-            set(gca,'xtick',[]);
+%             set(gca,'xtick',[]);
             clear trialTimes relativeTimes
             %psth plots
         
             psth_mean(iCond,:,e) = mean(alignedResps{e}(whichTrials(sortIdx),:,plotCells(k)));
 
-            spidxA = sub2ind([length(plotEvents) total_length], e, total_length-psth);
-            spidxB = sub2ind([length(plotEvents) total_length], e, total_length);    
+            spidxA = sub2ind([length(plotEvents) total_length], e, 1);
+            spidxB = sub2ind([length(plotEvents) total_length], e, psth);    
             subplot(total_length,length(plotEvents),[spidxA spidxB])
             plotPSTH = plot(eventWindow, psth_mean(iCond,:,e));
             set(plotPSTH, 'LineWidth',2,'Color',stimTimeColors(iCond,:));
+            set(gca,'xtick',[]);
             if mod(iCond,2) == 0 
                 set(plotPSTH, 'LineStyle','--')
             else
@@ -242,25 +308,33 @@ while k <= max_k
             hold on;
         
         end
-     end   
-    yMin = min(min(min(psth_mean)));
-    yMax = max([2 max(max(max(psth_mean)))]);
+    end
+     
     
+    yMin = min(min(min(psth_mean)));
+    yMax = max([.1 max(max(max(psth_mean)))]);
+    
+    %unify axis limits across plots and add labels as appropriate
     for e = 1:length(plotEvents)
         for iCond = 1:length(condList)
-            spidx1 = sub2ind([length(plotEvents) total_length], e, sum(tl(1:iCond))-tl(iCond)+buffer*iCond);
-            spidx2 = sub2ind([length(plotEvents) total_length], e, buffer*iCond+sum(tl(1:iCond)));
+            spidx1 = sub2ind([length(plotEvents) total_length], e, psth+sum(tl(1:iCond))-tl(iCond)+buffer*iCond);
+            spidx2 = sub2ind([length(plotEvents) total_length], e, psth+buffer*iCond+sum(tl(1:iCond)));
             subplot(total_length,length(plotEvents),[spidx1 spidx2])
             caxis([min(iMin) max(iMax)]);
+            if iCond == length(condList)
+                xlabel('time (s)')
+            else
+                set(gca,'xtick',[]);
+            end
         end
-        spidxA = sub2ind([length(plotEvents) total_length], e, total_length-psth);
-        spidxB = sub2ind([length(plotEvents) total_length], e, total_length);    
+        spidxA = sub2ind([length(plotEvents) total_length], e, 1);
+        spidxB = sub2ind([length(plotEvents) total_length], e, psth);    
         subplot(total_length,length(plotEvents),[spidxA spidxB])
         box off
-        xlabel('time (s)')
         if e == 1
             xlim([-1 2])
             ylim([yMin yMax]);
+            ylabel('z-scored activity')
         elseif e == 2
             xlim([-2 1])
             ylim([yMin yMax]);
@@ -276,3 +350,4 @@ while k <= max_k
     end
     
 end
+    

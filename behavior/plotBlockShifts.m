@@ -22,6 +22,7 @@ allRewardSideValues = [];
 allRepeatValues = [];
 allHitValues = [];
 allChoiceValues = [];
+allSwitchesValues = [];
 rs = [];
 
 if nargin == 1
@@ -51,6 +52,7 @@ if nargin == 1
         allRepeatValues = [allRepeatValues, block.events.repeatNumValues(1:trialLimit)];
         allHitValues = [allHitValues, block.events.feedbackValues(1:trialLimit)];
         allChoiceValues = [allChoiceValues, block.events.responseValues(1:trialLimit)];
+        allSwitchesValues = [allSwitchesValues, block.events.blockSwitchesValues(1:trialLimit)];
     end
 
 elseif nargin > 1
@@ -89,6 +91,7 @@ elseif nargin > 1
         allRepeatValues = [allRepeatValues, block.events.repeatNumValues(1:trialLimit)];
         allHitValues = [allHitValues, block.events.feedbackValues(1:trialLimit)];
         allChoiceValues = [allChoiceValues, block.events.responseValues(1:trialLimit)];
+        allSwitchesValues = [allSwitchesValues, block.events.blockSwitchesValues(1:trialLimit)];
 
     end
 end
@@ -101,8 +104,8 @@ colors = [0.1 0.7 0.1; 1 .6 0; 0 .4 1; 1 0 0];
 figure;
 hold on;
 
-blockTrials = expInfo.block.events.highRewardSideValues;
-blockBounds = [1 find(diff(expInfo.block.events.blockSwitchesValues) ~= 0) max(difficultTrials)];
+blockTrials = allRewardSideValues;
+blockBounds = [1 find(diff(allSwitchesValues) ~= 0) max(difficultTrials)];
 for b = 2:length(blockBounds)
     if mean(blockTrials(blockBounds(b-1):blockBounds(b))) > 0
         color = colors(2,:);

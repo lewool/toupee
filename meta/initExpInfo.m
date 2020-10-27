@@ -37,7 +37,7 @@ if nargin == 1 %matched-cell experiments
 
     load(fullfile(procDir,mouseName,'matchedCells','plane1','matchFile.mat'));
     numSessions = length(roiMatchData.allRois);
-
+    
     %get expList straight from matchCell data
     for m = 1:numSessions
         fileParts = regexp(roiMatchData.allRois{m},'\','split');
@@ -47,11 +47,12 @@ if nargin == 1 %matched-cell experiments
     end
 
     mouseList = {{mouseName}};
-
+    matchTag = 1;
 elseif nargin == 2
     
     mouseList = varargin{1};
     expList = varargin{2};
+    matchTag = 0;
 
 elseif nargin > 2
     error('Inputs should be a mouse name or a mouseList/expList')
@@ -68,6 +69,7 @@ end
             'expDate',expList{s}{1},...
             'expNum',expList{s}{2},...
             'expSeries',expList{s}{3},...
+            'cellMatched',matchTag,...
             'block',[],...
             'Timeline',[],...
             'numPlanes',[],...

@@ -4,6 +4,7 @@ function rTrace = dff(trace, t1, t2, Fs, nPlanes)
 % t2: min(trace) window (seconds)
 % Fs: image sampling rate
 % nPlanes: number of planes used during imaging
+% based off of this protocol: doi:10.1038/nprot.2010.169
 
 planeRate = Fs/nPlanes;
 fr1 = ceil(t1 * planeRate);
