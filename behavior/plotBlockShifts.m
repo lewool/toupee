@@ -1,4 +1,4 @@
-function plotBlockShifts(varargin)
+function pRight = plotBlockShifts(varargin)
 % 15 Nov 2019: LEW adapted to take inputs from either 2AFC or B2AFC experiments
 
 % This function takes a list of mice/exps and generates a psychometric
@@ -119,7 +119,8 @@ for b = 2:length(blockBounds)
     alpha(0.3)
 end
 
-plot(smooth(difficultChoices,20), difficultTrials, 'LineWidth',1,'Color', [.25 .25 .25])
+pRight = movmean(difficultChoices,20);
+plot(pRight, difficultTrials, 'LineWidth',1,'Color', [.25 .25 .25])
 
 ax = gca;
 ax.TickDir = 'out';

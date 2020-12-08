@@ -13,15 +13,15 @@ trialTypes = getTrialTypes(expInfo(ex), behavioralData(ex), 'late');
 
 %%
 contrasts = getUniqueContrasts(expInfo);
-stimConds{1} = trialTypes.intVar.cb3D.side{1};
-stimConds{2} = trialTypes.intVar.cb3D.side{2};
-stimConds{3} = trialTypes.intVar.cb3D.side{3};
+stimConds{1} = trialTypes.intVar.cb2D.side{1};
+stimConds{2} = trialTypes.intVar.cb2D.side{2};
+stimConds{3} = trialTypes.intVar.cb2D.side{3};
 
-moveConds{1} = trialTypes.intVar.cb3D.direction{1};
-moveConds{2} = trialTypes.intVar.cb3D.direction{2};
+moveConds{1} = trialTypes.intVar.cb2D.direction{1};
+moveConds{2} = trialTypes.intVar.cb2D.direction{2};
 
-rewConds{1} = trialTypes.intVar.cb3D.outcome{2};
-rewConds{2} = trialTypes.intVar.cb3D.outcome{1};
+rewConds{1} = trialTypes.intVar.cb2D.outcome{2};
+rewConds{2} = trialTypes.intVar.cb2D.outcome{1};
 
 blockConds{1} = trialTypes.intVar.cb3D.block{1};
 blockConds{2} = trialTypes.intVar.cb3D.block{2};
@@ -36,7 +36,7 @@ if ex < 9
         plotCells = find(nd.stats.bfcH(:,strcmp(nd.stats.labels,whichCells)) > 0);
     end
 else
-     whichCells = 'stim'; %choose from 'pLabels' array
+     whichCells = 'advanceMov'; %choose from 'pLabels' array
     if strcmp(whichCells, 'all')
         plotCells = 1:size(nd.eta.alignedResps{1},3);
     else
@@ -44,7 +44,7 @@ else
     end
 end
 %% 
-resps = stimResps(:,plotCells);
+resps = stimResps(:,plotCells) - baselineResps(:,plotCells);
 
 if ex > 0
 movDirIdx = (nanmean(resps(moveConds{2},:)) - nanmean(resps(moveConds{1},:)))./...
@@ -75,7 +75,7 @@ end
 
 %%
 axlim = 1;
-hmax = 20;
+hmax = 10;
 yp = allsID;
 xp = allmID;
 % color = [0 .4 1];

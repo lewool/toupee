@@ -35,21 +35,25 @@ for ex = 1:length(expInfo)
     wm = behavioralData(ex).wheelMoves;
     nt = numel(expInfo(ex).block.events.endTrialTimes);
     nr = 0;
+    
+    %extract traces from the processed movie file
+    
+    %1. pupil
     if isfield(eyeData.proc,'pupil')
         nr = nr + 1;
-        faceResps(nr,:) = eyeData.proc.pupil.area;
+        faceROIs(nr,:) = eyeData.proc.pupil.area;
     end
-    if isfield(eyeData.proc,'motSVD')
-        for t = 1:length(eyeData.proc.motSVD)
-            if ~isempty(eyeData.proc.motSVD{t})
+    if isfield(eyeData.proc,'face')
+        for t = 1:length(eyeData.proc.face)
+            if ~isempty(eyeData.proc.face{t})
                 nr = nr + 1;
-                faceResps(nr,:) = eyeData.proc.motSVD{t}(:,1);
+                faceROIs(nr,:) = eyeData.proc.face{t}.motion;
             end
         end
     end
     
-    for f = 1:size(faceResps, 1)
-        faceResps_int(f,:) = interp1(eyeData.time,faceResps(f,:), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
+    for f = 1:size(faceROIs, 1)
+        faceROIs_int(f,:) = interp1(eyeData.time,faceROIs(f,:), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
     end
     
     for ev = 1:length(events)
@@ -72,18 +76,18 @@ for ex = 1:length(expInfo)
         periEventTimes = periEventTimes(1:nt,:);
 
         %initialize alignedResp cell
-        alignedResps{ev} = zeros(nt, length(eventWindow), nr);
+        alignedFace{ev} = zeros(nt, length(eventWindow), nr);
         
         %grab cell responses associated with the event time windows 
         %(size is nTrials x windowLength x nCells)
         for iCell = 1:nr     
-            alignedResps{ev}(:,:,iCell) = interp1(expInfo(ex).Timeline.rawDAQTimestamps,faceResps_int(iCell,:),periEventTimes,'nearest','extrap');
+            alignedFace{ev}(:,:,iCell) = interp1(expInfo(ex).Timeline.rawDAQTimestamps,faceROIs_int(iCell,:),periEventTimes,'nearest','extrap');
         end   
 
     end
     
     % save data into the neuralData struct
-    eyeData(ex).eta.alignedResps = alignedResps;
+    eyeData(ex).eta.alignedFace = alignedFace;
 %     neuralData(ex).eta.alignedPCs = alignedPCs;
     eyeData(ex).eta.events = events;
     eyeData(ex).eta.eventWindow = eventWindow;
