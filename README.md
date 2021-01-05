@@ -13,11 +13,13 @@ This toolbox is for processing and analyzing 2P imaging data aquired during beha
 expInfo = initExpInfo({{'LEW031'}},{{'2020-02-03',1,[1]}});
 ```
 _BETA: there is functionality to processing multiple and/or cell-matched sessions, but this is still in development_
+
 2. Process your experiment. This does three things: (1) loads the `block` and `Timeline` structs into `expInfo`, (2) generates `behavioralData` to hold trial-by-trial wheel movements and event times, and (3) generates `neuralData` to hold full traces as well as trial-by-trial event-aligned responses for each cell
 ```matlab
 [expInfo, neuralData, behavioralData] = processExperiment(expInfo);
 ```
 _BETA: there is functionality to processing multiple and/or cell-matched sessions, but this is still in development_
+
 3. Retrieve data from video ROIs that were processed in Facemap
 ```matlab
 eyeData = getEyeData(expInfo);
