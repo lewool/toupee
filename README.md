@@ -12,19 +12,17 @@ This toolbox is for processing and analyzing 2P imaging data aquired during beha
 ```matlab
 expInfo = initExpInfo({{'LEW031'}},{{'2020-02-03',1,[1]}});
 ```
-_BETA: there is functionality to processing multiple and/or cell-matched sessions, but this is still in development_
 
 2. Process your experiment. This does three things: (1) loads the `block` and `Timeline` structs into `expInfo`, (2) generates `behavioralData` to hold trial-by-trial wheel movements and event times, and (3) generates `neuralData` to hold full traces as well as trial-by-trial event-aligned responses for each cell
 ```matlab
 [expInfo, neuralData, behavioralData] = processExperiment(expInfo);
 ```
-_BETA: there is functionality to processing multiple and/or cell-matched sessions, but this is still in development_
 
 3. Retrieve data from video ROIs that were processed in Facemap
 ```matlab
 eyeData = getEyeData(expInfo);
 ```
-_NB1: The identity/indexing of video ROIs will depend on how you decide to process your videos in Facemap. The conventions for toupee are described below_
+_NB: The identity/indexing of video ROIs will depend on how you decide to process your videos in Facemap. The conventions for toupee are described below_
 
 This code uses cross-correlation to synchronize video frame times and global Timeline times, by comparing the SVD motion energy of an ROI containing the lick spout and optical beam events that were logged at the lick spout itself. An output plot lets you inspect the sync by overlaying video motion energy and optical lick events. 
 
