@@ -37,7 +37,7 @@ Most data analyses will require comparing some types of trials to other types of
 
 
 #### `trialConditions = initTrialConditions(names, values)` 
-Prepares specific name-value pairs to identify the exact conditions you want to focus on. Available pairs are:
+Prepares specific name-value pairs to identify the trial conditions you want to include in your analysis. Available pairs are:
   * `'repeatType'`: `'all'`, `'random'`, or `'baited'`
   * `'movementDir'`: `'all'`, `'cw'`, or `'ccw'` ('cw' refers to the movement a mouse would make to correctly report a left-side stimulus)
   * `'movementTime'`: `'all'`, `'early'`, or `'late'` (refers to when the mouse made its first movement with respect to the cue delay)
@@ -56,14 +56,21 @@ By default, running `trialConditions = initTrialConditions()` chooses 'all' for 
 
 Example: `trialConditions = initTrialConditions('responseType,'correct'; 'movementDir','cw')` selects trials where the mouse was correct AND moved the wheel clockwise.
 
-Selecting contrasts is done in a separate step.
+Specifying contrast conditions is called outside of `trialConditions`; see below.
   
 #### `[~, trialIDs] = selectCondition(expInfo, contrasts, behavioralData, trialConditions)` 
-Generates a 1 x n vector of trial IDs that correspond to their trial number. 
+Generates a 1 x n vector of trial numbers that pass your conditions.
 
 `contrasts` can be called as an integer or a vector, but must include a value that was used in the task. To check which contrasts were used in the task, run the helper function `contrasts = getUniqueContrasts(expInfo)`, which generates a vector of all contrasts used in the current session
 
 Example: `[~, trialIDs] = selectCondition(expInfo, [-1 1], behavioralData, trialConditions)` generates the trial IDs for all trials with contrast = 1 or -1 AND passing any conditions you specified earlier in `trialConditions`
+
+#### `trialTypes = getTrialTypes(expInfo, behavioralData, movementTime)`
+A quick way to generate lots of different groups of conditions for use later on
+
+Trials are automatically segregated by contrast, movementDir, responseType, and highRewardSide'. The only extra condition you can specify from the command line is `movementTime` ('early', 'late', or 'all'). Trial history is not supported.
+
+Trials are organized by single conditions, interacting conditions, and contrast-corrected interacting conditions (the number of trials in each 'bin' is equalized, e.g., same number of correct vs incorrect -100% contrast trials)
 
 #
 # Conventions
