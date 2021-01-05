@@ -35,9 +35,10 @@ We use this analysis since UDP signal times were not logged between eye & experi
 # 2. Indexing trial types
 Most data analyses will require comparing some types of trials to other types of trials (e.g., correct _vs._ incorrect, left _vs._ right). Generally, the repository calls these trial _conditions_ and there are a few scripts that will let you index the trials of your choosing.
 
-##`contrasts = getUniqueContrasts(expInfo)` is a helper function that gives you a 1xn vector of all contrasts used in the session
+## `contrasts = getUniqueContrasts(expInfo)` is a helper function that gives you a 1xn vector of all contrasts used in the session
 
-##`initTrialConditions` lets you call specific name-value pairs to identify the exact conditions you want to focus on. The available pairs are:
+## `initTrialConditions` lets you call specific name-value pairs to identify the exact conditions you want to focus on. 
+Available pairs are:
   * `'repeatType'`: `{'all'}`, `{'random'}`, or `{'baited'}`
   * `'movementDir'`: `{'all'}`, `{'cw'}`, or `{'ccw'}` ('cw' refers to the movement a mouse would make to correctly report a left-side stimulus)
   * `'movementTime'`: `{'all'}`, `{'early'}`, or `{'late'}` (refers to when the mouse made its first movement with respect to the cue delay)
@@ -52,9 +53,11 @@ Most data analyses will require comparing some types of trials to other types of
   * `'whichTrials'`: indexing vector or `{'all'}` (lets you select a custom range of trials)
   * `'specificRTs'`: 1 x 2 vector ([min max]) or `{'all'}` (selects trials that fall within the range you specify)
 
-  By default, running `trialConditions = initTrialConditions()` chooses 'all' for each trial condition. Name-value pairs can be concatenated with a semicolon and can be listed in any order.
+By default, running `trialConditions = initTrialConditions()` chooses 'all' for each trial condition. Name-value pairs can be concatenated with a semicolon and can be listed in any order.
 
-  Example: `trialConditions = initTrialConditions('responseType,{'correct'}; 'movementDir',{'cw'})` selects trials where the mouse was correct AND moved the wheel clockwise.
+Example: `trialConditions = initTrialConditions('responseType,{'correct'}; 'movementDir',{'cw'})` selects trials where the mouse was correct AND moved the wheel clockwise.
+
+Selecting contrasts is done in a separate step.
   
 3. 
 
