@@ -2,10 +2,10 @@
 This toolbox is for processing and analyzing 2P imaging data aquired during behavior. It should give you everything you need to analyze how behavioral events are related to your imaging data.
 
 # What you'll need:
-1. processed .mat files from [Suite2P](https://github.com/MouseLand/suite2p)
-2. a block.mat file from [Rigbox](https://github.com/cortex-lab/Rigbox)
-3. a Timeline.mat file from [Rigbox](https://github.com/cortex-lab/Rigbox)
-4. an eye_proc.mat file from [facemap](https://github.com/MouseLand/FaceMap) (if you want to analyze videos)
+1. neural data: processed .mat files from [Suite2P](https://github.com/MouseLand/suite2p)
+2. behavioral event data: a block.mat file from [Rigbox](https://github.com/cortex-lab/Rigbox)
+3. experimental metadata: a Timeline.mat file from [Rigbox](https://github.com/cortex-lab/Rigbox)
+4. video data: an eye_proc.mat file from [facemap](https://github.com/MouseLand/FaceMap) (if you want to analyze videos)
 
 # What's in here
 - /behavior
