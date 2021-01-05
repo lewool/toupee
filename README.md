@@ -37,19 +37,19 @@ Most data analyses will require comparing some types of trials to other types of
 1. `contrasts = getUniqueContrasts(expInfo)` is a helper function that gives you a 1xn vector of all contrasts used in the session
 
 2.`initTrialConditions` lets you call specific name-value pairs to identify the exact conditions you want to focus on. The available pairs are:
-`'repeatType'`: `{'all'}`, `{'random'}`, or `{'baited'}`
-`'movementDir'`: `{'all'}`, `{'cw'}`, or `{'ccw'}` ('cw' refers to the movement a mouse would make to correctly report a left-side stimulus)
-`'movementTime'`: `{'all'}`, `{'early'}`, or `{'late'}` (refers to when the mouse made its first movement with respect to the cue delay)
-`'highRewardSide'`: `{'all'}`, `{'left'}`, or `{'right'}` (refers to which stimulus side had a high-value reward when reported correctly)
-`'responseType'`: `{'all'}`, `{'correct'}`, or `{'incorrect'}`
-`'rewardOutcome'`: `{'all'}`, `{'rewarded'}`, or `{'unrewarded'}` (this is useful for a 2AUFC task or a task where the reward valve fires probabilistically)
-`'pastStimulus'`: `{'all'}`, `{'left'}`, `{'right'}`, or `{'zero'}` (refers to stimulus side)
-`'pastMovementDir'`: `{'all'}`, `{'cw'}`, or `{'ccw'}`
-`'pastResponseType'`: `{'all'}`, `{'correct'}`, or `{'incorrect'}`
-`'trialsBack'`: integer (used in conjunction with 'past' conditions; default = 0)
-`'switchBlocks'`: `{'all'}`, `{'beforeLeft'}`, `{'beforeRight'}`, `{'afterLeft'}`, or `{'afterRight'}` (selects the last (first) 50 trials before (after) a switch to a different reward block)
-`'whichTrials'`: indexing vector or `{'all'}` (lets you select a custom range of trials)
-`'specificRTs'`: 1 x 2 vector ([min max]) or `{'all'}` (selects trials that fall within the range you specify)
+* `'repeatType'`: `{'all'}`, `{'random'}`, or `{'baited'}`
+* `'movementDir'`: `{'all'}`, `{'cw'}`, or `{'ccw'}` ('cw' refers to the movement a mouse would make to correctly report a left-side stimulus)
+* `'movementTime'`: `{'all'}`, `{'early'}`, or `{'late'}` (refers to when the mouse made its first movement with respect to the cue delay)
+* `'highRewardSide'`: `{'all'}`, `{'left'}`, or `{'right'}` (refers to which stimulus side had a high-value reward when reported correctly)
+* `'responseType'`: `{'all'}`, `{'correct'}`, or `{'incorrect'}`
+* `'rewardOutcome'`: `{'all'}`, `{'rewarded'}`, or `{'unrewarded'}` (this is useful for a 2AUFC task or a task where the reward valve fires probabilistically)
+* `'pastStimulus'`: `{'all'}`, `{'left'}`, `{'right'}`, or `{'zero'}` (refers to stimulus side)
+* `'pastMovementDir'`: `{'all'}`, `{'cw'}`, or `{'ccw'}`
+* `'pastResponseType'`: `{'all'}`, `{'correct'}`, or `{'incorrect'}`
+* `'trialsBack'`: integer (used in conjunction with 'past' conditions; default = 0)
+* `'switchBlocks'`: `{'all'}`, `{'beforeLeft'}`, `{'beforeRight'}`, `{'afterLeft'}`, or `{'afterRight'}` (selects the last (first) 50 trials before (after) a switch to a different reward block)
+* `'whichTrials'`: indexing vector or `{'all'}` (lets you select a custom range of trials)
+* `'specificRTs'`: 1 x 2 vector ([min max]) or `{'all'}` (selects trials that fall within the range you specify)
 
 By default, running `trialConditions = initTrialConditions()` chooses 'all' for each trial condition. Name-value pairs can be concatenated with a semicolon and can be listed in any order.
 
