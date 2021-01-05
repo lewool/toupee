@@ -38,7 +38,7 @@ Most data analyses will require comparing some types of trials to other types of
 
 #### `trialConditions = initTrialConditions(names, values)` 
 Prepares specific name-value pairs to identify the trial conditions you want to include in your analysis. Available pairs are:
-  * `'repeatType'`: `'all'`, `'random'`, or `'baited'`
+  * `'repeatType'`: `'all'`, `'random'`, or `'baited'` ('baited' trials are those that were repeated after an incorrect response)
   * `'movementDir'`: `'all'`, `'cw'`, or `'ccw'` ('cw' refers to the movement a mouse would make to correctly report a left-side stimulus)
   * `'movementTime'`: `'all'`, `'early'`, or `'late'` (refers to when the mouse made its first movement with respect to the cue delay)
   * `'highRewardSide'`: `'all'`, `'left'`, or `'right'` (refers to which stimulus side had a high-value reward when reported correctly)
