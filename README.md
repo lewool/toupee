@@ -35,8 +35,9 @@ We use this analysis since UDP signal times were not logged between eye & experi
 # 2. Indexing trial types
 Most data analyses will require comparing some types of trials to other types of trials (e.g., correct _vs._ incorrect, left _vs._ right). Generally, the repository calls these trial _conditions_ and there are a few scripts that will let you index the trials of your choosing.
 
-1. `contrasts = getUniqueContrasts(expInfo)` is a helper function that gives you a 1xn vector of all contrasts used in the session
-2.`initTrialConditions` lets you call specific name-value pairs to identify the exact conditions you want to focus on. The available pairs are:
+`contrasts = getUniqueContrasts(expInfo)` is a helper function that gives you a 1xn vector of all contrasts used in the session
+
+`initTrialConditions` lets you call specific name-value pairs to identify the exact conditions you want to focus on. The available pairs are:
   * `'repeatType'`: `{'all'}`, `{'random'}`, or `{'baited'}`
   * `'movementDir'`: `{'all'}`, `{'cw'}`, or `{'ccw'}` ('cw' refers to the movement a mouse would make to correctly report a left-side stimulus)
   * `'movementTime'`: `{'all'}`, `{'early'}`, or `{'late'}` (refers to when the mouse made its first movement with respect to the cue delay)
