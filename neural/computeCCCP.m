@@ -6,7 +6,7 @@ eventWindow = neuralData.eta.eventWindow;
 
 
 %%
-subpop = 'stim';
+subpop = 'advanceMov';
 plotCells = getWhichCells(subpop,neuralData);
 pct = round((length(plotCells)/size(alignedResps{1},3))*100);
 

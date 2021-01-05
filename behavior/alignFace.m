@@ -5,7 +5,7 @@ function [eyeData] = alignFace(expInfo, eyeData, behavioralData, timeBeforeAndAf
 %'event' is a string that is taken from the 'events' field of the eventTimes 
 %structure generated in getEventTimes.m
 
-Fs = 0.1;
+Fs = 0.02;
 
 if nargin < 4
     timeBefore = 2;
@@ -53,7 +53,7 @@ for ex = 1:length(expInfo)
     end
     
     for f = 1:size(faceROIs, 1)
-        faceROIs_int(f,:) = interp1(eyeData.time,faceROIs(f,:), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
+        faceROIs_int(f,:) = interp1(eyeData.timeAligned,faceROIs(f,:), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
     end
     
     for ev = 1:length(events)
