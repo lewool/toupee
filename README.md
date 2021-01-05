@@ -35,32 +35,35 @@ We use this analysis since UDP signal times were not logged between eye & experi
 # 2. Indexing trial types
 Most data analyses will require comparing some types of trials to other types of trials (e.g., correct _vs._ incorrect, left _vs._ right). Generally, the repository calls these trial _conditions_ and there are a few scripts that will let you index the trials of your choosing.
 
-#### `contrasts = getUniqueContrasts(expInfo)` 
-A helper function that gives you a 1xn vector of all contrasts used in the session
 
-#### `initTrialConditions` 
+#### `trialConditions = initTrialConditions(names, values)` 
 Prepares specific name-value pairs to identify the exact conditions you want to focus on. Available pairs are:
-  * `'repeatType'`: `{'all'}`, `{'random'}`, or `{'baited'}`
-  * `'movementDir'`: `{'all'}`, `{'cw'}`, or `{'ccw'}` ('cw' refers to the movement a mouse would make to correctly report a left-side stimulus)
-  * `'movementTime'`: `{'all'}`, `{'early'}`, or `{'late'}` (refers to when the mouse made its first movement with respect to the cue delay)
-  * `'highRewardSide'`: `{'all'}`, `{'left'}`, or `{'right'}` (refers to which stimulus side had a high-value reward when reported correctly)
-  * `'responseType'`: `{'all'}`, `{'correct'}`, or `{'incorrect'}`
-  * `'rewardOutcome'`: `{'all'}`, `{'rewarded'}`, or `{'unrewarded'}` (this is useful for a 2AUFC task or a task where the reward valve fires probabilistically)
-  * `'pastStimulus'`: `{'all'}`, `{'left'}`, `{'right'}`, or `{'zero'}` (refers to stimulus side)
-  * `'pastMovementDir'`: `{'all'}`, `{'cw'}`, or `{'ccw'}`
-  * `'pastResponseType'`: `{'all'}`, `{'correct'}`, or `{'incorrect'}`
+  * `'repeatType'`: `'all'`, `'random'`, or `'baited'`
+  * `'movementDir'`: `'all'`, `'cw'`, or `'ccw'` ('cw' refers to the movement a mouse would make to correctly report a left-side stimulus)
+  * `'movementTime'`: `'all'`, `'early'`, or `'late'` (refers to when the mouse made its first movement with respect to the cue delay)
+  * `'highRewardSide'`: `'all'`, `'left'`, or `'right'` (refers to which stimulus side had a high-value reward when reported correctly)
+  * `'responseType'`: `'all'`, `'correct'`, or `'incorrect'`
+  * `'rewardOutcome'`: `'all'`, `'rewarded'`, or `'unrewarded'` (this is useful for a 2AUFC task or a task where the reward valve fires probabilistically)
+  * `'pastStimulus'`: `'all'`, `'left'`, `'right'`, or `'zero'` (refers to stimulus side)
+  * `'pastMovementDir'`: `'all'`, `'cw'`, or `'ccw'`
+  * `'pastResponseType'`: `'all'`, `'correct'`, or `'incorrect'`
   * `'trialsBack'`: integer (used in conjunction with 'past' conditions; default = 0)
-  * `'switchBlocks'`: `{'all'}`, `{'beforeLeft'}`, `{'beforeRight'}`, `{'afterLeft'}`, or `{'afterRight'}` (selects the last (first) 50 trials before (after) a switch to a different reward block)
-  * `'whichTrials'`: indexing vector or `{'all'}` (lets you select a custom range of trials)
-  * `'specificRTs'`: 1 x 2 vector ([min max]) or `{'all'}` (selects trials that fall within the range you specify)
+  * `'switchBlocks'`: `'all'}`, `'beforeLeft'}`, `'beforeRight'`, `'afterLeft'`, or `'afterRight'` (selects the last (first) 50 trials before (after) a switch to a different reward block)
+  * `'whichTrials'`: indexing vector or `'all'` (lets you select a custom range of trials)
+  * `'specificRTs'`: 1 x 2 vector ([min max]) or `'all'` (selects trials that fall within the range you specify)
 
 By default, running `trialConditions = initTrialConditions()` chooses 'all' for each trial condition. Name-value pairs can be concatenated with a semicolon and can be listed in any order.
 
-Example: `trialConditions = initTrialConditions('responseType,{'correct'}; 'movementDir',{'cw'})` selects trials where the mouse was correct AND moved the wheel clockwise.
+Example: `trialConditions = initTrialConditions('responseType,'correct'; 'movementDir','cw')` selects trials where the mouse was correct AND moved the wheel clockwise.
 
 Selecting contrasts is done in a separate step.
   
-3. 
+#### `[~, trialIDs] = selectCondition(expInfo, contrasts, behavioralData, trialConditions)` 
+Generates a 1 x n vector of trial IDs that correspond to their trial number. 
+
+`contrasts` can be called as an integer or a vector, but must include a value that was used in the task. To check which contrasts were used in the task, run the helper function `contrasts = getUniqueContrasts(expInfo)`, which generates a vector of all contrasts used in the current session
+
+Example: `[~, trialIDs] = selectCondition(expInfo, [-1 1], behavioralData, trialConditions)` generates the trial IDs for all trials with contrast = 1 or -1 AND passing any conditions you specified earlier in `trialConditions`
 
 #
 # Conventions
