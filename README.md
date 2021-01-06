@@ -32,9 +32,23 @@ We use this analysis since UDP signal times were not logged between eye & experi
 ```matlab
 [eyeData] = alignFace(expInfo, eyeData, behavioralData);
 ```
-# 2. Indexing trial types
-Most data analyses will require comparing some types of trials to other types of trials (e.g., correct _vs._ incorrect, left _vs._ right). Generally, the repository calls these trial _conditions_ and there are a few scripts that will let you index the trials of your choosing.
+# 2. Plotting behavior
+A few scripts for plotting the choice performance over a session are available.
 
+#### `plotPsychometric(varargin)`
+Plots a psychometric curve for a 2AFC task (one curve) or a biased-block 2AFC task (two curves). It reads the block file to automatically determine which task was run. 
+A single session can be plotted by calling either:
+  * `plotPsychometric({{'LEW025'}}, {{'2019-11-15',1}})`
+  * `plotPsychometric(expInfo)`
+  
+Multiple sessions are concatenated by calling `plotPsychometric(mouseList, expList)`, where:
+  * `mouseList = {{'Mouse1'}} or {{'Mouse1'},{'Mouse2'},{MouseN'}}`
+  * `expList = {{'2018-06-10',2,[2 3]},{'2019-03-27',1,[1]}}` (NB: the final vector typically holds the same value as the second integer. There are occasional old files that concatnate over multiple sessions (hence the vector), but these are rarely encountered)
+
+Multiple sessions can also be plotted by calling `plotPsychometric(expInfo)`, if expInfo is a struct of multiple experiments (see initExpInfo.m)
+
+# 3. Indexing trial types
+Most data analyses will require comparing some types of trials to other types of trials (e.g., correct _vs._ incorrect, left _vs._ right). Generally, the repository calls these trial _conditions_ and there are a few scripts that will let you index the trials of your choosing.
 
 #### `trialConditions = initTrialConditions(names, values)` 
 Prepares specific name-value pairs to identify the trial conditions you want to include in your analysis. Available pairs are:
@@ -72,7 +86,7 @@ Trials are automatically segregated by contrast, movementDir, responseType, and 
 
 Trials are organized by single conditions, interacting conditions, and contrast-corrected interacting conditions (the number of trials in each 'bin' is equalized, e.g., same number of correct vs incorrect -100% contrast trials)
 
-#
+
 # Conventions
 
 
