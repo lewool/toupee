@@ -97,8 +97,11 @@ Trials are organized by single conditions, interacting conditions, and contrast-
 
 # Conventions
 Contrasts: Stimulus contrast is expressed on a scale from 0–1, and is signed to denote the screen it appeared on. Left = negative; right = positive.
+
 Choices: Animal choices are either -1 ('chose left') or +1 ('chose right').'Chose left' means that the mouse reported a stimulus on the left by turning the wheel CW. 'Chose right' means the mouse reported a stimulus on the right by turning the wheel CCW. 
+
 CW vs CCW: These are wheel directions, determined from the perspective of the mouse. CW is the wheel action that moves a stimulus to the right; CCW is the wheen action that moves a stimulus to the left. These designations can be used independently of correct/incorrect. CW turns _increase_ the rotary encoder value; CCW turns _decrease_ the rotary encoder value (raw encoder values aren't used much but it's good to bear in mind).
+
 Colors:
   * Green vs orange: This color pair is used to compare blocks of high-value left choices (green) to blocks of high-value right choices (orange). 
   * Blue vs red: This color pair is used to compare stimulus position or brain hemisphere. Blue either means left (or contralateral); red means right (or ipsilateral).
