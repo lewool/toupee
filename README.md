@@ -43,7 +43,7 @@ A single session can be plotted by calling either:
   
 Multiple sessions are concatenated by calling `plotPsychometric(mouseList, expList)`, where:
   * `mouseList = {{'Mouse1'}} or {{'Mouse1'},{'Mouse2'},{MouseN'}}`
-  * `expList = {{'2018-06-10',2,[2 3]},{'2019-03-27',1,[1]}}` (NB: the final vector typically holds the same value as the second integer. There are occasional old files that concatnate over multiple sessions (hence the vector), but these are rarely encountered)
+  * `expList = {{'2018-06-10',2,[2 3]},{'2019-03-27',1,[1]}}` (NB: the final vector typically holds the same value as the second integer. There are occasional old files that concatenate over multiple sessions (hence the vector), but these are rarely encountered)
 
 Multiple sessions can also be plotted by calling `plotPsychometric(expInfo)`, if `expInfo` is a struct of multiple experiments (see `initExpInfo.m`)
 
@@ -96,13 +96,19 @@ Trials are automatically segregated by contrast, movementDir, responseType, and 
 Trials are organized by single conditions, interacting conditions, and contrast-corrected interacting conditions (the number of trials in each 'bin' is equalized, e.g., same number of correct vs incorrect -100% contrast trials)
 
 # Conventions
-Contrasts: Stimulus contrast is expressed on a scale from 0–1, and is signed to denote the screen it appeared on. Left = negative; right = positive.
+#### Contrast
+Stimulus contrast is expressed on a scale of 0–1, and is signed to denote the screen it appeared on. Left = negative; right = positive.
 
-Choices: Animal choices are either -1 ('chose left') or +1 ('chose right').'Chose left' means that the mouse reported a stimulus on the left by turning the wheel CW. 'Chose right' means the mouse reported a stimulus on the right by turning the wheel CCW. 
+#### Choice
+Animal choices are either -1 ('chose left') or +1 ('chose right').'Chose left' means that the mouse reported a stimulus on the left by turning the wheel CW. 'Chose right' means the mouse reported a stimulus on the right by turning the wheel CCW. 
 
-CW vs CCW: These are wheel directions, determined from the perspective of the mouse. CW is the wheel action that moves a stimulus to the right; CCW is the wheen action that moves a stimulus to the left. These designations can be used independently of correct/incorrect. CW turns _increase_ the rotary encoder value; CCW turns _decrease_ the rotary encoder value (raw encoder values aren't used much but it's good to bear in mind).
+#### 'Reward side', 'high-reward side' or 'reward block'
+This describes the task's block structure, reporting whether high-volume rewards for correct choices were delivered on the left (-1) or the right (+1).
 
-Colors:
+#### CW vs CCW
+These are wheel directions, determined from the perspective of the mouse. CW is the wheel action that moves a stimulus to the right; CCW is the wheen action that moves a stimulus to the left. These designations can be used independently of correct/incorrect. CW turns _increase_ the rotary encoder value; CCW turns _decrease_ the rotary encoder value (raw encoder values aren't used much but it's good to bear in mind).
+
+#### Colors
   * Green vs orange: This color pair is used to compare blocks of high-value left choices (green) to blocks of high-value right choices (orange). 
   * Blue vs red: This color pair is used to compare stimulus position or brain hemisphere. Blue  means left (or contralateral); red means right (or ipsilateral).
   * Green vs brown: This color pair is used to denote correct (green) versus incorrect (brown) trial outcomes.
