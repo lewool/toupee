@@ -45,7 +45,16 @@ Multiple sessions are concatenated by calling `plotPsychometric(mouseList, expLi
   * `mouseList = {{'Mouse1'}} or {{'Mouse1'},{'Mouse2'},{MouseN'}}`
   * `expList = {{'2018-06-10',2,[2 3]},{'2019-03-27',1,[1]}}` (NB: the final vector typically holds the same value as the second integer. There are occasional old files that concatnate over multiple sessions (hence the vector), but these are rarely encountered)
 
-Multiple sessions can also be plotted by calling `plotPsychometric(expInfo)`, if expInfo is a struct of multiple experiments (see initExpInfo.m)
+Multiple sessions can also be plotted by calling `plotPsychometric(expInfo)`, if `expInfo` is a struct of multiple experiments (see `initExpInfo.m`)
+
+In the plot, green curves correspond to high-value left blocks, and orange curves correspond to high-value right blocks.
+
+#### `pRight = plotBlockShifts(varargin)`
+Plots the proportion of right choices over total trials. This is useful when inspecting a biased-block 2AFC where you expect the mouse to go through epochs of more left or more right choices. It also outputs the `pRight`, which is a vector of the rolling p(right) value over time.
+
+In the plot, green corresponds to high-value left blocks, and orange corresponds to high-value right blocks.
+
+This function can be called the same way as `plotPsychometric(varargin)`, above.
 
 # 3. Indexing trial types
 Most data analyses will require comparing some types of trials to other types of trials (e.g., correct _vs._ incorrect, left _vs._ right). Generally, the repository calls these trial _conditions_ and there are a few scripts that will let you index the trials of your choosing.
