@@ -50,7 +50,7 @@ Multiple sessions can also be plotted by calling `plotPsychometric(expInfo)`, if
 In the plot, green curves correspond to high-value left blocks, and orange curves correspond to high-value right blocks.
 
 #### `pRight = plotBlockShifts(varargin)`
-Plots the proportion of right choices over total trials. This is useful when inspecting a biased-block 2AFC where you expect the mouse to go through epochs of more left or more right choices. It also outputs the `pRight`, which is a vector of the rolling p(right) value over time.
+Plots a rolling mean of the proportion of right choices over time. This is useful when inspecting a biased-block 2AFC where you expect the mouse to go through epochs of more left or more right choices. It also outputs `pRight`, which is a vector of the rolling mean of p(right) over time.
 
 In the plot, green corresponds to high-value left blocks, and orange corresponds to high-value right blocks.
 
@@ -95,7 +95,12 @@ Trials are automatically segregated by contrast, movementDir, responseType, and 
 
 Trials are organized by single conditions, interacting conditions, and contrast-corrected interacting conditions (the number of trials in each 'bin' is equalized, e.g., same number of correct vs incorrect -100% contrast trials)
 
-
 # Conventions
-
+Contrasts: Stimulus contrast is expressed on a scale from 0–1, and is signed to denote the screen it appeared on. Left = negative; right = positive.
+Choices: Animal choices are either -1 ('chose left') or +1 ('chose right').'Chose left' means that the mouse reported a stimulus on the left by turning the wheel CW. 'Chose right' means the mouse reported a stimulus on the right by turning the wheel CCW. 
+CW vs CCW: These are wheel directions, determined from the perspective of the mouse. CW is the wheel action that moves a stimulus to the right; CCW is the wheen action that moves a stimulus to the left. These designations can be used independently of correct/incorrect. CW turns _increase_ the rotary encoder value; CCW turns _decrease_ the rotary encoder value (raw encoder values aren't used much but it's good to bear in mind).
+Colors:
+  * Green vs orange: This color pair is used to compare blocks of high-value left choices (green) to blocks of high-value right choices (orange). 
+  * Blue vs red: This color pair is used to compare stimulus position or brain hemisphere. Blue either means left (or contralateral); red means right (or ipsilateral).
+  * Green vs brown: This color pair is used to denote correct (green) versus incorrect (brown) trial outcomes.
 
