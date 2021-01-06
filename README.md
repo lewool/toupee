@@ -32,6 +32,8 @@ We use this analysis since UDP signal times were not logged between eye & experi
 ```matlab
 [eyeData] = alignFace(expInfo, eyeData, behavioralData);
 ```
+# 3. Plotting behavior
+
 # 2. Indexing trial types
 Most data analyses will require comparing some types of trials to other types of trials (e.g., correct _vs._ incorrect, left _vs._ right). Generally, the repository calls these trial _conditions_ and there are a few scripts that will let you index the trials of your choosing.
 
@@ -72,7 +74,7 @@ Trials are automatically segregated by contrast, movementDir, responseType, and 
 
 Trials are organized by single conditions, interacting conditions, and contrast-corrected interacting conditions (the number of trials in each 'bin' is equalized, e.g., same number of correct vs incorrect -100% contrast trials)
 
-#
+
 # Conventions
 
 
