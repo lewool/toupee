@@ -7,11 +7,11 @@ function pRight = plotBlockShifts(varargin)
 % match)
 
 %INPUT:
-% 1. plotPsychometric({{'LEW025'}}, {{'2019-11-15',1}});
-% 2. plotPsychometric(mouseList, expList), where
+% 1. plotBlockShifts({{'LEW025'}}, {{'2019-11-15',1}});
+% 2. plotBlockShifts(mouseList, expList), where
 %       mouseList = {{'Mouse1'}} or {{'Mouse1'},{'Mouse2'},{MouseN'}} 
 %       expList = {{'2018-06-10',2,[2 3]},{'2019-03-27',1,[1]}}
-% 3. plotPsychometric(expInfo), where expInfo is a struct of one/many
+% 3. plotBlockShifts(expInfo), where expInfo is a struct of one/many
 %       experiments (see initExpInfo.m)
 
 
