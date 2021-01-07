@@ -123,13 +123,13 @@ Customarily, event-aligned activity is held in a struct called `eta.alignedResps
   
 Within each cell is a 3D matrix of size _trials_ x _time_ x _unit_, where a _unit_ is either a single neuron or a video ROI. _time_ is a fixed time window around the time of the event and expressed in seconds. The length is determined by the time sampling, and the time labels can be found in the 1 x n vector `eta.eventWindow`. Timepoint 0 corresponds to the event onset, and will usually be the middle element in the vector (ceil(length/2)).
 
-If you have generated a vector of trial IDs that you are interested in (see 'Indexing trial types', above), you can use this vector to index directly into the first dimension of the 3D matrix, i.e., `eta.alignedResps{1}(whichTrials, :, :)`
+If you have generated a vector of trial IDs that you are interested in (see 'Indexing trial types', above), you can use this vector to index directly into the first dimension of the 3D matrix (i.e., `eta.alignedResps{1}(whichTrials, :, :)`)
 
 Examples: 
   * To extract the _stimulus-aligned_ activity trace of Cell 40 on trial 10, call `eta.alignedResps{1}(10, :, 40)`
   * To extract Cell 40's _stimulus-aligned_ activity trace on a subset of trials, call `eta.alignedResps{1}(whichTrials, :, 40)` where `whichTrials` is a vector of trial IDs
   * To find the _stimulus_ ETA for Cell 40 across all trials, call `mean(eta.alignedResps{1}(:, :, 40), 1)`
-  * To extract a value for thCell 40's activity precisely at _movement onset_ on trial 10, call `eta.alignedResps{2}(10, eventWindow == 0, 40)`
+  * To extract a value for Cell 40's activity precisely at _movement onset_ on trial 10, call `eta.alignedResps{2}(10, eventWindow == 0, 40)`
   * To extract an activity value from ALL cells precisely at _movement onset_ on trial 10, call `eta.alignedResps{2}(10, eventWindow == 0, :)`
   
 
