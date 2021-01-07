@@ -112,4 +112,23 @@ These are wheel directions, determined from the perspective of the mouse. CW is 
   * Green vs orange: This color pair is used to compare blocks of high-value left choices (green) to blocks of high-value right choices (orange). 
   * Blue vs red: This color pair is used to compare stimulus position or brain hemisphere. Blue  means left (or contralateral); red means right (or ipsilateral).
   * Green vs brown: This color pair is used to denote correct (green) versus incorrect (brown) trial outcomes.
+  
+#### 3D 'alignResps' or 'alignFace' matrices
+One of the early steps in data loading/processing is to determine how a trace of continuous activity (e.g., neural data trace, pupil area, etc.) relates to events of interest (stimulus onset, first wheel movement, valve onset, etc.). We do this by extracting segments of activity and compute their timing with respect to the event (instead of with respect to, say, computer time or Timeline time). We can use these segments to compute the event-triggered average (ETA). 
+
+Customarily, event-aligned activity is held in a struct called `eta.alignedResps` (neurons) or `eta.alignedFace` (video ROIs), and contains three cells: 
+  * activity aligned to stimulus onset (cell {1})
+  * movement onset (cell {2})
+  * feedback onset (cell {3}). 
+  
+Within each cell is a 3D matrix of size _trials_ x _time_ x _unit_, where a _unit_ is either a single neuron or a video ROI. _time_ is a fixed time window around the time of the event and expressed in seconds. The length is determined by the time sampling, and the time labels can be found in the 1 x n vector `eta.eventWindow`. Timepoint 0 corresponds to the event onset, and will usually be the middle element in the vector (ceil(length/2)).
+
+Example: 
+  * To extract the stimulus-aligned activity trace of Cell 40 on trial 10, call `eta.alignedResps{1}(10, :, 40)`
+    * To plot this trace, call `plot(eta.eventWindow, eta.alignedResps{1}(10, :, 40)`)
+  * To find the ETA for Cell 40 across all trials, call `mean(eta.alignedResps{1}(:, :, 40), 1)`
+    * To plot this mean trace, call `plot(eta.eventWindow, mean(eta.alignedResps{1}(:, :, 40), 1)`
+  * To extract a value for the same cell's activity precisely at movement onset on trial 10, call `eta.alignedResps{2}(10, eventWindow == .0, 40)`
+  * To extract all cell activity values precisely at movement onset on trial 10, call `eta.alignedResps{2}(10, eventWindow == .0, :)`
+  
 
