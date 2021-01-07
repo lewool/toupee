@@ -95,10 +95,10 @@ Trials are automatically segregated by contrast, movementDir, responseType, and 
 
 Trials are organized by single conditions, interacting conditions, and contrast-corrected interacting conditions (the number of trials in each 'bin' is equalized, e.g., same number of correct vs incorrect -100% contrast trials)
 
-# Event-aligned activity or event-triggered average, ETA)
+# 4. Event-aligned activity or event-triggered average (ETA)
 One of the early steps in data loading/processing is to determine how a trace of continuous activity (e.g., neural data trace, pupil area, etc.) relates to events of interest (stimulus onset, first wheel movement, valve onset, etc.). We do this by extracting segments of activity and compute their timing with respect to the event (instead of with respect to, say, computer time or Timeline time). We can use these segments to compute the event-triggered average (ETA). 
 
-Customarily, event-aligned activity is held in a struct called `eta.alignedResps` (neurons) or `eta.alignedFace` (video ROIs), and contains three cells: 
+Customarily, event-aligned activity is held in a struct called `neuralData.eta.alignedResps` (neurons) or `eveData.eta.alignedFace` (video ROIs), and contains three cells: 
   * activity aligned to stimulus onset (cell {1})
   * movement onset (cell {2})
   * feedback onset (cell {3})
