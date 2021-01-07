@@ -95,25 +95,7 @@ Trials are automatically segregated by contrast, movementDir, responseType, and 
 
 Trials are organized by single conditions, interacting conditions, and contrast-corrected interacting conditions (the number of trials in each 'bin' is equalized, e.g., same number of correct vs incorrect -100% contrast trials)
 
-# Conventions
-#### Contrast
-Stimulus contrast is expressed on a scale of 0–1, and is signed to denote the screen it appeared on. Left = negative; right = positive.
-
-#### Choice
-Animal choices are either -1 ('chose left') or +1 ('chose right').'Chose left' means that the mouse reported a stimulus on the left by turning the wheel CW. 'Chose right' means the mouse reported a stimulus on the right by turning the wheel CCW. 
-
-#### 'Reward side', 'high-reward side' or 'reward block'
-This describes the task's block structure, reporting whether high-volume rewards for correct choices were delivered on the left (-1) or the right (+1).
-
-#### CW vs CCW
-These are wheel directions, determined from the perspective of the mouse. CW is the wheel action that moves a stimulus to the right; CCW is the wheen action that moves a stimulus to the left. These designations can be used independently of correct/incorrect. CW turns _increase_ the rotary encoder value; CCW turns _decrease_ the rotary encoder value (raw encoder values aren't used much but it's good to bear in mind).
-
-#### Colors
-  * Green vs orange: This color pair is used to compare blocks of high-value left choices (green) to blocks of high-value right choices (orange). 
-  * Blue vs red: This color pair is used to compare stimulus position or brain hemisphere. Blue  means left (or contralateral); red means right (or ipsilateral).
-  * Green vs brown: This color pair is used to denote correct (green) versus incorrect (brown) trial outcomes.
-  
-#### 3D 'alignResps' or 'alignFace' matrices
+# Event-aligned activity or event-triggered average, ETA)
 One of the early steps in data loading/processing is to determine how a trace of continuous activity (e.g., neural data trace, pupil area, etc.) relates to events of interest (stimulus onset, first wheel movement, valve onset, etc.). We do this by extracting segments of activity and compute their timing with respect to the event (instead of with respect to, say, computer time or Timeline time). We can use these segments to compute the event-triggered average (ETA). 
 
 Customarily, event-aligned activity is held in a struct called `eta.alignedResps` (neurons) or `eta.alignedFace` (video ROIs), and contains three cells: 
@@ -131,5 +113,24 @@ Examples:
   * To find the _stimulus_ ETA for Cell 40 across all trials, call `mean(eta.alignedResps{1}(:, :, 40), 1)`
   * To extract a value for Cell 40's activity precisely at _movement onset_ on trial 10, call `eta.alignedResps{2}(10, eventWindow == 0, 40)`
   * To extract an activity value from ALL cells precisely at _movement onset_ on trial 10, call `eta.alignedResps{2}(10, eventWindow == 0, :)`
+  
+# Conventions
+#### Contrast
+Stimulus contrast is expressed on a scale of 0–1, and is signed to denote the screen it appeared on. Left = negative; right = positive.
+
+#### Choice
+Animal choices are either -1 ('chose left') or +1 ('chose right').'Chose left' means that the mouse reported a stimulus on the left by turning the wheel CW. 'Chose right' means the mouse reported a stimulus on the right by turning the wheel CCW. 
+
+#### 'Reward side', 'high-reward side' or 'reward block'
+This describes the task's block structure, reporting whether high-volume rewards for correct choices were delivered on the left (-1) or the right (+1).
+
+#### CW vs CCW
+These are wheel directions, determined from the perspective of the mouse. CW is the wheel action that moves a stimulus to the right; CCW is the wheen action that moves a stimulus to the left. These designations can be used independently of correct/incorrect. CW turns _increase_ the rotary encoder value; CCW turns _decrease_ the rotary encoder value (raw encoder values aren't used much but it's good to bear in mind).
+
+#### Colors
+  * Green vs orange: This color pair is used to compare blocks of high-value left choices (green) to blocks of high-value right choices (orange). 
+  * Blue vs red: This color pair is used to compare stimulus position or brain hemisphere. Blue  means left (or contralateral); red means right (or ipsilateral).
+  * Green vs brown: This color pair is used to denote correct (green) versus incorrect (brown) trial outcomes.
+ 
   
 
