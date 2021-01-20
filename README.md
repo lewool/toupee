@@ -43,9 +43,18 @@ A single session can be plotted by calling either:
   
 Multiple sessions are concatenated by calling `plotPsychometric(mouseList, expList)`, where:
   * `mouseList = {{'Mouse1'}} or {{'Mouse1'},{'Mouse2'},{MouseN'}}`
-  * `expList = {{'2018-06-10',2,[2 3]},{'2019-03-27',1,[1]}}` (NB: the final vector typically holds the same value as the second integer. There are occasional old files that concatnate over multiple sessions (hence the vector), but these are rarely encountered)
+  * `expList = {{'2018-06-10',2,[2 3]},{'2019-03-27',1,[1]}}` (NB: the final vector typically holds the same value as the second integer. There are occasional old files that concatenate over multiple sessions (hence the vector), but these are rarely encountered)
 
-Multiple sessions can also be plotted by calling `plotPsychometric(expInfo)`, if expInfo is a struct of multiple experiments (see initExpInfo.m)
+Multiple sessions can also be plotted by calling `plotPsychometric(expInfo)`, if `expInfo` is a struct of multiple experiments (see `initExpInfo.m`)
+
+In the plot, green curves correspond to high-value left blocks, and orange curves correspond to high-value right blocks.
+
+#### `pRight = plotBlockShifts(varargin)`
+Plots a rolling mean of the proportion of right choices over time. This is useful when inspecting a biased-block 2AFC where you expect the mouse to go through epochs of more left or more right choices. It also outputs `pRight`, which is a vector of the rolling mean of p(right) over time.
+
+In the plot, green corresponds to high-value left blocks, and orange corresponds to high-value right blocks.
+
+This function can be called the same way as `plotPsychometric(varargin)`, above.
 
 # 3. Indexing trial types
 Most data analyses will require comparing some types of trials to other types of trials (e.g., correct _vs._ incorrect, left _vs._ right). Generally, the repository calls these trial _conditions_ and there are a few scripts that will let you index the trials of your choosing.
@@ -86,7 +95,42 @@ Trials are automatically segregated by contrast, movementDir, responseType, and 
 
 Trials are organized by single conditions, interacting conditions, and contrast-corrected interacting conditions (the number of trials in each 'bin' is equalized, e.g., same number of correct vs incorrect -100% contrast trials)
 
+# 4. Event-aligned activity or event-triggered average (ETA)
+One of the early steps in data loading/processing is to determine how a trace of continuous activity (e.g., neural data trace, pupil area, etc.) relates to events of interest (stimulus onset, first wheel movement, valve onset, etc.). We do this by extracting segments of activity and compute their timing with respect to the event (instead of with respect to, say, computer time or Timeline time). We can use these segments to compute the event-triggered average (ETA). 
 
+Customarily, event-aligned activity is held in a struct called `neuralData.eta.alignedResps` (neurons) or `eveData.eta.alignedFace` (video ROIs), and contains three cells: 
+  * activity aligned to stimulus onset (cell {1})
+  * movement onset (cell {2})
+  * feedback onset (cell {3})
+  
+Within each cell is a 3D matrix of size _trials_ x _time_ x _unit_, where a _unit_ is either a single neuron or a video ROI. _time_ is a fixed time window around the time of the event and expressed in seconds. The length is determined by the time sampling, and the time labels can be found in the 1 x n vector `eta.eventWindow`. Timepoint 0 corresponds to the event onset, and will usually be the middle element in the vector (ceil(length/2)).
+
+If you have generated a vector of trial IDs that you are interested in (see 'Indexing trial types', above), you can use this vector to index directly into the first dimension of the 3D matrix (i.e., `eta.alignedResps{1}(whichTrials, :, :)`)
+
+Examples: 
+  * To extract the _stimulus-aligned_ activity trace of Cell 40 on trial 10, call `eta.alignedResps{1}(10, :, 40)`
+  * To extract Cell 40's _stimulus-aligned_ activity trace on a subset of trials, call `eta.alignedResps{1}(whichTrials, :, 40)` where `whichTrials` is a vector of trial IDs
+  * To find the _stimulus_ ETA for Cell 40 across all trials, call `mean(eta.alignedResps{1}(:, :, 40), 1)`
+  * To extract a value for Cell 40's activity precisely at _movement onset_ on trial 10, call `eta.alignedResps{2}(10, eventWindow == 0, 40)`
+  * To extract an activity value from ALL cells precisely at _movement onset_ on trial 10, call `eta.alignedResps{2}(10, eventWindow == 0, :)`
+  
 # Conventions
+#### Contrast
+Stimulus contrast is expressed on a scale of 0–1, and is signed to denote the screen it appeared on. Left = negative; right = positive.
 
+#### Choice
+Animal choices are either -1 ('chose left') or +1 ('chose right').'Chose left' means that the mouse reported a stimulus on the left by turning the wheel CW. 'Chose right' means the mouse reported a stimulus on the right by turning the wheel CCW. 
+
+#### 'Reward side', 'high-reward side' or 'reward block'
+This describes the task's block structure, reporting whether high-volume rewards for correct choices were delivered on the left (-1) or the right (+1).
+
+#### CW vs CCW
+These are wheel directions, determined from the perspective of the mouse. CW is the wheel action that moves a stimulus to the right; CCW is the wheen action that moves a stimulus to the left. These designations can be used independently of correct/incorrect. CW turns _increase_ the rotary encoder value; CCW turns _decrease_ the rotary encoder value (raw encoder values aren't used much but it's good to bear in mind).
+
+#### Colors
+  * Green vs orange: This color pair is used to compare blocks of high-value left choices (green) to blocks of high-value right choices (orange). 
+  * Blue vs red: This color pair is used to compare stimulus position or brain hemisphere. Blue  means left (or contralateral); red means right (or ipsilateral).
+  * Green vs brown: This color pair is used to denote correct (green) versus incorrect (brown) trial outcomes.
+ 
+  
 
