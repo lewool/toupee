@@ -39,21 +39,21 @@ for ex = 1:length(expInfo)
     %extract traces from the processed movie file
     
     %1. pupil
-    if isfield(eyeData.proc,'pupil')
+    if isfield(eyeData(ex).proc,'pupil')
         nr = nr + 1;
-        faceROIs(nr,:) = eyeData.proc.pupil.area;
+        faceROIs(nr,:) = eyeData(ex).proc.pupil.area;
     end
-    if isfield(eyeData.proc,'face')
-        for t = 1:length(eyeData.proc.face)
-            if ~isempty(eyeData.proc.face{t})
+    if isfield(eyeData(ex).proc,'face')
+        for t = 1:length(eyeData(ex).proc.face)
+            if ~isempty(eyeData(ex).proc.face{t})
                 nr = nr + 1;
-                faceROIs(nr,:) = eyeData.proc.face{t}.motion;
+                faceROIs(nr,:) = eyeData(ex).proc.face{t}.motion;
             end
         end
     end
     
     for f = 1:size(faceROIs, 1)
-        faceROIs_int(f,:) = interp1(eyeData.timeAligned,faceROIs(f,:), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
+        faceROIs_int(f,:) = interp1(eyeData(ex).timeAligned,faceROIs(f,:), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
     end
     
     for ev = 1:length(events)
