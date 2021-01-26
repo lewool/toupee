@@ -37,8 +37,9 @@ for ex = 1:length(expInfo)
     nr = 0;
     
     %extract traces from the processed movie file
+    faceROIs = [];
+    faceROIs_int = [];
     
-    %1. pupil
     if isfield(eyeData(ex).proc,'pupil')
         nr = nr + 1;
         faceROIs(nr,:) = eyeData(ex).proc.pupil.area;
