@@ -18,11 +18,13 @@ D = T - (2*N);
 % +1 for right)
 
 X = expInfo.block.events.highRewardSideValues(1:T);
+X = (expInfo.block.events.contrastValues(1:T));
+% X = expInfo.block.events.responseValues(1:T);
 
-for iCell = 931:931%1:length(baselineResps)
+for iCell = 421:421%1:length(baselineResps)
 % Y is a vector of neural activity, where each element is a single value
 % from each trial (e.g., mean baseline activity)
-Y = baselineResps(:,iCell)';
+Y = stimResps(:,iCell)';
 % Y = rand(1,T);
 
 %% central segment
@@ -58,13 +60,14 @@ end
 % associate measure at least as big as the unshifted data?
 a = 0.05;
 m = length(find(Vs_XY(iCell,:) >= V0_XY))-1;
+mm(iCell) = m;
 p = a*(2*N +1);
 h(iCell) = m <= p || 2*N-m <=p;
 
 end
 
 %% plot your time series for an exampel cell
-whichCell = 931;
+whichCell = 421;
 
 figure;
 set(gcf,'position',[38 558 1249 420]);
@@ -94,15 +97,16 @@ set(gca,'tickdir','out')
 box off
 
 subplot(2,3,[3 6])
-line([0 0],[min(Vs_XY(whichCell,:))*1.1 max(Vs_XY(whichCell,:))*1.1],'Color',[.5 .5 .5],'LineStyle',':')
+% line([0 0],[min(Vs_XY(whichCell,:))*1.1 max(Vs_XY(whichCell,:))*1.1],'Color',[.5 .5 .5],'LineStyle',':')
 hold on
 plot(shiftIndex,Vs_XY(whichCell,:),'k')
 ylim([min(Vs_XY(whichCell,:))*1.1 max(Vs_XY(whichCell,:))*1.1]);
+ylim([-.5 .5]);
 title('Shift test')
 xlabel('shift')
 ylabel('Pearson corr. coeff.')
 set(gca,'tickdir','out')
 
-text(-N*.9, min(Vs_XY(whichCell,:)),sprintf('m = %d \nh(0.05) = %d',m,h(whichCell)))
+text(-N*.9, min(Vs_XY(whichCell,:)),sprintf('m = %d \nh(0.05) = %d',mm(whichCell),h(whichCell)))
 box off
 

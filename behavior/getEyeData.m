@@ -26,6 +26,10 @@ for ex = 1:length(expInfo)
         warning('No processed eye file found')
     end
     
+    if ~isequal(length(proc.pupil{1, 1}.area),length(eyeData(ex).time))
+        eyeData(ex).time = eyeData(ex).time(1:length(proc.pupil{1, 1}.area));
+    end
+    
     %gather ROIs
     totalROIs = length(proc.rois);
     for r = 1:totalROIs
