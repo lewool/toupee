@@ -1,27 +1,27 @@
-clear all
-expInfo = initExpInfo({{'LEW031'}},{{'2020-02-03',1,[1]}});
-matched = 0;
-
-% expInfo = initExpInfo('LEW031');
-% matched = 1;
-
-%% load data & extract some variables to make this code still work
-
-if matched == 1
-    [expInfo, neuralData, behavioralData] = processExperiment(expInfo,'matched');
-    [neuralData] = alignResps(expInfo, neuralData, behavioralData);
-    [neuralData] = getSignificantActivity(expInfo, behavioralData, neuralData);
-    combinedNeuralData = combineNeuralData(expInfo, behavioralData, neuralData,'matched');
-
-    alignedResps = combinedNeuralData.matched.eta.alignedResps;
-    eventWindow = combinedNeuralData.matched.eta.eventWindow;
-    bfcH = combinedNeuralData.matched.stats.bfcH;
-    pLabels = combinedNeuralData.matched.stats.labels;
-    events = combinedNeuralData.matched.eta.events;
-elseif matched == 0 
-    [expInfo, neuralData, behavioralData] = processExperiment(expInfo);
-    
-end
+% clear all
+% expInfo = initExpInfo({{'LEW031'}},{{'2020-02-03',1,[1]}});
+% matched = 0;
+% 
+% % expInfo = initExpInfo('LEW031');
+% % matched = 1;
+% 
+% %% load data & extract some variables to make this code still work
+% 
+% if matched == 1
+%     [expInfo, neuralData, behavioralData] = processExperiment(expInfo,'matched');
+%     [neuralData] = alignResps(expInfo, neuralData, behavioralData);
+%     [neuralData] = getSignificantActivity(expInfo, behavioralData, neuralData);
+%     combinedNeuralData = combineNeuralData(expInfo, behavioralData, neuralData,'matched');
+% 
+%     alignedResps = combinedNeuralData.matched.eta.alignedResps;
+%     eventWindow = combinedNeuralData.matched.eta.eventWindow;
+%     bfcH = combinedNeuralData.matched.stats.bfcH;
+%     pLabels = combinedNeuralData.matched.stats.labels;
+%     events = combinedNeuralData.matched.eta.events;
+% elseif matched == 0 
+%     [expInfo, neuralData, behavioralData] = processExperiment(expInfo);
+%     
+% end
 
 %% set up trial conditions to compare
 
