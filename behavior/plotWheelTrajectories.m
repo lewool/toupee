@@ -7,8 +7,8 @@ function plotWheelTrajectories(expInfo, behavioralData, blockTag)
     if strcmp(blockTag,'none')
 
         clear trialConditions labels condIdx
-        contrasts = getUniqueContrasts(expInfo(ex));
-        allContrasts = getAllContrasts(expInfo(ex));
+%         contrasts = getUniqueContrasts(expInfo(ex));
+%         allContrasts = getAllContrasts(expInfo(ex));
 
         % %set up trial conditions for hi-L and hi-R blocks
         trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','early');

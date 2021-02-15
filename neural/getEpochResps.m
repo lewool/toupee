@@ -15,7 +15,7 @@ stim_eventWindow = eventWindow;
 %designate a baseline window
 stim_eventIdx = find(stim_eventWindow == 0);
 stim_preTime = [-0.5 0] / Fs;
-baselineIdx = stim_eventIdx + stim_preTime(1) : stim_eventIdx;
+baselineIdx = stim_eventIdx + stim_preTime(1) : stim_eventIdx - 1;
 
 %compute the mean baseline activity per cell, per trial (trials x neurons)
 baselineResps = squeeze(mean(stim_alignedTraces(:,baselineIdx,:),2));
@@ -24,7 +24,7 @@ baselineResps = squeeze(mean(stim_alignedTraces(:,baselineIdx,:),2));
 %% compute peristimulus activity
 
 %designate a peristimulus window
-stimTime = [0 0.4] / Fs;
+stimTime = [0 0.5] / Fs;
 stimIdx = stim_eventIdx + stimTime(1) :stim_eventIdx + stimTime(2);
 
 %compute the mean peristimulus activity per cell, per trial (trials x neurons)

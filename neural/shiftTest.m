@@ -17,11 +17,14 @@ D = T - (2*N);
 % X is a vector containing the block membership of each trial (-1 for left,
 % +1 for right)
 
-X = expInfo.block.events.highRewardSideValues(1:T);
-X = (expInfo.block.events.contrastValues(1:T));
-% X = expInfo.block.events.responseValues(1:T);
+preds(1,:) = (expInfo.block.events.contrastValues(1:T));
+preds(2,:) = expInfo.block.events.responseValues(1:T);
+preds(3,:) = expInfo.block.events.highRewardSideValues(1:T);
 
-for iCell = 421:421%1:length(baselineResps)
+for iX = 1:size(preds,1)
+    disp(iX)
+X = preds(iX,:);
+for iCell = 1:length(baselineResps)
 % Y is a vector of neural activity, where each element is a single value
 % from each trial (e.g., mean baseline activity)
 Y = stimResps(:,iCell)';
@@ -60,10 +63,12 @@ end
 % associate measure at least as big as the unshifted data?
 a = 0.05;
 m = length(find(Vs_XY(iCell,:) >= V0_XY))-1;
-mm(iCell) = m;
-p = a*(2*N +1);
-h(iCell) = m <= p || 2*N-m <=p;
+mm(iCell,iX) = m;
+thresh = a*(2*N +1);
+h(iCell) = m <= thresh || 2*N-m <=thresh;
 
+end
+p(:,iX) = normcdf(zscore(mm));
 end
 
 %% plot your time series for an exampel cell

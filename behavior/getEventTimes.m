@@ -119,7 +119,7 @@ blockKeyboardRewards = interp1(block.outputs.rewardTimes,block.outputs.rewardTim
 [~,bkIdx] = intersect(block.outputs.rewardTimes, blockKeyboardRewards);
 allBlockRewardValues(bkIdx) = [];
 try 
-    isProbExp = block.paramsValues(1).rewardProbability(1) > 0;
+    isProbExp = block.paramsValues(1).highProbability(1) > 0;
     if exist('isProbExp')
         rewardTrialIdx(allBlockRewardValues == 0) = []; %if biased likelihood experiment, take out 'rewards' of 0
         rewardTrialIdx(find(rewardTrialIdx > numCompleteTrials)) = [];

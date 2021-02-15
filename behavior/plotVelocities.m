@@ -13,15 +13,15 @@ function plotVelocities(expInfo, behavioralData, blockTag)
             allContrasts = getAllContrasts(expInfo(ex));
 
             % %set up trial conditions for hi-L and hi-R blocks
-            trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','early');
-            trialConditions{2} = initTrialConditions('movementDir','ccw','movementTime','early');
-            trialConditions{3} = initTrialConditions('movementDir','cw','movementTime','late');
-            trialConditions{4} = initTrialConditions('movementDir','ccw','movementTime','late');
+%             trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','early');
+%             trialConditions{2} = initTrialConditions('movementDir','ccw','movementTime','early');
+            trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','late');
+            trialConditions{2} = initTrialConditions('movementDir','ccw','movementTime','late');
 
-            trialLabels{1} = 'leftEarly';
-            trialLabels{2} = 'rightEarly';
-            trialLabels{3} = 'leftLate';
-            trialLabels{4} = 'rightLate';
+%             trialLabels{1} = 'leftEarly';
+%             trialLabels{2} = 'rightEarly';
+            trialLabels{1} = 'leftLate';
+            trialLabels{2} = 'rightLate';
 
         else
 
@@ -67,11 +67,11 @@ function plotVelocities(expInfo, behavioralData, blockTag)
                 testIdx = condIdx{conds(iCond)}.all;
                 stimOnsets = behavioralData(ex).eventTimes(1).daqTime(testIdx);  
                 firstMoves = behavioralData(ex).wheelMoves.epochs(5).onsetTimes(testIdx);
-                firstMoveVels = abs(behavioralData(ex).wheelMoves.epochs(5).peakVel(testIdx));
+                firstMoveVels = (behavioralData(ex).wheelMoves.epochs(5).peakVel(testIdx));
                 responseTimes = firstMoves - stimOnsets;
-                firstMoveVels(responseTimes > 3) = NaN;
-                meanVels(t,iCond,ex) = mean(firstMoveVels);
-                semVels(t,iCond,ex) = std(firstMoveVels)/sqrt(length(firstMoveVels));
+%                 firstMoveVels(responseTimes > 3) = NaN;
+                meanVels(t,iCond,ex) = nanmean(firstMoveVels);
+                semVels(t,iCond,ex) = nanstd(firstMoveVels)/sqrt(length(firstMoveVels));
             end
 
         end

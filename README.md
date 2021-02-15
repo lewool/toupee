@@ -75,9 +75,9 @@ Prepares specific name-value pairs to identify the trial conditions you want to 
   * `'whichTrials'`: indexing vector or `'all'` (lets you select a custom range of trials)
   * `'specificRTs'`: 1 x 2 vector ([min max]) or `'all'` (selects trials that fall within the range you specify)
 
-By default, running `trialConditions = initTrialConditions()` chooses 'all' for each trial condition. Name-value pairs can be concatenated with a semicolon and can be listed in any order.
+By default, running `trialConditions = initTrialConditions()` chooses 'all' for each trial condition. Name-value pairs can be concatenated with a comma and can be listed in any order.
 
-Example: `trialConditions = initTrialConditions('responseType,'correct'; 'movementDir','cw')` selects trials where the mouse was correct AND moved the wheel clockwise.
+Example: `trialConditions = initTrialConditions('responseType','correct', 'movementDir','cw')` selects trials where the mouse was correct AND moved the wheel clockwise.
 
 Specifying contrast conditions is called outside of `trialConditions`; see below.
   

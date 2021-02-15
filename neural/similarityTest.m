@@ -19,36 +19,27 @@ for m = 1:length(expInfo)
 clearvars -except m mouseList expList allHistos_high allHistos_stim whichETA
 disp(m);
 
-%% initialize experiment details
-
-% expInfo = initExpInfo({{'LEW032'}},{{'2020-02-14',3,[3]}});
-expInfo = initExpInfo('LEW031');
-
-%% load data
-
-[expInfo, neuralData, behavioralData] = processExperiment(expInfo, 'matched');
-[neuralData] = alignResps(expInfo, neuralData, behavioralData);
-[neuralData] = getSignificantActivity(expInfo, behavioralData, neuralData);
-combinedNeuralData = combineNeuralData(expInfo, behavioralData, neuralData,'matched');
-
 %% extract some variables to make this code still work 
 
-alignedResps = combinedNeuralData.matched.eta.alignedResps;
-eventWindow = combinedNeuralData.matched.eta.eventWindow;
-bfcH = combinedNeuralData.matched.stats.bfcH;
-pLabels = combinedNeuralData.matched.stats.labels;
+alignedResps = neuralData(m).eta.alignedResps;
+eventWindow = neuralData(m).eta.eventWindow;
+bfcH = neuralData(m).stats.bfcH;
+pLabels = neuralData(m).stats.labels;
+% 
+% alignedResps = combinedNeuralData.matched.eta.alignedResps;
+% eventWindow = combinedNeuralData.matched.eta.eventWindow;
+% bfcH = combinedNeuralData.matched.stats.bfcH;
+% pLabels = combinedNeuralData.matched.stats.labels;
 
 %% select cells with the properties you want
 
-plotCells = find(bfcH(:,strcmp(pLabels,'mov')) > 0);
-plotCells = 1:size(alignedResps{1},3);
-
+plotCells = getWhichCells('leftStim',neuralData(m));
 whichETA = 1;
 
 %% report the mean response of each cell to your event, per trial, at a given timepoint
 %output is a matrix of size trials x cells
 Fs = 0.1;
-timepoint = 0;
+timepoint = 0.5;
 eventIdx = find(eventWindow == 0);
 timeIdx = eventIdx + round(timepoint/Fs);
 
@@ -64,11 +55,11 @@ onsetResps(:,badCells) = [];
 contrasts = getUniqueContrasts(expInfo);
 
 %set up trial conditions for hi-L and hi-R blocks
-trialConditions{1} = initTrialConditions('highRewardSide','left','responseType','correct','movementTime','late');
-trialConditions{2} = initTrialConditions('highRewardSide','right','responseType','correct','movementTime','late');
-trialConditions{3} = initTrialConditions('responseType','correct','movementTime','late');
-trialLabels{1} = 'highLeft';
-trialLabels{2} = 'highRight';
+trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','late');
+trialConditions{2} = initTrialConditions('movementDir','ccw','movementTime','late');
+trialConditions{3} = initTrialConditions('movementTime','late');
+trialLabels{1} = 'moveLeft';
+trialLabels{2} = 'moveRight';
 trialLabels{3} = 'all';
 
 contrastConditions{1} = contrasts(contrasts<0);
@@ -96,16 +87,15 @@ end
 %% compute dot products
 
 % compute means from 'train' trails
-meanHighLeft = nanmean(onsetResps(condIdx{strcmp(labels,'allhighLeft')}.train,:),1);
-meanHighRight = nanmean(onsetResps(condIdx{strcmp(labels,'allhighRight')}.train,:),1);
+meanMoveLeft = nanmean(onsetResps(condIdx{strcmp(labels,'allmoveLeft')}.train,:),1);
+meanMoveRight = nanmean(onsetResps(condIdx{strcmp(labels,'allmoveRight')}.train,:),1);
 meanStimLeft = nanmean(onsetResps(condIdx{strcmp(labels,'allstimLeft')}.train,:),1);
 meanStimRight = nanmean(onsetResps(condIdx{strcmp(labels,'allstimRight')}.train,:),1);
-
 
 % compute dot products between each 'test' trial and mean 'train' trials
 % (split per condition type)
 
-condType = {'allhighLeft' 'allhighRight' 'allstimLeft' 'allstimRight'};
+condType = {'allmoveLeft' 'allmoveRight' 'allstimLeft' 'allstimRight'};
 
 fullNorm = 1; % 1 if just angle, 0 if angle and relative magnitude
 for c = 1:length(condType)
@@ -116,32 +106,32 @@ for c = 1:length(condType)
         else
             tNorm = 1;
         end
-        dotProd_highSide{c,1}(t,:) = dot(onsetResps(iTrial,:),meanHighLeft)/(tNorm*norm(meanHighLeft));
-        dotProd_highSide{c,2}(t,:) = dot(onsetResps(iTrial,:),meanHighRight)/(tNorm*norm(meanHighRight));
+        dotProd_moveSide{c,1}(t,:) = dot(onsetResps(iTrial,:),meanMoveLeft)/(tNorm*norm(meanMoveLeft));
+        dotProd_moveSide{c,2}(t,:) = dot(onsetResps(iTrial,:),meanMoveRight)/(tNorm*norm(meanMoveRight));
         dotProd_stimSide{c,1}(t,:) = dot(onsetResps(iTrial,:),meanStimLeft)/(tNorm*norm(meanStimLeft));
         dotProd_stimSide{c,2}(t,:) = dot(onsetResps(iTrial,:),meanStimRight)/(tNorm*norm(meanStimRight));
     end
 end
 
 % assign axis limits for later
-ax1Lim = 1.2 * [min([cell2mat(dotProd_highSide(:)); cell2mat(dotProd_stimSide(:))]) ...
-                max([cell2mat(dotProd_highSide(:)); cell2mat(dotProd_stimSide(:))])]; 
+ax1Lim = 1.2 * [min([cell2mat(dotProd_moveSide(:)); cell2mat(dotProd_stimSide(:))]) ...
+                max([cell2mat(dotProd_moveSide(:)); cell2mat(dotProd_stimSide(:))])]; 
 
 % compute diagonal histograms
 for d = 1:4
-    [density_high(:,d),value_high(:,d)] = ksdensity(dotProd_highSide{d,1}-dotProd_highSide{d,2},'Bandwidth', max(ax1Lim)/20);
+    [density_high(:,d),value_high(:,d)] = ksdensity(dotProd_moveSide{d,1}-dotProd_moveSide{d,2},'Bandwidth', max(ax1Lim)/20);
     [density_stim(:,d),value_stim(:,d)] = ksdensity(dotProd_stimSide{d,1}-dotProd_stimSide{d,2},'Bandwidth', max(ax1Lim)/20);
 end
 
 % assign axis limits for later
-ax2Lim = 1.2 * [-max([cell2mat(dotProd_highSide(:)); cell2mat(dotProd_stimSide(:))]) ...
-                max([cell2mat(dotProd_highSide(:)); cell2mat(dotProd_stimSide(:))]) ...
+ax2Lim = 1.2 * [-max([cell2mat(dotProd_moveSide(:)); cell2mat(dotProd_stimSide(:))]) ...
+                max([cell2mat(dotProd_moveSide(:)); cell2mat(dotProd_stimSide(:))]) ...
                 0 max(max([density_stim(:) density_high(:)]))];
 
 % add histograms to global list
 % for h = 1:4
-%     allHistos_high{h, length(allHistos_high)+1} = dotProd_highSide{h,1}-dotProd_highSide{h,2};
-%     allHistos_stim{h, length(allHistos_stim)+1} = dotProd_highSide{h,1}-dotProd_highSide{h,2};
+%     allHistos_high{h, length(allHistos_high)+1} = dotProd_moveSide{h,1}-dotProd_moveSide{h,2};
+%     allHistos_stim{h, length(allHistos_stim)+1} = dotProd_moveSide{h,1}-dotProd_moveSide{h,2};
 % end
 
 %% single-timepoint scatterplot
@@ -184,9 +174,9 @@ for f = 1:min([length(expInfo) 2])
         %plot all trials compared to high-L and high-R mean activity
         %(sorted by reward or stim)
         subplot(2,2,2*s-1)
-        plotHighL = scatter(dotProd_highSide{2*s-1,1},dotProd_highSide{2*s-1,2},mSize,'go');
+        plotHighL = scatter(dotProd_moveSide{2*s-1,1},dotProd_moveSide{2*s-1,2},mSize,'go');
         set(plotHighL,'MarkerEdgeColor',colors(2*s-1,:), 'Marker','o','MarkerFaceColor',colors(2*s-1,:),'MarkerFaceAlpha',.4)
-        plotHighR = scatter(dotProd_highSide{2*s,1},dotProd_highSide{2*s,2},mSize,'ro');
+        plotHighR = scatter(dotProd_moveSide{2*s,1},dotProd_moveSide{2*s,2},mSize,'ro');
         set(plotHighR,'MarkerEdgeColor',colors(2*s,:), 'Marker','o','MarkerFaceColor',colors(2*s,:),'MarkerFaceAlpha',.4)
         ylabel('similarity to high-right mean activity')
         xlabel('similarity to high-left mean activity')
@@ -263,8 +253,8 @@ for p = 1:length(eventWindow)
     projResps(:,badCells) = [];
     
     %compute (hiL - hiR) and (stimL - stimR) means from 'train' trials
-    meanResps_reward = mean(projResps(condIdx{strcmp(labels,'allhighLeft')}.train,:),1) - ...
-                            mean(projResps(condIdx{strcmp(labels,'allhighRight')}.train,:),1);
+    meanResps_reward = mean(projResps(condIdx{strcmp(labels,'allmoveLeft')}.train,:),1) - ...
+                            mean(projResps(condIdx{strcmp(labels,'allmoveRight')}.train,:),1);
     meanResps_stim = mean(projResps(condIdx{strcmp(labels,'allstimLeft')}.train,:),1) - ...
                             mean(projResps(condIdx{strcmp(labels,'allstimRight')}.train,:),1);
                         
@@ -274,22 +264,22 @@ for p = 1:length(eventWindow)
     projDot_stim = dot(projResps, repmat(meanResps_stim,size(projResps,1),1),2)./(vectorNorm(projResps,2).*vectorNorm(repmat(meanResps_stim,size(projResps,1),1),2));
     
     % compute the mean dot product per trial type
-    trajectoryRewards_mean(p,1,1) = mean(projDot_stim(condIdx{strcmp(labels,'allhighLeft')}.test));
-    trajectoryRewards_mean(p,2,1) = mean(projDot_reward(condIdx{strcmp(labels,'allhighLeft')}.test));
-    trajectoryRewards_mean(p,1,2) = mean(projDot_stim(condIdx{strcmp(labels,'allhighRight')}.test));
-    trajectoryRewards_mean(p,2,2) = mean(projDot_reward(condIdx{strcmp(labels,'allhighRight')}.test));
+    trajectoryRewards_mean(p,1,1) = mean(projDot_stim(condIdx{strcmp(labels,'allmoveLeft')}.test));
+    trajectoryRewards_mean(p,2,1) = mean(projDot_reward(condIdx{strcmp(labels,'allmoveLeft')}.test));
+    trajectoryRewards_mean(p,1,2) = mean(projDot_stim(condIdx{strcmp(labels,'allmoveRight')}.test));
+    trajectoryRewards_mean(p,2,2) = mean(projDot_reward(condIdx{strcmp(labels,'allmoveRight')}.test));
     
-    trajectoryRewards_sem(p,1,1) = std(projDot_stim(condIdx{strcmp(labels,'allhighLeft')}.test))/sqrt(length(projDot_reward));
-    trajectoryRewards_sem(p,2,1) = std(projDot_reward(condIdx{strcmp(labels,'allhighLeft')}.test))/sqrt(length(projDot_reward));
-    trajectoryRewards_sem(p,1,2) = std(projDot_stim(condIdx{strcmp(labels,'allhighRight')}.test))/sqrt(length(projDot_reward));
-    trajectoryRewards_sem(p,2,2) = std(projDot_reward(condIdx{strcmp(labels,'allhighRight')}.test))/sqrt(length(projDot_reward));
+    trajectoryRewards_sem(p,1,1) = std(projDot_stim(condIdx{strcmp(labels,'allmoveLeft')}.test))/sqrt(length(projDot_reward));
+    trajectoryRewards_sem(p,2,1) = std(projDot_reward(condIdx{strcmp(labels,'allmoveLeft')}.test))/sqrt(length(projDot_reward));
+    trajectoryRewards_sem(p,1,2) = std(projDot_stim(condIdx{strcmp(labels,'allmoveRight')}.test))/sqrt(length(projDot_reward));
+    trajectoryRewards_sem(p,2,2) = std(projDot_reward(condIdx{strcmp(labels,'allmoveRight')}.test))/sqrt(length(projDot_reward));
 
-    trajectoryStims_mean(p,1,1) = mean(projDot_stim(condIdx{strcmp(labels,'allhighLeft')}.test));
+    trajectoryStims_mean(p,1,1) = mean(projDot_stim(condIdx{strcmp(labels,'allmoveLeft')}.test));
     trajectoryStims_mean(p,2,1) = mean(projDot_reward(condIdx{strcmp(labels,'allstimLeft')}.test));
     trajectoryStims_mean(p,1,2) = mean(projDot_stim(condIdx{strcmp(labels,'allstimRight')}.test));
     trajectoryStims_mean(p,2,2) = mean(projDot_reward(condIdx{strcmp(labels,'allstimRight')}.test));
 
-    trajectoryStims_sem(p,1,1) = std(projDot_stim(condIdx{strcmp(labels,'allhighLeft')}.test))/sqrt(length(projDot_stim));
+    trajectoryStims_sem(p,1,1) = std(projDot_stim(condIdx{strcmp(labels,'allmoveLeft')}.test))/sqrt(length(projDot_stim));
     trajectoryStims_sem(p,2,1) = std(projDot_reward(condIdx{strcmp(labels,'allstimLeft')}.test))/sqrt(length(projDot_stim));
     trajectoryStims_sem(p,1,2) = std(projDot_stim(condIdx{strcmp(labels,'allstimRight')}.test))/sqrt(length(projDot_stim));
     trajectoryStims_sem(p,2,2) = std(projDot_reward(condIdx{strcmp(labels,'allstimRight')}.test))/sqrt(length(projDot_stim));
@@ -467,8 +457,8 @@ end
 % motherResps(:,badCells) = [];
 % 
 % % compute the mean vectors upon which to project trial-by-trial vectors
-% motherResps_reward = nanmean(motherResps(condIdx{strcmp(labels,'allhighLeft')}.train,:),1) - ...
-%                         nanmean(motherResps(condIdx{strcmp(labels,'allhighRight')}.train,:),1);
+% motherResps_reward = nanmean(motherResps(condIdx{strcmp(labels,'allmoveLeft')}.train,:),1) - ...
+%                         nanmean(motherResps(condIdx{strcmp(labels,'allmoveRight')}.train,:),1);
 % motherResps_stim = nanmean(motherResps(condIdx{strcmp(labels,'allstimLeft')}.train,:),1) - ...
 %                         nanmean(motherResps(condIdx{strcmp(labels,'allstimRight')}.train,:),1);
 % 

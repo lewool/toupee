@@ -1,8 +1,6 @@
-function figName = rasterBrowser(expInfo, behavioralData, neuralData, whichCells,pickTrials, trialStruct, k)
+function figName = plotWhiskRasters(expInfo, behavioralData, neuralData, whichCells, whichTrials, k)
 
-% pickTrials = {'side_direction', 'side_direction', 'outcome_direction'};
-% contrastOverride = 'contrast_direction';
-% trialStruct = trialTypes.intVar.cb2D;
+
 %% initialize experiment details
 
 alignedResps = neuralData.eta.alignedResps;
@@ -19,68 +17,32 @@ wm = behavioralData.wheelMoves;
 if strcmp(whichCells, 'all')
     plotCells = 1:size(alignedResps{1},3);
 else
-    plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
+    plotCells = whichCells;
 end
 
 %%
-
-
-for iA = 1:length(pickTrials)
-    trialLists{iA} = reshape(getfield(trialStruct,pickTrials{iA})',[1 numel(getfield(trialStruct,pickTrials{iA}))])';
-    trialArrays{iA} = getfield(trialStruct,pickTrials{iA});
+for iA = 1:3
+    trialLists{iA}{1,1} = whichTrials{1};
+    trialLists{iA}{2,1} = whichTrials{2};
 end
 
 %% set up some plot values
 
 %compute the total size of the figure based on trials
-totalTrials = sum(sum(cellfun(@length, getfield(trialStruct,pickTrials{1}))));
+totalTrials = sum(cellfun(@length, trialLists{1}));
 totalRasters = max(cellfun(@numel, trialLists));
 border = 1;
 total_raster = totalTrials + border*(totalRasters+1);
 psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
-for iETA = 1:3
-    if contains(pickTrials{iETA},'side')
-        if contains(pickTrials{iETA},'_direction') || contains(pickTrials{iETA},'_block')
-            rasterColors{iETA} = [0 0 1; 0 0 1; 0 0 0; 0 0 0; 1 0 0; 1 0 0];
-            rasterLabels{iETA} = {'L' 'L' '0' '0' 'R' 'R'};
-            psthColors{iETA} = [0 .4 1; .75 .75 .75; 1 0 0];
-        else
-            rasterColors{iETA} = [0 0 1; 0 0 0; 1 0 0];
-            rasterLabels{iETA} = {'Left' 'Zero' 'Right'};
-            psthColors{iETA} = [0 .4 1; .75 .75 .75; 1 0 0];
-        end
-    elseif contains(pickTrials{iETA},'outcome')
-        if contains(pickTrials{iETA},'_direction') || contains(pickTrials{iETA},'_block')
-            rasterColors{iETA} = [.5 1 .5; .5 1 .5; 1 0 0; 1 0 0];
-            rasterLabels{iETA} = {'Cor' 'Cor' 'Inc' 'Inc'};
-            psthColors{iETA} = [.1 .7 .1; .75 0 0];
-        else
-            rasterColors{iETA} = [.5 1 .5; 1 0 0];
-            rasterLabels{iETA} = {'Cor' 'Inc'};
-            psthColors{iETA} = [.1 .7 .1; .75 0 0];
-        end
-    elseif contains(pickTrials{iETA},'direction')
-        if contains(pickTrials{iETA},'_block')
-            rasterColors{iETA} = [0 0 1; 0 0 1; 1 0 0; 1 0 0];
-            rasterLabels{iETA} = {'L' 'L' 'R' 'R'};
-            psthColors{iETA} = [0 .4 1; 1 0 0];
-        else
-            rasterColors{iETA} = [0 0 1; 1 0 0];
-            rasterLabels{iETA} = {'L' 'R'};
-            psthColors{iETA} = [0 .4 1; 1 0 0];
-        end
-    elseif contains(pickTrials{iETA},'block')
-        rasterColors{iETA} = [0 0 1; 1 0 0];
-        rasterLabels{iETA} = {'L' 'R'};
-        psthColors{iETA} = [0 0 1; .5 0 0];
-    end
-end
+rasterColors = [1 0 1; 0 1 1];
+rasterLabels = {'Whisk' 'Quiesc'};
+psthColors = [1 0 1; 0 1 1];
 
 %% plot (all trials)
 fig = figure;
-set(fig, 'Position', [680 540 1080 320]);
+set(fig, 'Position', [80 250 870 660]);
 hold on;
 
 if ~exist('k') == 1
@@ -122,7 +84,7 @@ while k <= max_k
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
             f = imagesc(eventWindow,1:numTrials,alignedResps{a}(whichTrials(sortIdx),:,plotCells(k)));
-            colormap(ax,rasterColor(rasterColors{a}(iCond,:)));
+            colormap(ax,rasterColor(rasterColors(iCond,:)));
             hold on;
             %             line([0 0],[1 length(whichTrials)],'LineStyle','-','Color',[0 0 0]);
             mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
@@ -132,7 +94,7 @@ while k <= max_k
             box off
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
-            ylabel(rasterLabels{a}(iCond))
+            ylabel(rasterLabels(iCond))
             if iCond < length(trialLists{a})
                 set(gca,'xtick',[]);
             end
@@ -151,14 +113,14 @@ while k <= max_k
         spidxA = sub2ind([length(trialLists) total_length], a, 1);
         spidxB = sub2ind([length(trialLists) total_length], a, psth);
         subplot(total_length,length(trialLists),[spidxA spidxB])
-        [meanPSTH, semPSTH, rasters] = computePSTHs(alignedResps{a}(:,:,plotCells(k)),trialArrays{a});
+        [meanPSTH, semPSTH, rasters] = computePSTHs(alignedResps{a}(:,:,plotCells(k)),trialLists{a});
         for d = 1:size(meanPSTH,2)
             if d == 1
                 ls = '-';
             else
                 ls = ':';
             end
-            plotPSTHs(eventWindow, cell2mat(meanPSTH(:,d)), cell2mat(semPSTH(:,d)), psthColors{a},ls);
+            plotPSTHs(eventWindow, cell2mat(meanPSTH(:,d)), cell2mat(semPSTH(:,d)), psthColors,ls);
             if a > 1
                 xlim([-1.5 1]);
             else
@@ -181,7 +143,13 @@ while k <= max_k
             subplot(total_length,length(trialLists),[spidx1 spidx2])
             caxis([min(iMin) max(iMax)*.5]);
             if iCond == length(trialLists{a})
-                xlabel('Time (s)')
+                if a == 1
+                    xlabel('Time from stimulus (s)')
+                elseif a ==2
+                    xlabel('Time from movement (s)')
+                elseif a == 3
+                    xlabel('Time from outcome (s)')
+                end
             end
         end
         spidxA = sub2ind([length(trialLists) total_length], a, 1);
@@ -204,13 +172,7 @@ while k <= max_k
       k = min(max_k, k + 1);
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'return')
         disp(k)
-        if contains(pickTrials,'block')
-            figName = strcat(expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)),'_blocks');
-        elseif contains(pickTrials,'direction')
-            figName = strcat(expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)),'_stimmove');
-        else
-            figName = strcat(expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
-        end
+        figName = strcat(expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
         printfig(gcf, figName)
         break
     end
