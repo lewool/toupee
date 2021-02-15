@@ -55,7 +55,7 @@ end
 
     
 cellResps{ex} = zscore(resps);
-cellResps{ex} = resps./max(resps);
+% cellResps{ex} = resps./max(resps);
 
 %get rid of bad cells
 someNaNs = find(isnan(cellResps{ex}));

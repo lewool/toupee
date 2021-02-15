@@ -1,24 +1,62 @@
-for c = 1:5
-    [~, hconds1] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime','all','responseType','correct','highRewardSide','left'));
-    [~, hconds2] = selectCondition(expInfo, -contrasts(c), behavioralData, initTrialConditions('movementTime','all','responseType','correct','highRewardSide','right'));
-    highConds{c,1} = [hconds1 hconds2];
+for iX = 1:length(expInfo)
     
-    [~, lconds1] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime','all','responseType','correct','highRewardSide','right'));
-    [~, lconds2] = selectCondition(expInfo, -contrasts(c), behavioralData, initTrialConditions('movementTime','all','responseType','correct','highRewardSide','left'));
-    lowConds{c,1} = [lconds1 lconds2];
-    
-    [~, iconds1] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime','all','responseType','incorrect','highRewardSide','left'));
-    [~, iconds2] = selectCondition(expInfo, -contrasts(c), behavioralData, initTrialConditions('movementTime','all','responseType','incorrect','highRewardSide','right'));
-    incConds{c,1} = [iconds1 iconds2];
-end
+    contrasts = getUniqueContrasts(expInfo(iX));
+    for c = 1:5
+        [~, hconds1] = selectCondition(expInfo(iX), contrasts(c), behavioralData(iX), initTrialConditions('movementTime','all','responseType','correct','highRewardSide','left'));
+        [~, hconds2] = selectCondition(expInfo(iX), -contrasts(c), behavioralData(iX), initTrialConditions('movementTime','all','responseType','correct','highRewardSide','right'));
+        highConds{c,1} = [hconds1 hconds2];
 
+        [~, lconds1] = selectCondition(expInfo(iX), contrasts(c), behavioralData(iX), initTrialConditions('movementTime','all','responseType','correct','highRewardSide','right'));
+        [~, lconds2] = selectCondition(expInfo(iX), -contrasts(c), behavioralData(iX), initTrialConditions('movementTime','all','responseType','correct','highRewardSide','left'));
+        lowConds{c,1} = [lconds1 lconds2];
+
+        [~, iconds1] = selectCondition(expInfo(iX), contrasts(c), behavioralData(iX), initTrialConditions('movementTime','all','responseType','incorrect','highRewardSide','left'));
+        [~, iconds2] = selectCondition(expInfo(iX), -contrasts(c), behavioralData(iX), initTrialConditions('movementTime','all','responseType','incorrect','highRewardSide','right'));
+        incConds{c,1} = [iconds1 iconds2];
+    end
+
+    for c = 1:5
+        highRew(c,:,iX) = nanmean(nanmean(neuralData(1).eta.alignedResps{2}(highConds{c},:,:),3));
+        lowRew(c,:,iX) = nanmean(nanmean(neuralData(1).eta.alignedResps{2}(lowConds{c},:,:),3));
+        noRew(c,:,iX) = nanmean(nanmean(neuralData(1).eta.alignedResps{2}(incConds{c},:,:),3));
+    end
+end
 %%
+
+mean_highRew = flipud(nanmean(highRew,3));
+mean_lowRew = flipud(nanmean(lowRew,3));
+mean_noRew = flipud(nanmean(noRew,3));
 
 % plotCells = getWhichCells('all',neuralData);
 
 figure;
-grays = [0 .2 .4 .6 .8];
-subplot(1,3,1)
+grays = [.8 .6 .4 .2 .0];
+for iC = 1:size(highRew,1)
+    subplot(1,3,1)
+    hold on
+    line([0 0],[-.06 .14],'LineStyle','--','LineWidth',1,'Color',[.5 .5 .5])
+    ph = plot(eventWindow,smooth(mean_highRew(iC,:)));
+    set(ph,'LineWidth',2,'Color', grays(iC)*ones(1,3));
+    xlim([-1 1])
+    axis off
+    
+    subplot(1,3,2)
+    hold on
+    line([0 0],[-.06 .14],'LineStyle','--','LineWidth',1,'Color',[.5 .5 .5])
+    ph = plot(eventWindow,smooth(mean_lowRew(iC,:)));
+    set(ph,'LineWidth',2,'Color', grays(iC)*ones(1,3));
+    xlim([-1 1])
+    axis off
+    
+    subplot(1,3,3)
+    hold on
+    line([0 0],[-.06 .14],'LineStyle','--','LineWidth',1,'Color',[.5 .5 .5])
+    pn = plot(eventWindow,smooth(mean_noRew(iC,:)));
+    set(pn,'LineWidth',2,'Color', grays(iC)*ones(1,3));
+    xlim([-1 1])
+    axis off
+end
+%%
 hold on
 for pc = 1:length(highConds)
     ph = plot(eventWindow,(nanmean(nanmean(bigAlignedResps{2}(highConds{pc},:,:),3))));
