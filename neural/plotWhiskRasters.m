@@ -17,7 +17,7 @@ wm = behavioralData.wheelMoves;
 if strcmp(whichCells, 'all')
     plotCells = 1:size(alignedResps{1},3);
 else
-    plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
+    plotCells = whichCells;
 end
 
 %%
