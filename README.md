@@ -131,8 +131,6 @@ These are wheel directions, determined from the perspective of the mouse. CW is 
   * Green vs orange: This color pair is used to compare blocks of high-value left choices (green) to blocks of high-value right choices (orange). 
   * Blue vs red: This color pair is used to compare stimulus position or brain hemisphere. Blue  means left (or contralateral); red means right (or ipsilateral).
   * Green vs brown: This color pair is used to denote correct (green) versus incorrect (brown) trial outcomes.
-
-#### More:
  
   
 
