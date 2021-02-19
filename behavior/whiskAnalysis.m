@@ -68,7 +68,8 @@ plot(trials,mean(slopes),'--','LineWidth', 2, 'Color','black')
 
 
 %%
-%filter only trials where whisking is significantly increasing pre-stim 
+%filtering type 1: whisk vs non-whisk
+%filter only trials where whisking is significantly INCREASING (pos slope) pre-stim 
 %store the trials with increase in whisking in whiskTrials
 lm_slopes=(zeros(length(yAll),1));
 whiskTrials=[];
@@ -86,6 +87,11 @@ for itrial = 1:length(yAll)
         nowhiskTrials(end+1) = itrial;
     end
 end
+%add whisk and non whisk trials to 1 matrix for  raster plotting 
+
+whichTrials{1,1} = whiskTrials;
+whichTrials{1,2} = nowhiskTrials;
+
 
 %%
 [baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(neuralData.eta);
