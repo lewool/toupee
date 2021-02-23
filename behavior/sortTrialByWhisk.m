@@ -1,16 +1,19 @@
 function [relativeTimes, sortIdWhisk] = sortTrialByWhisk(whichTrials,eyeData, et, wm)
 
-%find time diff between stimOn and moveOn, sort trials by this
-%difference
-timeDiffs = wm.epochs(5).onsetTimes(whichTrials) - et(1).daqTime(whichTrials);
+%find time diff between stimOn and moveOn, sort trials by this difference
+timeDiffs = wm.epochs(5).onsetTimes(whichTrials{1})- et(1).daqTime(whichTrials{1});
+
+%sort trials by time to plot 1st move % reward time 
+[~,sortIdx] = sort(timeDiffs,'ascend');
+
+%sort trials by amount of whisking pre-stim
 alignedFace = eyeData.eta.alignedFace;
 timeRange = alignedFace{1}(:,95:101,2);
-[~,sortIdx] = sort(timeDiffs,'ascend');
 [~,sortIdWhisk] = sort(timeRange,'ascend');
 
 
 
-%record stimOn, movOn, rewardOn times per trial
+%record stimOn, moveOn, rewardOn times per trial
 trialTimes = [...
     et(1).daqTime(whichTrials(sortIdx))',...
     wm.epochs(5).onsetTimes(whichTrials(sortIdx))',...
