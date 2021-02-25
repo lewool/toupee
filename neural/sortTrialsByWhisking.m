@@ -5,7 +5,7 @@ function [relativeTimes, sortIdxWhisk] = sortTrialsByWhisking(whichTrials, eyeDa
 timeDiffs = wm.epochs(5).onsetTimes(whichTrials) - et(1).daqTime(whichTrials);
 [~,sortIdx] = sort(timeDiffs,'ascend');
 
-meanPreStimWhisk = mean(eyeData.eta.alignedFace{1}(:,95:101,2),2);
+meanPreStimWhisk = mean(eyeData.eta.alignedFace{1}(whichTrials,95:101,2),2);
 [~,sortIdxWhisk] = sort(meanPreStimWhisk,'descend'); 
 
 %record stimOn, movOn, rewardOn times per trial

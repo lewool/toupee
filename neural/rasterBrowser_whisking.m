@@ -1,4 +1,4 @@
-function figName = rasterBrowser_whisking(expInfo, behavioralData, neuralData, whichCells, eyeData, k)
+function figName = rasterBrowser_whisking(expInfo, behavioralData, neuralData, whichCells, whichTrials, eyeData, k)
 
 
 %% initialize experiment details
@@ -21,7 +21,9 @@ else
 end
 
 %%
-whichTrials = 1:size(alignedResps{1},1);
+if strcmp(whichTrials, 'all')
+    whichTrials = 1:size(alignedResps{1},1);
+end
 for iA = 1:3
     trialLists{iA}{1,1} = whichTrials;
 end
@@ -191,7 +193,7 @@ while k <= max_k
         break
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'escape')
         disp(strcat({'k = '},num2str(k)))
-        figName = strcat(expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
+        figName = strcat('whiskQuartiles_',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
         close(fig)
         break
     end
