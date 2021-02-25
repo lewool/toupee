@@ -10,7 +10,8 @@ mouseName = {{'LEW031'}};
 expList = { ...
     {'2020-02-28',2,[2]}};
  %{   
-{'2020-02-14',1,[1]}...
+    {'2020-02-03',1,[1]}...    
+    {'2020-02-14',1,[1]}...
     {'2020-02-17',1,[1]}...
     {'2020-02-18',1,[1]}...
     {'2020-02-25',1,[1]}...
@@ -27,187 +28,88 @@ expList = { ...
     {'2020-02-18',1,[1]}...
     };
  %}   
-%% load all the experiments into expInfo
-expInfo = initExpInfo(mouseName,expList);
 
-%% process the usual data
+
+%% load all the experiments into expInfo
+% process the usual data
 % the script knows to loop over all the experiments you listed above
 % this will take a while but the command line will print progress
+expInfo = initExpInfo(mouseName,expList);
 [expInfo, neuralData, behavioralData] = processExperiment(expInfo);
 eyeData = getEyeData(expInfo);
 [eyeData] = alignFace(expInfo, eyeData, behavioralData);
 
-%% loop through the experiments for chosen analysis
-%let's say you want to collect a mean Time-aligned trace from each
-%experiment and put it into a persistent variable that logs every loop
-%initialize the data array in advance
-%nb: lengthOfTimeWindow will be different whether you are grabbing eye data
-%(length = 201) or neural data (length = 41)
+%%
+%indexes trials by early and late 1st move and makes vectors for all
+%Facemap ROIs
+%plot graphs of pupil,whisking, paw and neural activity divided by early vs
+%late trials
+[earlySessionsWhisk,lateSessionsWhisk] = earlyVsLate(expInfo,behavioralData,neuralData,eyeData);
 
-%make arrays of correct size
-earlySessionsPupil = zeros(length(expInfo),201);
-lateSessionsPupil = zeros(length(expInfo),201);
-earlySessionsWhisk = zeros(length(expInfo),201);
-lateSessionsWhisk = zeros(length(expInfo),201);
-allSessionsPaw = zeros(length(expInfo),201);
-
-%index EARLY pupil size and add to vector 
-for iX = 1:length(expInfo)
-    [~,trialsEarly_iX] = selectCondition(expInfo(iX), ...
-	getUniqueContrasts(expInfo(iX)),behavioralData(iX), ...
-	initTrialConditions('movementTime','early'));
-    earlySessionsPupil(iX,:) = nanmean(eyeData(iX).eta.alignedFace{1}(trialsEarly_iX,:,1));
-
-    %index LATE pupil size
-    [~,trialsLate_iX] = selectCondition(expInfo(iX), ...
-        getUniqueContrasts(expInfo(iX)),behavioralData(iX), ...
-        initTrialConditions('movementTime','late'));
-    lateSessionsPupil(iX,:) = nanmean(eyeData(iX).eta.alignedFace{1}(trialsLate_iX,:,1));
+%% Pre-stimulus whisking analysis: compute linear fit and plot whisking +fit
+%plot quantification of all early vs late trial pre-stim mean whisk & whisk slope
+%needs to first run earlyVsLate function
+prestimWhiskAnalysis(eyeData,earlySessionsWhisk,lateSessionsWhisk)
  
-   
-    %index EARLY whisking (ROI 2)
-    earlySessionsWhisk(iX,:) = ...
-        nanmean(eyeData(iX).eta.alignedFace{1}(trialsEarly_iX,:,2));
-    
-    %late whisking
-    lateSessionsWhisk(iX,:) = ...
-        nanmean(eyeData(iX).eta.alignedFace{1}(trialsLate_iX,:,2));
-     
-    
-     %Paw movement (all trials)
-    allSessionsPaw(iX,:) = ...
-        nanmean(eyeData(iX).eta.alignedFace{1}(:,:,4));
-    
-    %index neural data EARLY trials
-    cellMeansE{iX} = squeeze(...
-        nanmean(neuralData(iX).eta.alignedResps{1}(trialsEarly_iX,:,:)));
-    
-    %index neural data LATE trials
-    cellMeansL{iX} = squeeze(...
-        nanmean(neuralData(iX).eta.alignedResps{1}(trialsLate_iX,:,:)));
-     
+%% Rasters for all trials continously sorted (individual cells/ROIs)
+%placing all trials in whichTrials  
+whichTrials{1}=[];
+for t = 1:length(eyeData.eta.alignedFace{1}(:,1,1))
+    whichTrials{1}(end+1)=t;
 end
 
-%% plot the experiment-by-experiment vectors from the sessions-arrays
-%plot early trial pupil
-figure;
-plot(eyeData(iX).eta.eventWindow,earlySessionsPupil)
-xlabel('Time(s) Stimulus aligned')
-ylabel('pupil size')
-title(mouseName+": Early trials")
-
-%plot late trial pupil
-figure;
-plot(eyeData(iX).eta.eventWindow,lateSessionsPupil)
-xlabel('Time(s) Stimulus aligned')
-ylabel('pupil size')
-title(mouseName+": Late trials")
-
-%plot early trial whisking 
-figure;
-plot(eyeData(iX).eta.eventWindow,earlySessionsWhisk)
-xlabel('Time(s) Stimulus aligned')
-ylabel('Whisker Stimulus')
-title(mouseName+": Early trials")
-%xlim([-0.6, 0.1]) 
-
-%plot late trial whisking
-figure;
-plot(eyeData(iX).eta.eventWindow,lateSessionsWhisk)
-xlabel('Time(s) Stimulus aligned')
-ylabel('Whisker Stimulus')
-title(mouseName+": Late trials")
-%xlim([-0.6, 0.1]) 
-
-%%
-%mean of all trials per cell in all sessions for early and late trials
-%1 horizontal line is 1 cell, colour coded for activity 
-%cells are sorted by the time f their max peak
-%early trials 
-animalMeanNeuralE = cat(2,cellMeansE{1},cellMeansE{1},cellMeansE{3},cellMeansE{4},cellMeansE{5});
-animalMeanNeuralEt = transpose(animalMeanNeuralE);
-[~,meanPeaksE] = max(animalMeanNeuralE);
-[~,sIdxE] = sort(meanPeaksE);
-sIdxE = transpose(sIdxE);
-figure;
-imagesc(neuralData(iX).eta.eventWindow,1:size(animalMeanNeuralEt,1),animalMeanNeuralEt(sIdxE,:))
-xlabel('Time(s) Stimulus aligned')
-ylabel('#cells')
-title(mouseName+": Early trials")
-line([0,0],[0,70000])
-xlim([-0.5 0])
-
-%late trials 
-figure;
-animalMeanNeuralL = cat(2,cellMeansL{1},cellMeansL{1},cellMeansL{3},cellMeansL{4},cellMeansL{5});
-animalMeanNeuralLt = transpose(animalMeanNeuralL);
-[~,meanPeaksL] = max(animalMeanNeuralL);
-[~,sIdxL] = sort(meanPeaksL);
-sIdxL = transpose(sIdxL);
-imagesc(neuralData(1).eta.eventWindow,1:size(animalMeanNeuralLt,3),animalMeanNeuralLt(sIdxL,:))
-xlabel('Time(s) Stimulus aligned')
-ylabel('#cells')
-title(mouseName+": Late trials")
-line([0,0],[0,70000])
-xlim([-0.5 0])
-
-%%
-%simple line plot early trial neural
-figure;
-plot(neuralData(iX).eta.eventWindow,(cellMeansE{iX}))
-xlabel('Time(s) Stimulus aligned')
-ylabel('Neural activity')
-title(mouseName+": Early trials")
-xlim([-0.5 0])
-
-%plot late trials 
-figure;
-plot(neuralData(iX).eta.eventWindow,cellMeansL{iX})
-xlabel('Time(s) Stimulus aligned')
-ylabel('Neural activity')
-title(mouseName+": Late trials")
-xlim([-0.5 0])
-
-%%
-%compare mean neural activity at baseline -0.5-0 sec pre-stim 
-%create array for the overall population mean activity in each session
-populationActivityE = zeros(41,length(cellMeansE));
-populationActivityL = zeros(41,length(cellMeansE));
-%errE = std(cellMeansE{:})/sqrt(length(cellMeansE{:}));
-%(irow,:)
-for iexp = 1:length(cellMeansE)
-    for irow = 1:41
-        populationActivityE(irow,iexp) = nanmean(cellMeansE{iexp}(irow,:));
-        populationActivityL(irow,iexp) = nanmean(cellMeansL{iexp}(irow,:));
+%choosing cells correlating to whisking to plot only those
+interp_whiskTrace = interp1(eyeData.timeAligned, eyeData.proc.face{1, 2}.motion, neuralData(1).respTimes); 
+%remove the NaNs
+interp_whiskTrace = interp_whiskTrace(~isnan(interp_whiskTrace));
+whiskCells=[];
+%start correlating from the time wihtout NaNss in the interpolated
+%whisktrace
+for c=1:length(neuralData.cellResps(49:end,:))
+    [r, p] = corrcoef(interp_whiskTrace, neuralData.cellResps(49:end,c));
+    if p(1,2) < 0.05
+        whiskCells(end+1)= c;
     end
-    plot(neuralData(iX).eta.eventWindow,populationActivityE(:,iexp),...
-         'Color', [0, 0.4470, 0.7410],'Linewidth',2)
-    plot(neuralData(iX).eta.eventWindow,populationActivityL(:,iexp),...
-        'Color', [105/255, 165/255, 131/255],'Linewidth',2)
-    xlim([-0.5 0])
-    xlabel('Time(s) Stimulus aligned')
-    ylabel('Neural activity')
-    hold on;
 end
-legend('Late', 'Early','Location', 'Northwest')
 
-%%
-%plot paw (& wheel?) movement
-figure;
-plot(eyeData(iX).eta.eventWindow,allSessionsPaw)
-hold on
-xlabel('Time(s) Stimulus aligned')
-ylabel('Paw Movement ')
-title(mouseName+": All trials")
-%overlay wheel movements? below code needs fixing 
-%plot(eyeData(iX).eta.eventWindow,behavioralData(iX).wheelMoves.traces.time)
+%plot raster of neural activity sorted why pre-stim whisking (200-0 ms)
 
 
 
+%% Rasters for grouping trials (individual cells/ROIs)
+
+%grouping trials by high vs low whisking (whisk-sorted) 
+[relativeTimes,sortIdxWhisk] = sortTrialByWhisk(whichTrials,eyeData,et,wm);
+transpose(sortIdxWhisk);
+%high shisking
+whiskTrials{1} = (sortIdxWhisk(end-99:end));
+%low
+whiskTrials{2} = (sortIdxWhisk(1:100,1));
+
+%filter cells that have significant activity during whiskTrials but not during nowhiskTrials 
+[baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(neuralData.eta);
+whiskCells=[];
+for icell = 1:length(neuralData.eta.alignedResps{1,3})
+    [p,h]=ranksum(baselineResps(whiskTrials,icell),baselineResps(nowhiskTrials,icell));
+    if h==1
+        whiskCells(end+1)= icell;
+    end
+end
+%choose your Raster plotting parameters:
+%whichTrials=
+whichCells = whiskCells;
+whichROIs = 1:4;
+whichSort = 'byWhisk'; %options: 'byWhisk' or 'byEventTime(HAS ERROR THAT NEEDS FIX!)
+k=1;
+%neural data: all trials in 1 group, 1 psth line
+plotWhiskRasters(expInfo, behavioralData, neuralData, whiskCells, whichTrials,whichSort,k)
+%Facemap outputs: all trials in 1 group, 1 psth line
+plotFacemapRasters(expInfo, behavioralData, eyeData, 1:5, whichTrials,whichSort,k)
+
+%% session raster for population neural activity compared to whisk-trace
+%whole session 
 
 
-
-
-
+%shorter time of sessison 
 
 

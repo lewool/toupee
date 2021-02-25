@@ -1,5 +1,8 @@
-function figName = plotWhiskRasters(expInfo, behavioralData, neuralData, whichCells, whichTrials, k)
-
+function figName = plotWhiskRasters(expInfo, behavioralData, neuralData, whichCells, whichTrials,whichSort k)
+%whichSort can be either:
+%'byEventTime' - this sorts trials by 1st move time
+%or 'byWhisk' - this sorts trials by mean pre-stimulus whsiking (120-0ms before stim) 
+%error needs fixing for sorting, change  on line 85
 
 %% initialize experiment details
 
@@ -22,8 +25,9 @@ end
 
 %%
 for iA = 1:3
-    trialLists{iA}{1,1} = whichTrials{1};
-    trialLists{iA}{2,1} = whichTrials{2};
+    for cond = 1:length(whichTrials)
+        trialLists{iA}{cond,1} = whichTrials{cond};
+    end
 end
 
 %% set up some plot values
@@ -78,9 +82,15 @@ while k <= max_k
             whichTrials = trialLists{a}{iCond};
             numTrials = size(whichTrials,2);
             
-            % sort the trials by event time
-            [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);
-           
+            if whichSort == 'byWhisk'
+                %sort the trials by whisking
+                [relativeTimes,sortIdx] = sortTrialByWhisk(whichTrials,eyeData,et,wm);
+            elseif whichSort == 'byEventTimes'
+                % sort the trials by event time, here 1st move
+                [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);           
+            else
+                disp("Input sorting type: EITHER 'byEventTime' OR 'byWhisk'")
+            end
             
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);

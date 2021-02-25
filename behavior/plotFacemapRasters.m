@@ -1,5 +1,8 @@
-function figName = plotFacemapRasters(expInfo, behavioralData,eyeData,whichROIs, whichTrials, k)
-
+function figName = plotFacemapRasters(expInfo, behavioralData,eyeData,whichROIs, whichTrials,whichSort,k)
+%whichSort can be either:
+%'byEventTime' - this sorts trials by 1st move time
+%or 'byWhisk' - this sorts trials by mean pre-stimulus whsiking (120-0ms before stim) 
+%error needs fixing for sorting, change  on line 85
 
 %% initialize experiment details
 alignedFace = eyeData.eta.alignedFace;
@@ -80,25 +83,27 @@ while k <= max_k
             whichTrials = trialLists{a}{iCond};
             numTrials = size(whichTrials,2);
             
-            % sort the trials by event time
-            %[relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);
+            if whichSort == 'byWhisk'
+                %sort the trials by whisking
+                [relativeTimes,sortIdx] = sortTrialByWhisk(whichTrials,eyeData,et,wm);
+            elseif whichSort == 'byEventTimes'
+                % sort the trials by event time, here 1st move
+                [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);           
+            else
+                disp("Input sorting type: EITHER 'byEventTime' OR 'byWhisk'")
+            end
             
-            % sort the trials by whisking
-            [sortIdx] = sortTrialByWhisk(whichTrials,eyeData);
-           
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
             f = imagesc(eventWindow,1:numTrials,alignedFace{a}(whichTrials(sortIdx),:,plotROIs(k)));
             colormap(ax,rasterColor(rasterColors(iCond,:)));
             hold on;
             %             line([0 0],[1 length(whichTrials)],'LineStyle','-','Color',[0 0 0]);
-            %mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
-            %st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
-            %rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
-            %set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
+            st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
+            rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
+            set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
             box off
-            ln = line([0 0],[-1 10],'LineStyle','-','Color',[0 0 0],'linewidth',1);
-            uistack(ln,'bottom');
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
             ylabel(rasterLabels(iCond))
@@ -115,8 +120,8 @@ while k <= max_k
             set(gca,'xtick',[-1 0 1])
         end
     
-%{
-        %plot 1 mean psth at the top
+
+        %plot psth at the top
         spidxA = sub2ind([length(trialLists) total_length], a, 1);
         spidxB = sub2ind([length(trialLists) total_length], a, psth);
         subplot(total_length,length(trialLists),[spidxA spidxB])
@@ -135,43 +140,6 @@ while k <= max_k
             end
             yMin(end+1) = min(min(cell2mat(meanPSTH)-cell2mat(semPSTH)));
             yMax(end+1) = max([.01 max(max(cell2mat(meanPSTH)+cell2mat(semPSTH)))]);
-        end
-        
-        ln = line([0 0],[-1 10],'LineStyle','-','Color',[0 0 0],'linewidth',1);
-        uistack(ln,'bottom');
-        set(gca,'xtick',[]);
-        set(gca,'TickDir','out');
-        %}
-        
-        %plot psth with 4 lines of diff whisk level
-        %first, divide trials into 4 quesrtiles 
-        
-        q=0.25*(length(trialLists{1,1}));
-        quartile{1}=trialLists{1,1}(1:q);
-        quartile{2}=trialLists{1,1}(q+1:2*q);
-        quartile{3}=trialLists{1,1}(2*q+1:3*q-1);
-        quartile{4}=trialLists{1,1}(end-q:end);
-
-        for f =1:length(quartile)
-            spidxA = sub2ind([length(trialLists) total_length], a, 1);
-            spidxB = sub2ind([length(trialLists) total_length], a, psth);
-            subplot(total_length,length(trialLists),[spidxA spidxB])
-            [meanPSTH, semPSTH, rasters] = computePSTHs(alignedFace{a}(:,:,plotROIs(k)),trialLists{a});
-            for d = 1:size(meanPSTH,2)
-                if d == 1
-                    ls = '-';
-                else
-                    ls = ':';
-                end
-                plotPSTHs(eventWindow, cell2mat(meanPSTH(:,d)), cell2mat(semPSTH(:,d)), psthColors,ls);
-                if a > 1
-                    xlim([-1.5 1]);
-                else
-                    xlim([-.5 1.5]);
-                end
-                yMin(end+1) = min(min(cell2mat(meanPSTH)-cell2mat(semPSTH)));
-                yMax(end+1) = max([.01 max(max(cell2mat(meanPSTH)+cell2mat(semPSTH)))]);
-            end
         end
         
         ln = line([0 0],[-1 10],'LineStyle','-','Color',[0 0 0],'linewidth',1);
