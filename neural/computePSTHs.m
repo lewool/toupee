@@ -3,13 +3,24 @@ function [meanPSTH, semPSTH, rasters] = computePSTHs(cellArray,trialsArray)
 % Cell array is a 2D trials x window array of responses for a single cell
 
 for i = 1:size(trialsArray,1)
-    for j = 1:size(trialsArray,2)
-        ti = trialsArray{i,j};
+    try
+        for j = 1:size(trialsArray,2)
+            ti = trialsArray{i,j};
 
-        %compute mean+sem responses
-        rasters{i,j} = cellArray(ti,:);
-        meanPSTH{i,j} = nanmean(cellArray(ti,:),1);
-        semPSTH{i,j} = nanstd(cellArray(ti,:))/sqrt(length(ti));
+            %compute mean+sem responses
+            rasters{i,j} = cellArray(ti,:);
+            meanPSTH{i,j} = nanmean(cellArray(ti,:),1);
+            semPSTH{i,j} = nanstd(cellArray(ti,:))/sqrt(length(ti));
+        end
+    catch
+        for j = 1
+            ti = trialsArray;
+
+            %compute mean+sem responses
+            rasters{i,j} = cellArray(ti,:);
+            meanPSTH{i,j} = nanmean(cellArray(ti,:),1);
+            semPSTH{i,j} = nanstd(cellArray(ti,:))/sqrt(length(ti));
+        end
     end
 end
 

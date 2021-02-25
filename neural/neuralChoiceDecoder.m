@@ -20,7 +20,7 @@ for tIdx = 1:length(neuralData.eta.eventWindow)
         cnst = FitInfo.Intercept(indx);
         B1(tIdx,iCV,:) = [cnst;B0];
         Y_pred{iCV} = glmval(squeeze(B1(tIdx,iCV,:)),X(test(C,iCV),:),'logit');
-        predAcc(iCV) = sum((Y_pred{1} > .5) == Y(test(C,1))) / length(Y(test(C,iCV)));
+        predAcc(iCV) = sum((Y_pred{iCV} > .5) == Y(test(C,iCV))) / length(Y(test(C,iCV)));
     end
     
     accuracy(tIdx) = mean(predAcc);
