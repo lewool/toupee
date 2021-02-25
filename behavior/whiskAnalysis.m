@@ -88,14 +88,27 @@ for itrial = 1:length(yAll)
     end
 end
 %add whisk and non whisk trials to 1 matrix for  raster plotting 
+whichTrials{1} = whiskTrials;
+whichTrials{2} = nowhiskTrials;
 
-whichTrials{1,1} = whiskTrials;
-whichTrials{1,2} = nowhiskTrials;
-
-
+%% placing all trials in whichTrialsto to sort trials after whisking 
+whichTrials{1}=[];
+for t = 1:length(eyeData.eta.alignedFace{1}(:,1,1))
+    whichTrials{1}(end+1)=t;
+end
 %%
+%grouping trials by high vs low whsikign (whisk-sorted) 
+[sortWhiskId] = sortTrialByWhisk(whichTrials,eyeData);
+transpose(sortIdx);
+%high shisking
+whiskTrials{1} = (sortwhiskId(end-99:end));
+%low
+whiskTrials{2} = (sortwhiskId(1:100,1));
+
+
+
+%% sort filter cells that have significant activity during whiskTrials 
 [baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(neuralData.eta);
-%c1=baselineResps(whiskTrials,1);
 whiskCells=[];
 for icell = 1:length(neuralData.eta.alignedResps{1,3})
     [p,h]=ranksum(baselineResps(whiskTrials,icell),baselineResps(nowhiskTrials,icell));
@@ -103,7 +116,21 @@ for icell = 1:length(neuralData.eta.alignedResps{1,3})
         whiskCells(end+1)= icell;
     end
 end
-        
+       
+%%
+%find cells correlating with whisking
+interp_whiskTrace = interp1(eyeData.timeAligned, eyeData.proc.face{1, 2}.motion, neuralData(1).respTimes); 
+%remove the NaNs
+interp_whiskTrace = interp_whiskTrace(~isnan(interp_whiskTrace));
+whiskCells=[];
+%start correlating from the time wihtout NaNss in the interpolated
+%whisktrace
+for c=1:length(neuralData.cellResps(49:end,:))
+    [r, p] = corrcoef(interp_whiskTrace, neuralData.cellResps(49:end,c));
+    if p(1,2) < 0.05
+        whiskCells(end+1)= c;
+    end
+end
 
 
 

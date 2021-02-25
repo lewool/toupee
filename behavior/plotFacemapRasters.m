@@ -14,8 +14,9 @@ plotROIs = whichROIs;
 
 %%
 for iA = 1:3
-    trialLists{iA}{1,1} = whichTrials{1};
-    trialLists{iA}{2,1} = whichTrials{2};
+    for cond = 1:length(whichTrials)
+        trialLists{iA}{cond,1} = whichTrials{cond};
+    end
 end
 
 
@@ -35,9 +36,13 @@ psthColors = [1 0 1; 0 1 1];
 
 
 %% plot all facemap ROIs (all trials)separated by whisking trials vs non-whisk trials
-rasterColors = [1 0 0; 0 0 1];
+rasterColors = colormap(winter); 
+%rasterColors = [0 0 1; 1 0 0];
 rasterLabels = {'Whisk' 'Non-whisk trials'};
-psthColors = [1 0 0; 0 0 1];
+%use blue and red for whisk vs non-whisk conditions 
+%psthColors = [0 0 1; 1 0 0];
+%use a colourmap for 4 diff lines garded by whisking 
+psthColors = colormap(winter);
 
 facemapfig = figure;
 set(facemapfig, 'Position', [80 250 870 660]);
@@ -71,7 +76,6 @@ while k <= max_k
 
     for a = 1:3
         for iCond = 1:length(trialLists{a})
-            %zarousal{a} = zscore(alignedFace{a});
             % extract the relevant trials for that condition
             whichTrials = trialLists{a}{iCond};
             numTrials = size(whichTrials,2);
@@ -80,19 +84,21 @@ while k <= max_k
             %[relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);
             
             % sort the trials by whisking
-            [relativeTimes, sortIdx] = sortTrialByWhisk(whichTrials,eyeData,et, wm);
-            
+            [sortIdx] = sortTrialByWhisk(whichTrials,eyeData);
+           
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
             f = imagesc(eventWindow,1:numTrials,alignedFace{a}(whichTrials(sortIdx),:,plotROIs(k)));
             colormap(ax,rasterColor(rasterColors(iCond,:)));
             hold on;
             %             line([0 0],[1 length(whichTrials)],'LineStyle','-','Color',[0 0 0]);
-            mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
-            st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
-            rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
-            set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            %mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
+            %st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
+            %rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
+            %set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
             box off
+            ln = line([0 0],[-1 10],'LineStyle','-','Color',[0 0 0],'linewidth',1);
+            uistack(ln,'bottom');
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
             ylabel(rasterLabels(iCond))
@@ -109,8 +115,8 @@ while k <= max_k
             set(gca,'xtick',[-1 0 1])
         end
     
-
-        %plot psth at the top
+%{
+        %plot 1 mean psth at the top
         spidxA = sub2ind([length(trialLists) total_length], a, 1);
         spidxB = sub2ind([length(trialLists) total_length], a, psth);
         subplot(total_length,length(trialLists),[spidxA spidxB])
@@ -135,6 +141,43 @@ while k <= max_k
         uistack(ln,'bottom');
         set(gca,'xtick',[]);
         set(gca,'TickDir','out');
+        %}
+        
+        %plot psth with 4 lines of diff whisk level
+        %first, divide trials into 4 quesrtiles 
+        
+        q=0.25*(length(trialLists{1,1}));
+        quartile{1}=trialLists{1,1}(1:q);
+        quartile{2}=trialLists{1,1}(q+1:2*q);
+        quartile{3}=trialLists{1,1}(2*q+1:3*q-1);
+        quartile{4}=trialLists{1,1}(end-q:end);
+
+        for f =1:length(quartile)
+            spidxA = sub2ind([length(trialLists) total_length], a, 1);
+            spidxB = sub2ind([length(trialLists) total_length], a, psth);
+            subplot(total_length,length(trialLists),[spidxA spidxB])
+            [meanPSTH, semPSTH, rasters] = computePSTHs(alignedFace{a}(:,:,plotROIs(k)),trialLists{a});
+            for d = 1:size(meanPSTH,2)
+                if d == 1
+                    ls = '-';
+                else
+                    ls = ':';
+                end
+                plotPSTHs(eventWindow, cell2mat(meanPSTH(:,d)), cell2mat(semPSTH(:,d)), psthColors,ls);
+                if a > 1
+                    xlim([-1.5 1]);
+                else
+                    xlim([-.5 1.5]);
+                end
+                yMin(end+1) = min(min(cell2mat(meanPSTH)-cell2mat(semPSTH)));
+                yMax(end+1) = max([.01 max(max(cell2mat(meanPSTH)+cell2mat(semPSTH)))]);
+            end
+        end
+        
+        ln = line([0 0],[-1 10],'LineStyle','-','Color',[0 0 0],'linewidth',1);
+        uistack(ln,'bottom');
+        set(gca,'xtick',[]);
+        set(gca,'TickDir','out');
     end
     
     %unify axis limits across plots and add labels as appropriate
@@ -142,7 +185,7 @@ while k <= max_k
         for iCond = 1:length(trialLists{a})
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             subplot(total_length,length(trialLists),[spidx1 spidx2])
-            caxis([min(iMin) max(iMax)*.3]);
+            caxis([min(iMin) max(iMax)*.1]);
             if iCond == length(trialLists{a})
                 if a == 1
                     xlabel('Time from stimulus (s)')
@@ -182,10 +225,4 @@ while k <= max_k
 end
 %%
 %see if whisk ROI (2) correlate with ROI 5
-[r, p] = corrcoef(eyeData.eta.alignedFace{1}(:,:,2),eyeData.eta.alignedFace{1}(:,:,5))
-
-
-
-
-
-
+[r, p] = corrcoef(eyeData.eta.alignedFace{1}(:,:,2),eyeData.eta.alignedFace{1}(:,:,5));
