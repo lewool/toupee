@@ -85,7 +85,7 @@ while k <= max_k
             
             if whichSort == 'byWhisk'
                 %sort the trials by whisking
-                [relativeTimes,sortIdx] = sortTrialByWhisk(whichTrials,eyeData,et,wm);
+                [relativeTimes,sortIdx] = sortTrialByWhiskgroup(whichTrials,eyeData,et,wm);
             elseif whichSort == 'byEventTimes'
                 % sort the trials by event time, here 1st move
                 [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);           

@@ -1,8 +1,5 @@
-function figName = plotWhiskRasters(expInfo, behavioralData, neuralData, whichCells, whichTrials,whichSort k)
-%whichSort can be either:
-%'byEventTime' - this sorts trials by 1st move time
-%or 'byWhisk' - this sorts trials by mean pre-stimulus whsiking (120-0ms before stim) 
-%error needs fixing for sorting, change  on line 85
+function figName = rasterBrowser_whisking(expInfo, behavioralData, neuralData, whichCells, whichTrials, eyeData, k)
+
 
 %% initialize experiment details
 
@@ -24,10 +21,11 @@ else
 end
 
 %%
+if strcmp(whichTrials, 'all')
+    whichTrials = 1:size(alignedResps{1},1);
+end
 for iA = 1:3
-    for cond = 1:length(whichTrials)
-        trialLists{iA}{cond,1} = whichTrials{cond};
-    end
+    trialLists{iA}{1,1} = whichTrials;
 end
 
 %% set up some plot values
@@ -40,8 +38,8 @@ total_raster = totalTrials + border*(totalRasters+1);
 psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
-rasterColors = [1 0 1; 0 1 1];
-rasterLabels = {'Whisk' 'Quiesc'};
+rasterColors = [0 0 0];
+rasterLabels = {'Trials ranked by pre-stim whisking'};
 psthColors = [1 0 1; 0 1 1];
 
 %% plot (all trials)
@@ -82,15 +80,8 @@ while k <= max_k
             whichTrials = trialLists{a}{iCond};
             numTrials = size(whichTrials,2);
             
-            if whichSort == 'byWhisk'
-                %sort the trials by whisking
-                [relativeTimes,sortIdx] = sortTrialByWhiskgroup(whichTrials,eyeData,et,wm);
-            elseif whichSort == 'byEventTimes'
-                % sort the trials by event time, here 1st move
-                [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);           
-            else
-                disp("Input sorting type: EITHER 'byEventTime' OR 'byWhisk'")
-            end
+            % sort the trials by pre-trial whisking
+            [relativeTimes, sortIdx] = sortTrialsByWhisking(whichTrials, eyeData, et, wm);
             
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
@@ -101,7 +92,9 @@ while k <= max_k
             mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
             st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
             rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
-            set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            set([st], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            set([mt], 'MarkerSize',1,'MarkerFaceColor','r','MarkerEdgeColor','none');
+            set([rt], 'MarkerSize',1,'MarkerFaceColor','b','MarkerEdgeColor','none');
             box off
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
@@ -124,14 +117,28 @@ while k <= max_k
         spidxA = sub2ind([length(trialLists) total_length], a, 1);
         spidxB = sub2ind([length(trialLists) total_length], a, psth);
         subplot(total_length,length(trialLists),[spidxA spidxB])
-        [meanPSTH, semPSTH, rasters] = computePSTHs(alignedResps{a}(:,:,plotCells(k)),trialLists{a});
+        quartileLength = floor(length(whichTrials)/4);
+        quartileColors = [...
+            1 0 0;...
+            1 .25 0;...
+            1 .5 0;...
+            1 .75 0];
+        quartiles = [...
+            whichTrials(sortIdx(1:quartileLength));...
+            whichTrials(sortIdx(quartileLength+1:2*quartileLength));...
+            whichTrials(sortIdx(2*quartileLength+1:3*quartileLength));...
+            whichTrials(sortIdx(3*quartileLength+1:4*quartileLength))];
+        
+        for iQ = 1:4
+            qIdx = quartiles(iQ,:);
+        [meanPSTH, semPSTH, rasters] = computePSTHs(alignedResps{a}(:,:,plotCells(k)),qIdx);
         for d = 1:size(meanPSTH,2)
             if d == 1
                 ls = '-';
             else
                 ls = ':';
             end
-            plotPSTHs(eventWindow, cell2mat(meanPSTH(:,d)), cell2mat(semPSTH(:,d)), psthColors,ls);
+            plotPSTHs(eventWindow, cell2mat(meanPSTH(:,d)), cell2mat(semPSTH(:,d)), quartileColors(iQ,:),ls);
             if a > 1
                 xlim([-1.5 1]);
             else
@@ -140,7 +147,7 @@ while k <= max_k
             yMin(end+1) = min(min(cell2mat(meanPSTH)-cell2mat(semPSTH)));
             yMax(end+1) = max([.01 max(max(cell2mat(meanPSTH)+cell2mat(semPSTH)))]);
         end
-        
+        end
         ln = line([0 0],[-1 10],'LineStyle','-','Color',[0 0 0],'linewidth',1);
         uistack(ln,'bottom');
         set(gca,'xtick',[]);
@@ -170,6 +177,7 @@ while k <= max_k
         ylim([min(yMin) max(yMax)]);
         if a == 1 
             ylabel('Activity')
+            title(strcat(expInfo.mouseName,' / ',expInfo.expDate,' /c ',num2str(plotCells(k))),'FontSize',12);
         end
 
     end    
@@ -182,9 +190,15 @@ while k <= max_k
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'rightarrow')
       k = min(max_k, k + 1);
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'return')
-        disp(k)
-        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\LEW031\Rasters\',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
-        print(gcf,'-dpng',saveName)
+        disp(strcat({'k = '},num2str(k)))
+        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\LEW031\Rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
+        print(gcf,'-dpng',saveName)   
+        break
+    elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'escape')
+        disp(strcat({'k = '},num2str(k)))
+        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\LEW031\Rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
+        print(gcf,'-dpng',saveName)        
+        close(fig)
         break
     end
 end

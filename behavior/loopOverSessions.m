@@ -7,18 +7,19 @@ mouseList = {...
 %}
 
 mouseName = {{'LEW031'}};
-expList = { ...
-    {'2020-02-28',2,[2]}};
- %{   
-    {'2020-02-03',1,[1]}...    
+expList = {{'2020-03-05',1,[1]}}; 
+ %{ 
+{'2020-02-03',1,[1]}...    
     {'2020-02-14',1,[1]}...
     {'2020-02-17',1,[1]}...
     {'2020-02-18',1,[1]}...
     {'2020-02-25',1,[1]}...
     {'2020-02-26',1,[1]}...
     {'2020-02-28',2,[2]}...
+    {'2020-03-02',1,[1]}...
+    {'2020-03-05',1,[1]}...
     };
-
+  
 mouseName = {{'LEW032'}};
 expList = { ...
     {'2020-02-03',1,[1]}...
@@ -27,59 +28,67 @@ expList = { ...
     {'2020-02-17',2,[2]}...
     {'2020-02-18',1,[1]}...
     };
- %}   
+%}   
 
 
 %% load all the experiments into expInfo
 % process the usual data
 % the script knows to loop over all the experiments you listed above
 % this will take a while but the command line will print progress
-expInfo = initExpInfo(mouseName,expList);
-[expInfo, neuralData, behavioralData] = processExperiment(expInfo);
-eyeData = getEyeData(expInfo);
-[eyeData] = alignFace(expInfo, eyeData, behavioralData);
+%expInfo = initExpInfo(mouseName,expList);
+%[expInfo, neuralData, behavioralData] = processExperiment(expInfo);
+eyeData = getEyeDataSVD(expInfo);
+[eyeData] = alignFaceSVD(expInfo, eyeData, behavioralData);
 
 %%
-%indexes trials by early and late 1st move and makes vectors for all
-%Facemap ROIs
+%indexes trials by early and late 1st move and makes vectors for all Facemap ROIs
 %plot graphs of pupil,whisking, paw and neural activity divided by early vs
 %late trials
-[earlySessionsWhisk,lateSessionsWhisk] = earlyVsLate(expInfo,behavioralData,neuralData,eyeData);
+[earlyTrialsWhisk,lateTrialsWhisk] = earlyVsLate(expInfo,behavioralData,neuralData,eyeData);
 
 %% Pre-stimulus whisking analysis: compute linear fit and plot whisking +fit
 %plot quantification of all early vs late trial pre-stim mean whisk & whisk slope
 %needs to first run earlyVsLate function
-prestimWhiskAnalysis(eyeData,earlySessionsWhisk,lateSessionsWhisk)
+prestimWhiskAnalysis(eyeData,earlyTrialsWhisk,lateTrialsWhisk)
  
 %% Rasters for all trials continously sorted (individual cells/ROIs)
 %placing all trials in whichTrials  
-whichTrials{1}=[];
+whichTrials=[];
 for t = 1:length(eyeData.eta.alignedFace{1}(:,1,1))
-    whichTrials{1}(end+1)=t;
+    whichTrials(end+1)=t;
 end
 
 %choosing cells correlating to whisking to plot only those
-interp_whiskTrace = interp1(eyeData.timeAligned, eyeData.proc.face{1, 2}.motion, neuralData(1).respTimes); 
-%remove the NaNs
-interp_whiskTrace = interp_whiskTrace(~isnan(interp_whiskTrace));
+interp_whiskTraceNan = interp1(eyeData.timeAligned, eyeData.proc.face{1, 2}.motion, neuralData(1).respTimes); 
+%remove the NaNs, but this is different for each session
+interp_whiskTrace = interp_whiskTraceNan(~isnan(interp_whiskTraceNan));
+nan_len = length(interp_whiskTraceNan)-length(interp_whiskTrace);
+interp_whiskTrace = transpose(interp_whiskTrace);
+interp_neural = neuralData.cellResps(nan_len+1:end,:);
 whiskCells=[];
-%start correlating from the time wihtout NaNss in the interpolated
-%whisktrace
-for c=1:length(neuralData.cellResps(49:end,:))
-    [r, p] = corrcoef(interp_whiskTrace, neuralData.cellResps(49:end,c));
+%start correlating from the time wihtout NaNss (approx sampling 50) in the interpolated whisktrace
+for c=1: length(interp_neural(1,:))
+    [r, p] = corrcoef(interp_whiskTrace, interp_neural(:,c));
     if p(1,2) < 0.05
         whiskCells(end+1)= c;
     end
 end
-
-%plot raster of neural activity sorted why pre-stim whisking (200-0 ms)
-
-
+%choose your Raster plotting parameters:
+%whichTrials=
+whichCells = whiskCells;
+k=1;
+%plot raster of neural activity sorted by pre-stim whisking (200-0 ms)
+figure;
+rasterBrowser_whisking(expInfo, behavioralData, neuralData, whichCells, whichTrials, eyeData, k)
+figure;
+rasterBrowser_facemap(expInfo, behavioralData, eyeData, whichROIss, whichTrials, k)
 
 %% Rasters for grouping trials (individual cells/ROIs)
 
 %grouping trials by high vs low whisking (whisk-sorted) 
-[relativeTimes,sortIdxWhisk] = sortTrialByWhisk(whichTrials,eyeData,et,wm);
+et = behavioralData.eventTimes;
+wm = behavioralData.wheelMoves;
+[relativeTimes,sortIdxWhisk] = sortTrialByWhiskgroup(whichTrials,eyeData,et,wm);
 transpose(sortIdxWhisk);
 %high shisking
 whiskTrials{1} = (sortIdxWhisk(end-99:end));
@@ -95,6 +104,7 @@ for icell = 1:length(neuralData.eta.alignedResps{1,3})
         whiskCells(end+1)= icell;
     end
 end
+
 %choose your Raster plotting parameters:
 %whichTrials=
 whichCells = whiskCells;
@@ -104,12 +114,11 @@ k=1;
 %neural data: all trials in 1 group, 1 psth line
 plotWhiskRasters(expInfo, behavioralData, neuralData, whiskCells, whichTrials,whichSort,k)
 %Facemap outputs: all trials in 1 group, 1 psth line
-plotFacemapRasters(expInfo, behavioralData, eyeData, 1:5, whichTrials,whichSort,k)
+plotFacemapRasters(expInfo, behavioralData, eyeData, 1:4, whichTrials,'byWhisk',k)
 
 %% session raster for population neural activity compared to whisk-trace
-%whole session 
-
-
-%shorter time of sessison 
+%can change btween full session and specific smaller time window in the
+%code 
+plotSessionRaster(neuralData, eyeData)
 
 
