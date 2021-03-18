@@ -18,6 +18,7 @@ repeatType = trialConditions.repeatType;
 movementDir = trialConditions.movementDir;
 movementTime = trialConditions.movementTime;
 highRewardSide = trialConditions.highRewardSide;
+preStimMovement = trialConditions.preStimMovement;
 responseType = trialConditions.responseType;
 rewardOutcome = trialConditions.rewardOutcome;
 pastStimulus = trialConditions.pastStimulus;
@@ -134,7 +135,20 @@ for iExp = 1:numExps
         otherwise
             error('Choose a valid highRewardSide: "left", "right", or "all"');
     end
-
+    
+    switch preStimMovement
+        case 'active'
+            idxPreStim = wm.epochs(1).isMoving;
+            idxPreStim = idxPreStim(1:nt);
+        case 'quiescent'
+            idxPreStim = ~wm.epochs(1).isMoving;
+            idxPreStim = idxPreStim(1:nt);
+        case 'all'
+            idxPreStim = true(1,nt);
+        otherwise
+            error('Choose a valid preStimMovement: "active", "quiescent", or "all"');
+    end
+    
     switch responseType
         case 'correct'
 %             idxCorrect = firstMoveDirs == b.events.correctResponseValues(1:nt);
@@ -301,6 +315,7 @@ for iExp = 1:numExps
         idxDirection .* ...
         idxMovement .* ...
         idxRewardSide .* ...
+        idxPreStim .* ...
         idxCorrect .* ...
         idxRewarded .* ...
         idxPastStimulus .* ...
