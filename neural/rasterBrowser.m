@@ -80,7 +80,7 @@ end
 
 %% plot (all trials)
 fig = figure;
-set(fig, 'Position', [680 540 1080 320]);
+set(fig, 'Position', [80 250 870 660]);
 hold on;
 
 if ~exist('k') == 1

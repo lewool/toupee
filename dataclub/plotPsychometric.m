@@ -14,7 +14,11 @@ function plotPsychometric(varargin)
 % 3. plotPsychometric(expInfo), where expInfo is a struct of one/many
 %       experiments (see initExpInfo.m)
 
-
+% options struct:
+% expIdx = feed a range of sessions you want to plot (e.g., [3:10])
+% choiceHistory = plot psycho based on choice made @t-1
+% diffHistory = plot psycho based on difficulty (contrast hi/lo) @t-1
+% movType = 'early', 'late', or 'all'
 %%%% get data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 allContrastValues = [];
