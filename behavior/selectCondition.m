@@ -22,6 +22,7 @@ responseType = trialConditions.responseType;
 rewardOutcome = trialConditions.rewardOutcome;
 pastStimulus = trialConditions.pastStimulus;
 pastMovementDir = trialConditions.pastMovementDir;
+pastMovementTime = trialConditions.pastMovementTime;
 pastResponseType = trialConditions.pastResponseType;
 trialsBack = trialConditions.trialsBack;
 switchBlocks = trialConditions.switchBlocks;
@@ -204,6 +205,20 @@ for iExp = 1:numExps
         otherwise
             error('Choose a valid pastMovementDir: "ccw", "cw", or "all"');
     end
+    
+    %track the timing 1 trial in the past
+    switch pastMovementTime 
+        case 'early'
+            idxPastMovement = wm.epochs(2).isMoving;
+            idxPastMovement = [nan(1,trialsBack), idxPastMovement(1:nt-trialsBack)];
+        case 'late'
+            idxPastMovement = ~wm.epochs(2).isMoving .* wm.epochs(3).isMoving;
+            idxPastMovement = [nan(1,trialsBack), idxPastMovement(1:nt-trialsBack)];
+        case 'all'
+            idxPastMovement = true(1,nt);
+        otherwise
+            error('Choose a valid pastMovementTime: "early", "late", or "all"');
+    end
 
     %track the outcome 1 trial in the past
     switch pastResponseType 
@@ -271,7 +286,7 @@ for iExp = 1:numExps
         RTs = wm.epochs(5).onsetTimes - et(1).daqTime;
         idxRT = RTs >= specificRTs(1) & RTs <= specificRTs(2);
         idxRT = idxRT(1:nt);
-    elseif ~isnumeric(whichTrials)
+    elseif ~isnumeric(specificRTs)
         idxRT = true(1,nt);
     else
         error('Choose a valid indexing range, or "all"');
@@ -290,6 +305,7 @@ for iExp = 1:numExps
         idxRewarded .* ...
         idxPastStimulus .* ...
         idxPastDirection .* ...
+        idxPastMovement .* ...
         idxPastCorrect .* ...
         idxSwitch .* ...
         idxWhich .* ...
