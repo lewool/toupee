@@ -26,8 +26,8 @@
 %% set up trial conditions to compare
 
 clear contrastConditions trialConditions labels condIdx
-contrasts = getUniqueContrasts(expInfo);
-allContrasts = getAllContrasts(expInfo);
+contrasts = getUniqueContrasts(expInfo{1});
+allContrasts = getAllContrasts(expInfo{1});
 
 %set up trial conditions for hi-L and hi-R blocks
 trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','early');

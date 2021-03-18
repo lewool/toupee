@@ -14,40 +14,57 @@ earlyTrialsWhisk = zeros(length(expInfo),201);
 lateTrialsWhisk = zeros(length(expInfo),201);
 allTrialsPaw = zeros(length(expInfo),201);
 
-%index EARLY pupil size and add to vector 
-for iX = 1:length(expInfo)
-    [~,trialsEarly_iX] = selectCondition(expInfo(iX), ...
-	getUniqueContrasts(expInfo(iX)),behavioralData(iX), ...
-	initTrialConditions('movementTime','early'));
-    earlyTrialsPupil(iX,:) = nanmean(eyeData(iX).eta.alignedFace{1}(trialsEarly_iX,:,1));
+%choose our conditions
+%remove trials when mouse was moving wheel before stim onset with if
+%statement
+
+for iX = 1:length(expInfo) 
+    
+    [earlyTrials{iX}, ~] = selectCondition(expInfo(iX), [-1 -.5 -.12 -.05 0 .05 .12 .5 1],...
+        behavioralData(iX), initTrialConditions('movementTime','early','preStimMovement','quiescent'...
+        'specificRTs',([.1 3]),'pastMovementTime','early'));
+    
+    [lateTrials{iX}, ~] = selectCondition(expInfo(iX), [-1 -.5 -.12 -.05 0 .05 .12 .5 1],...
+        behavioralData(iX), initTrialConditions('movementTime','late','preStimMovement','quiescent'...
+        'specificRTs',([.1 3]),'pastMovementTime','late'));
+    %remove trials when wheel moves pre-stim
+    %earlyTrialsWithoutPrestimWheel{iX} = earlyLogical{iX} .* ~behavioralData(iX).wheelMoves.epochs(1).isMoving;
+    %lateTrialsWithoutPrestimWheel{iX} = lateLogical{iX} .* ~behavioralData(iX).wheelMoves.epochs(1).isMoving;
+      
+    %earlyTrials{iX} = find(earlyTrialsWithoutPrestimWheel{iX} == 1);
+    %lateTrials{iX} = find(lateTrialsWithoutPrestimWheel{iX} == 1);
+
+
+    %place our different indexed ROIs in vectors 
+    %index EARLY pupil
+    earlyTrialsPupil(iX,:) = nanmean(eyeData(iX).eta.alignedFace{1}(earlyTrials{iX},:,1));
 
     %index LATE pupil size
-    [~,trialsLate_iX] = selectCondition(expInfo(iX), ...
-        getUniqueContrasts(expInfo(iX)),behavioralData(iX), ...
-        initTrialConditions('movementTime','late'));
-    lateTrialsPupil(iX,:) = nanmean(eyeData(iX).eta.alignedFace{1}(trialsLate_iX,:,1));
+    lateTrialsPupil(iX,:) = nanmean(eyeData(iX).eta.alignedFace{1}(lateTrials{iX},:,1));
  
    
     %index EARLY whisking (ROI 2)
     earlyTrialsWhisk(iX,:) = ...
-        nanmean(eyeData(iX).eta.alignedFace{1}(trialsEarly_iX,:,2));
+        nanmean(eyeData(iX).eta.alignedFace{1}(earlyTrials{iX},:,2));
     
     %late whisking
     lateTrialsWhisk(iX,:) = ...
-        nanmean(eyeData(iX).eta.alignedFace{1}(trialsLate_iX,:,2));
+        nanmean(eyeData(iX).eta.alignedFace{1}(lateTrials{iX},:,2));
      
     
-     %Paw movement (all trials)
-    allTrialsPaw(iX,:) = ...
-        nanmean(eyeData(iX).eta.alignedFace{1}(:,:,4));
+     %Paw movement 
+    earlyTrialsPaw(iX,:) = ...
+        nanmean(eyeData(iX).eta.alignedFace{1}(earlyTrials{iX},:,4));
+    lateTrialsPaw(iX,:) = ...
+        nanmean(eyeData(iX).eta.alignedFace{1}(lateTrials{iX},:,4));
     
     %index neural data EARLY trials
     cellMeansE{iX} = squeeze(...
-        nanmean(neuralData(iX).eta.alignedResps{1}(trialsEarly_iX,:,:)));
+        nanmean(neuralData(iX).eta.alignedResps{1}(earlyTrials{iX},:,:)));
     
     %index neural data LATE trials
     cellMeansL{iX} = squeeze(...
-        nanmean(neuralData(iX).eta.alignedResps{1}(trialsLate_iX,:,:)));
+        nanmean(neuralData(iX).eta.alignedResps{1}(lateTrials{iX},:,:)));
      
 end
 
@@ -57,29 +74,50 @@ figure;
 for iX = 1: length(expInfo)
     plot(eyeData(iX).eta.eventWindow,earlyTrialsPupil,'Color',[235/255, 108/255, 0/255])
     plot(eyeData(iX).eta.eventWindow,mean(earlyTrialsPupil),'Color',[255/255, 128/255, 0/255],'Linewidth', 3)
-    xlabel('Time(s) Stimulus aligned')
+    xlabel('Time(s) stimulus aligned')
     ylabel('Pupil size')
-    title("Early vs late trial pupil")
+    %title("Early vs late trial pupil")
     hold on
-    %plot late trial whisking
     plot(eyeData(iX).eta.eventWindow,lateTrialsPupil,'Color',[0/255, 133/255, 133/255])
     plot(eyeData(iX).eta.eventWindow,mean(lateTrialsPupil),'Color',[0/255, 153/255, 153/255], 'Linewidth', 3)
+    line([0,0],[-1,1])
 end
 
 %%
 %plot early vs late whisking 
-figure;
+figure; 
 for iX = 1: length(expInfo)
     plot(eyeData(iX).eta.eventWindow,earlyTrialsWhisk,'Color',[235/255, 108/255, 0/255])
     plot(eyeData(iX).eta.eventWindow,mean(earlyTrialsWhisk),'Color',[255/255, 128/255, 0/255],'Linewidth', 3)
-    xlabel('Time(s) Stimulus aligned')
+    xlabel('Time(s) stimulus aligned')
     ylabel('Whisking')
-    title("Early vs late trial whisking")
+    %title("Early vs late trial whisking")
     hold on
-    %plot late trial whisking
     plot(eyeData(iX).eta.eventWindow,lateTrialsWhisk,'Color',[0/255, 133/255, 133/255])
     plot(eyeData(iX).eta.eventWindow,mean(lateTrialsWhisk),'Color',[0/255, 153/255, 153/255], 'Linewidth', 3)
+    xlim([-0.5 0])
+    line([0,0],[-1,1.5])
+    
 end
+%%
+%plot paw movement
+figure;
+for iX = 1: length(expInfo)
+    plot(eyeData(iX).eta.eventWindow,earlyTrialsPaw,'Color',[235/255, 108/255, 0/255])
+    plot(eyeData(iX).eta.eventWindow,mean(earlyTrialsPaw),'Color',[255/255, 128/255, 0/255],'Linewidth', 3)
+    xlabel('Time(s) stimulus aligned')
+    ylabel('Paw movement')
+    %title("Early vs late trial paw movement")
+    hold on
+    %plot late trial paw
+    plot(eyeData(iX).eta.eventWindow,lateTrialsPaw,'Color',[0/255, 133/255, 133/255])
+    plot(eyeData(iX).eta.eventWindow,mean(lateTrialsPaw),'Color',[0/255, 153/255, 153/255], 'Linewidth', 3)
+    xlim([-0.5 0])
+    line([0,0],[-1,3])
+end
+%overlay wheel movements? below code needs fixing 
+%plot(eyeData(iX).eta.eventWindow,behavioralData(iX).wheelMoves.traces.time)
+
 %%
 %snake plot of neural activity
 %mean of all trials per cell in all Trials for early and late trials
@@ -95,11 +133,12 @@ animalMeanNeuralEt = zscore(animalMeanNeuralEt);
 sIdxE = transpose(sIdxE);
 figure;
 imagesc(neuralData(iX).eta.eventWindow,1:size(animalMeanNeuralEt,1),animalMeanNeuralEt(sIdxE,:))
-xlabel('Time(s) Stimulus aligned')
+xlabel('Time(s) stimulus aligned')
 ylabel('#cells')
 title("Early trials")
 line([0,0],[0,70000])
 %xlim([-0.5 0])
+
 
 %late trials 
 figure;
@@ -110,11 +149,12 @@ animalMeanNeuralLt = zscore(animalMeanNeuralLt);
 [~,sIdxL] = sort(meanPeaksL);
 sIdxL = transpose(sIdxL);
 imagesc(neuralData(1).eta.eventWindow,1:size(animalMeanNeuralLt,3),animalMeanNeuralLt(sIdxL,:))
-xlabel('Time(s) Stimulus aligned')
+xlabel('Time(s) stimulus aligned')
 ylabel('#cells')
 title("Late trials")
 line([0,0],[0,70000])
 %xlim([-0.5 0])
+
 
 %%
 %compare mean neural activity at baseline -0.5-0 sec pre-stim 
@@ -134,20 +174,10 @@ for iexp = 1:length(cellMeansE)
     plot(neuralData(iX).eta.eventWindow,populationActivityL(:,iexp),...
         'Color', [105/255, 165/255, 131/255],'Linewidth',2)
     xlim([-0.5 0])
-    xlabel('Time(s) Stimulus aligned')
+    xlabel('Time(s) stimulus aligned')
     ylabel('Neural activity')
     hold on;
 end
 legend('Late', 'Early','Location', 'Northwest')
-%%
-%plot paw (& wheel?) movement
-figure;
-plot(eyeData(iX).eta.eventWindow,allTrialsPaw)
-hold on
-xlabel('Time(s) Stimulus aligned')
-ylabel('Paw Movement ')
-title("All trials")
-%overlay wheel movements? below code needs fixing 
-%plot(eyeData(iX).eta.eventWindow,behavioralData(iX).wheelMoves.traces.time)
 
 

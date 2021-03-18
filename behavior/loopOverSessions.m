@@ -7,9 +7,9 @@ mouseList = {...
 %}
 
 mouseName = {{'LEW031'}};
-expList = {{'2020-03-05',1,[1]}}; 
- %{ 
-{'2020-02-03',1,[1]}...    
+expList = {...
+ 
+    {'2020-02-03',1,[1]}...    
     {'2020-02-14',1,[1]}...
     {'2020-02-17',1,[1]}...
     {'2020-02-18',1,[1]}...
@@ -19,7 +19,7 @@ expList = {{'2020-03-05',1,[1]}};
     {'2020-03-02',1,[1]}...
     {'2020-03-05',1,[1]}...
     };
-  
+%{   
 mouseName = {{'LEW032'}};
 expList = { ...
     {'2020-02-03',1,[1]}...
@@ -35,10 +35,10 @@ expList = { ...
 % process the usual data
 % the script knows to loop over all the experiments you listed above
 % this will take a while but the command line will print progress
-%expInfo = initExpInfo(mouseName,expList);
-%[expInfo, neuralData, behavioralData] = processExperiment(expInfo);
-eyeData = getEyeDataSVD(expInfo);
-[eyeData] = alignFaceSVD(expInfo, eyeData, behavioralData);
+expInfo = initExpInfo(mouseName,expList);
+[expInfo, neuralData, behavioralData] = processExperiment(expInfo);
+eyeData = getEyeData(expInfo);
+[eyeData] = alignFace(expInfo, eyeData, behavioralData);
 
 %%
 %indexes trials by early and late 1st move and makes vectors for all Facemap ROIs
@@ -81,7 +81,7 @@ k=1;
 figure;
 rasterBrowser_whisking(expInfo, behavioralData, neuralData, whichCells, whichTrials, eyeData, k)
 figure;
-rasterBrowser_facemap(expInfo, behavioralData, eyeData, whichROIss, whichTrials, k)
+rasterBrowser_facemap(expInfo, behavioralData, eyeData, 1:5, whichTrials, k)
 
 %% Rasters for grouping trials (individual cells/ROIs)
 

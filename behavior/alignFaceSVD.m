@@ -36,13 +36,13 @@ for ex = 1:length(expInfo)
     nt = numel(expInfo(ex).block.events.endTrialTimes);
     nr = 0;
     %preallocate epmty matrices of correct size 
-    faceROIs = zeros(length(expInfo),length(eyeData(ex).proc.face{1}.motionSVD(1,:)),length(eyeData(ex).proc.face{1}.motionSVD(1,:)));
-    faceROIs_int = [];
+    faceROIs = zeros(5,length(eyeData(ex).proc.face{1}.motionSVD(:,1)),500);
+    faceROIs_int = zeros(5,length(eyeData(ex).proc.face{1}.motionSVD(:,1)),500);
     
     %extract traces from the processed movie file
     if isfield(eyeData(ex).proc,'pupil')
         nr = nr + 1;
-        faceROIs(nr,:,:) = eyeData(ex).proc.pupil.area;
+        faceROIs(nr,:,1) = eyeData(ex).proc.pupil.area;
     end
     if isfield(eyeData(ex).proc,'face')
         for t = 1:length(eyeData(ex).proc.face)
@@ -52,11 +52,11 @@ for ex = 1:length(expInfo)
             end
         end
     end
-    
-    for f = 1:size(faceROIs, 1)
-        faceROIs_int(f,:) = interp1(eyeData(ex).timeAligned,faceROIs(f,:), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
+    for SVD = 1:length(faceROIs(1,1,:))
+        for f = 1:size(faceROIs, 1)
+            faceROIs_int(f,:,SVD) = interp1(eyeData(ex).timeAligned,faceROIs(f,:,SVD), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
+        end
     end
-    
     for ev = 1:length(events)
         if strcmp(events(ev), 'firstMoveTimes')
             startTimes = wm.epochs(5).onsetTimes - timeBefore;

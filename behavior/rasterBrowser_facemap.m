@@ -1,4 +1,4 @@
-function figName = rasterBrowser_facemap(expInfo, behavioralData, eyeData, whichROIss, whichTrials, k)
+function figName = rasterBrowser_facemap(expInfo, behavioralData, eyeData, whichROIs, whichTrials, k)
 
 
 %% initialize experiment details
@@ -34,7 +34,7 @@ psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
 rasterColors = [0 0 1];
-rasterLabels = {'Trials ranked by pre-stim whisking'};
+rasterLabels = {'Trials sorted by pre-stim whisking'};
 psthColors = [1 0 1; 0 1 1];
 
 %% plot (all trials)
@@ -77,6 +77,8 @@ while k <= max_k
             
             % sort the trials by pre-trial whisking
             [relativeTimes, sortIdx] = sortTrialsByWhisking(whichTrials, eyeData, et, wm);
+            %sort by 1st move
+            %[relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm); 
             
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
@@ -87,9 +89,9 @@ while k <= max_k
             mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
             st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
             rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
-            set([st], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
-            set([mt], 'MarkerSize',1,'MarkerFaceColor','r','MarkerEdgeColor','none');
-            set([rt], 'MarkerSize',1,'MarkerFaceColor','b','MarkerEdgeColor','none');
+            set([st], 'MarkerSize',2,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            set([mt], 'MarkerSize',2,'MarkerFaceColor','r','MarkerEdgeColor','none');
+            set([rt], 'MarkerSize',2,'MarkerFaceColor','b','MarkerEdgeColor','none');
             box off
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
