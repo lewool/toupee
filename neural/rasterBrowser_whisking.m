@@ -39,11 +39,8 @@ psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
 rasterColors = [0 0 0];
-<<<<<<< HEAD
+
 rasterLabels = {'Trials ranked by pre-stim whisking'};
-=======
-rasterLabels = {'Trials ranked by pretrial whisking'};
->>>>>>> master
 psthColors = [1 0 1; 0 1 1];
 
 %% plot (all trials)
@@ -96,13 +93,11 @@ while k <= max_k
             mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
             st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
             rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
-<<<<<<< HEAD
+
             set([st], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
             set([mt], 'MarkerSize',1,'MarkerFaceColor','r','MarkerEdgeColor','none');
             set([rt], 'MarkerSize',1,'MarkerFaceColor','b','MarkerEdgeColor','none');
-=======
-            set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
->>>>>>> master
+            %set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
             box off
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
@@ -185,10 +180,8 @@ while k <= max_k
         ylim([min(yMin) max(yMax)]);
         if a == 1 
             ylabel('Activity')
-<<<<<<< HEAD
+
             title(strcat(expInfo.mouseName,' / ',expInfo.expDate,' /c ',num2str(plotCells(k))),'FontSize',12);
-=======
->>>>>>> master
         end
 
     end    
@@ -202,22 +195,21 @@ while k <= max_k
       k = min(max_k, k + 1);
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'return')
         disp(strcat({'k = '},num2str(k)))
-<<<<<<< HEAD
-        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\LEW031\Rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
+
+        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\Rasters\final rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
         print(gcf,'-dpng',saveName)   
         break
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'escape')
         disp(strcat({'k = '},num2str(k)))
-        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\LEW031\Rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
+        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\Rasters\final rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
         print(gcf,'-dpng',saveName)        
-=======
+
         figName = strcat('whiskQuartiles_',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
         printfig(gcf, figName)
         break
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'escape')
         disp(strcat({'k = '},num2str(k)))
         figName = strcat('whiskQuartiles_',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
->>>>>>> master
         close(fig)
         break
     end

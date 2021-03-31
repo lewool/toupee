@@ -96,6 +96,7 @@ for ex = 1:length(expInfo)
 end    
 
 %% SVD
+%{
 for ex = 1:length(expInfo)
     
     et = behavioralData(ex).eventTimes;
@@ -109,7 +110,7 @@ for ex = 1:length(expInfo)
     
     if isfield(eyeData(ex).proc,'pupil')
         nr = nr + 1;
-        faceROIs(nr,:,:) = nan(size(eyeData.proc.face{1, 1}.motionSVD,1),npc);
+        faceROIs(nr,:,:) = nan(size(eyeData(ex).proc.face{1, 1}.motionSVD,1),npc);
     end
     if isfield(eyeData(ex).proc,'face')
         for t = 1:length(eyeData(ex).proc.face)
@@ -165,6 +166,7 @@ for ex = 1:length(expInfo)
     
 end    
     
+%}
    
     
   

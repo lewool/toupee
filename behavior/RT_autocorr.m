@@ -1,3 +1,4 @@
+
 %set up your vector of RTs, e.g., 
 RT_vector = behavioralData(1).wheelMoves.epochs(5).onsetTimes' - behavioralData(1).eventTimes(1).daqTime';
 
@@ -12,7 +13,6 @@ plot(lags,corr_RT,'ko')
 xlabel('Past trials')
 ylabel('Correlation coefficient')
 title('Influence of previous reaction time')
-hold on;
 %%
 %do same for whik-RT corr 
 whisk_vector = (eyeData(1).eta.alignedFace(:,95:101,2));

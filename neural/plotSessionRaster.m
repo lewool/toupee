@@ -28,11 +28,11 @@ for iCell = 1:size(cellResps,1)
     whiskMod_pValues(iCell) = double(p(1,2));
 end
 
-<<<<<<< HEAD
+
 [~, sortIdx] = sort(whiskMod_Rvalues,'ascend');
-=======
-[~, sortIdx] = sort(whiskMod_Rvalues,'descend');
->>>>>>> master
+
+%[~, sortIdx] = sort(whiskMod_Rvalues,'descend');
+
 
 %% plot all
 figure;
@@ -44,11 +44,11 @@ set(gca,'xtick',[])
 set(gca,'ytick',[])
 box off
 set(gca,'tickdir','out')
-<<<<<<< HEAD
+
 ylabel('Neurons sorted by whisk correlation')
-=======
+
 ylabel('Neurons')
->>>>>>> master
+
 
 colormap(flipud(gray));
 caxis([0 .2])
@@ -63,11 +63,11 @@ set(gca,'ytick',[])
 ylabel('Whisking')
 
 %% plot zoom
-<<<<<<< HEAD
+
 range = [4000 4150];
-=======
+
 range = [500 620];
->>>>>>> master
+
 figure;
 set(gcf,'position',[57 155 1257 823])
 subplot(8,1,[1:7])
@@ -77,11 +77,11 @@ set(gca,'xtick',[])
 set(gca,'ytick',[])
 box off
 set(gca,'tickdir','out')
-<<<<<<< HEAD
+
 ylabel('Neurons sorted by whisk correlation')
-=======
+
 ylabel('Neurons')
->>>>>>> master
+
 colormap(flipud(gray));
 caxis([0 .2])
 

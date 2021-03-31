@@ -33,8 +33,8 @@ total_raster = totalTrials + border*(totalRasters+1);
 psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
-rasterColors = [0 0 1];
-rasterLabels = {'Trials sorted by pre-stim whisking'};
+rasterColors = [0 0 0];
+rasterLabels = {'Trials sorted by 1st movement'};
 psthColors = [1 0 1; 0 1 1];
 
 %% plot (all trials)
@@ -76,9 +76,9 @@ while k <= max_k
             numTrials = size(whichTrials,2);
             
             % sort the trials by pre-trial whisking
-            [relativeTimes, sortIdx] = sortTrialsByWhisking(whichTrials, eyeData, et, wm);
+            %[relativeTimes, sortIdx] = sortTrialsByWhisking(whichTrials, eyeData, et, wm);
             %sort by 1st move
-            %[relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm); 
+            [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm); 
             
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
@@ -88,10 +88,10 @@ while k <= max_k
             %             line([0 0],[1 length(whichTrials)],'LineStyle','-','Color',[0 0 0]);
             mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
             st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
-            rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
+            %rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
             set([st], 'MarkerSize',2,'MarkerFaceColor','k','MarkerEdgeColor','none');
-            set([mt], 'MarkerSize',2,'MarkerFaceColor','r','MarkerEdgeColor','none');
-            set([rt], 'MarkerSize',2,'MarkerFaceColor','b','MarkerEdgeColor','none');
+            set([mt], 'MarkerSize',2,'MarkerFaceColor','g','MarkerEdgeColor','none');
+            %set([rt], 'MarkerSize',2,'MarkerFaceColor','b','MarkerEdgeColor','none');
             box off
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
@@ -173,7 +173,7 @@ while k <= max_k
         box off
         ylim([min(yMin) max(yMax)]);
         if a == 1 
-            ylabel('Arousal')
+            ylabel('Face movement')
             title(strcat(expInfo.mouseName,' / ',expInfo.expDate,' /c ',num2str(plotROIs(k))),'FontSize',12);
         end
 
@@ -188,12 +188,12 @@ while k <= max_k
       k = min(max_k, k + 1);
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'return')
         disp(strcat({'k = '},num2str(k)))
-        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\LEW031\Rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotROIs(k)));
+        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\Rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotROIs(k)));
         print(gcf,'-dpng',saveName)   
         break
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'escape')
         disp(strcat({'k = '},num2str(k)))
-        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\LEW031\Rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotROIs(k)));
+        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\Rasters\','whiskQuart',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotROIs(k)));
         print(gcf,'-dpng',saveName)        
         close(fig)
         break
