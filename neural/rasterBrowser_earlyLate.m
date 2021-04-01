@@ -5,10 +5,10 @@ function figName = rasterBrowser_earlyLate(expInfo, behavioralData, neuralData, 
 % trialStruct = trialTypes.intVar.cb2D;
 %% initialize experiment details
 
-alignedResps = neuralData.eta.alignedResps;
+alignedResps = neuralData.eta.alignedFace;
 eventWindow = neuralData.eta.eventWindow;
-bfcH = neuralData.stats.bfcH;
-pLabels = neuralData.stats.labels;
+% bfcH = neuralData.stats.bfcH;
+% pLabels = neuralData.stats.labels;
 et = behavioralData.eventTimes;
 wm = behavioralData.wheelMoves;
 
@@ -45,9 +45,9 @@ total_raster = totalTrials + border*(totalRasters+1);
 psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
-rasterColors = [1 0 1; 0 1 1];
+rasterColors = [1 .5 0; 0 .6 .6];
 rasterLabels = {'Early';'Late'};
-psthColors = [1 0 1; 0 1 1];
+psthColors = [1 .5 0; 0 .6 .6];
 
 %% plot (all trials)
 fig = figure;

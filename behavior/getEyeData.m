@@ -35,11 +35,13 @@ for ex = 1:length(expInfo)
     for r = 1:totalROIs
         if strcmp(proc.rois{r}.rtype  ,'pupil')
             eyeData(ex).proc.pupil = proc.pupil{1, 1};
+            eyeData(ex).proc.pupil.area = zscore(eyeData(ex).proc.pupil.area);
         elseif strcmp(proc.rois{r}.rtype  ,'motion SVD')
             f = struct(...
                     'motion', proc.(matlab.lang.makeValidName(strcat('motion_',num2str(r-1)))),...
                     'motionSVD', proc.(matlab.lang.makeValidName(strcat('motSVD_',num2str(r-1)))));
                 eyeData(ex).proc.face{r-1} = f;
+                eyeData(ex).proc.face{r-1}.motion = zscore(eyeData(ex).proc.face{r-1}.motion);
         end
     end
     
