@@ -57,19 +57,29 @@ title('Early trials')
 
 %plot(eyeData.eta.eventWindow,eyeData.eta.alignedFace{2}(:,:,1))
 figure;
-plot(eyeData.eta.eventWindow, ...
-    (eyeData.eta.alignedFace{1}(trialsE,:,2)))
-xlabel('time, stim=0')
-ylabel('whisking')
-title('Early trials')
-%xlim([-0.5 0])
+for t =1:length(trialsL)
+    plot(eyeData.eta.eventWindow, ...
+        smooth(eyeData.eta.alignedFace{1}(trialsE(t),:,2)),'Color',[255/255, 128/255, 0/255])
+    hold off
+    alpha(0.5)
+    hold on
+    plot(eyeData.eta.eventWindow, ...
+        mean(eyeData.eta.alignedFace{1}(trialsE,:,2)),'Color',[230/255, 108/255, 0/255],'Linewidth',3)
+    xlabel('time, stim=0')
+    ylabel('whisking')
+    ylim([-2 2])
+    hold on 
+    plot(eyeData.eta.eventWindow, ...
+        smooth(eyeData.eta.alignedFace{1}(t,:,2)),'Color',[0/255, 153/255, 153/255])
+    alpha(0.5)
+    plot(eyeData.eta.eventWindow, ...
+        mean(eyeData.eta.alignedFace{1}(trialsL,:,2)),'Color',[0/255, 133/255, 133/255],'Linewidth',3)
+    xlabel('time, stim=0')
+    ylabel('whisking')
+    hold on
+end   
 
-figure;
-plot(eyeData.eta.eventWindow, ...
-    (eyeData.eta.alignedFace{1}(trialsL,:,2)))
-xlabel('time, stim=0')
-ylabel('whisking')
-title('Late trials')
-xlim([-0.5 0])
+   
+
 
 

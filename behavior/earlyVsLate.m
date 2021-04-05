@@ -17,13 +17,13 @@ allTrialsPaw = zeros(length(expInfo),201);
 %choose our conditions
 %remove trials when mouse was moving wheel before stim onset with if
 %statement
-
-for iX = 1:length(expInfo) 
+clear earlyTrials lateTrials
+for iX = 10:18
     
     [earlyTrials{iX}, ~] = selectCondition(expInfo(iX), [-1 -.5 -.12 -.05 0 .05 .12 .5 1],...
-        behavioralData(iX), initTrialConditions('movementTime','early','pastMovementTime','early','preStimMovement','quiescent','specificRTs',([.1 3])));
+        behavioralData(iX), initTrialConditions('movementTime','early','preStimMovement','quiescent','specificRTs',([.1 3])));
     [lateTrials{iX}, ~] = selectCondition(expInfo(iX), [-1 -.5 -.12 -.05 0 .05 .12 .5 1],...
-        behavioralData(iX), initTrialConditions('movementTime','late','pastMovementTime','late','preStimMovement','quiescent','specificRTs',([.1 3])));
+        behavioralData(iX), initTrialConditions('movementTime','late','preStimMovement','quiescent','specificRTs',([.1 3])));
     %remove trials when wheel moves pre-stim
     %earlyTrialsWithoutPrestimWheel{iX} = earlyLogical{iX} .* ~behavioralData(iX).wheelMoves.epochs(1).isMoving;
     %lateTrialsWithoutPrestimWheel{iX} = lateLogical{iX} .* ~behavioralData(iX).wheelMoves.epochs(1).isMoving;
@@ -56,14 +56,27 @@ for iX = 1:length(expInfo)
         nanmean(eyeData(iX).eta.alignedFace{3}(lateTrials{iX},:,4));
     
     %index neural data EARLY trials
-    cellMeansE{iX} = squeeze(...
-        nanmean(neuralData(iX).eta.alignedResps{1}(earlyTrials{iX},:,:)));
+    %cellMeansE{iX} = squeeze(...
+    %    nanmean(neuralData(iX).eta.alignedResps{1}(earlyTrials{iX},:,:)));
     
     %index neural data LATE trials
-    cellMeansL{iX} = squeeze(...
-        nanmean(neuralData(iX).eta.alignedResps{1}(lateTrials{iX},:,:)));
+    %cellMeansL{iX} = squeeze(...
+     %   nanmean(neuralData(iX).eta.alignedResps{1}(lateTrials{iX},:,:)));
      
 end
+%% plot all trials for 1 session 
+%for t = 1:length(earlyTrials)
+plot(eyeData.eta.eventWindow,eyeData.eta.alignedFace{1}(earlyTrials,:),'Color',[235/255, 108/255, 0/255])
+plot(eyeData.eta.eventWindow,mean(earlyTrialsPupil),'Color',[255/255, 128/255, 0/255],'Linewidth', 3)
+xlabel('Time(s) reward aligned','Fontsize',14)
+ylabel('Pupil size','Fontsize',14)
+%title("Early vs late trial pupil")
+hold on
+plot(eyeData(1).eta.eventWindow,lateTrialsPupil,'Color',[0/255, 133/255, 133/255])
+plot(eyeData(1).eta.eventWindow,mean(lateTrialsPupil),'Color',[0/255, 153/255, 153/255], 'Linewidth', 3)
+line([0,0],[-1,2],'Color','k','Linestyle','--');
+xlim([-0.1 1])
+box off
 
 %% plot the experiment-by-experiment vectors from the Trials-arrays
 %plot early vs late trial pupil

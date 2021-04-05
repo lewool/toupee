@@ -34,7 +34,7 @@ psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
 rasterColors = [0 0 0];
-rasterLabels = {'Trials sorted by 1st movement'};
+rasterLabels = {'Trials sorted by pre-stim whisking'};
 psthColors = [1 0 1; 0 1 1];
 
 %% plot (all trials)
@@ -76,9 +76,9 @@ while k <= max_k
             numTrials = size(whichTrials,2);
             
             % sort the trials by pre-trial whisking
-            %[relativeTimes, sortIdx] = sortTrialsByWhisking(whichTrials, eyeData, et, wm);
+            [relativeTimes, sortIdx] = sortTrialsByWhisking(whichTrials, eyeData, et, wm);
             %sort by 1st move
-            [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm); 
+            %[relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm); 
             
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
@@ -156,7 +156,7 @@ while k <= max_k
         for iCond = 1:length(trialLists{a})
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             subplot(total_length,length(trialLists),[spidx1 spidx2])
-            caxis([min(iMin) max(iMax)*.5]);
+            caxis([min(iMin) max(iMax)*.1]);
             if iCond == length(trialLists{a})
                 if a == 1
                     xlabel('Time from stimulus (s)')
@@ -173,7 +173,7 @@ while k <= max_k
         box off
         ylim([min(yMin) max(yMax)]);
         if a == 1 
-            ylabel('Face movement')
+            ylabel('Whisking')
             title(strcat(expInfo.mouseName,' / ',expInfo.expDate,' /c ',num2str(plotROIs(k))),'FontSize',12);
         end
 

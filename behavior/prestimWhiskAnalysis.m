@@ -88,9 +88,9 @@ end
 plot(trials,mean(meanWhisk),'--','LineWidth', 2, 'Color','black')
 
 %% prepare data, test and plot baseline whisking & pupil during whole ITI 
-
-yEarlyW = earlyTrialsWhisk(:,1:101);
-yLateW = lateTrialsWhisk(:,1:101);
+% ITI times -1.5s-0 
+yEarlyW = earlyTrialsWhisk(:,26:101);
+yLateW = lateTrialsWhisk(:,26:101);
 yEarlyP = earlyTrialsPupil(:,1:101);
 yLateP = lateTrialsPupil(:,1:101);
 
@@ -121,12 +121,14 @@ trials(end+1) = categorical(cellstr('Late'));
 figure;
 for i = 1:length(meanWhiskITI(:,:))
     plot(trials,meanWhiskITI(i,:), 'LineWidth', 3, 'Color',[160/255, 160/255, 160/255])
-    ylabel('Mean ITI baseline whisking','Fontsize',14)
-    set(gca,'FontSize',14)
-    hold on
-    
+    hold on   
 end
 plot(trials,mean(meanWhiskITI),'--','LineWidth', 2, 'Color','black')
+ylabel('Mean ITI baseline whisking','Fontsize',14)
+set(gca,'FontSize',14)
+box off
+ylim([-.4 .5])
+
 
 trials = categorical(cellstr('Early'));
 trials(end+1) = categorical(cellstr('Late'));
@@ -137,5 +139,6 @@ for i = 1:length(meanPupilITI(:,:))
     set(gca,'FontSize',14)
     hold on 
 end
+box off
 plot(trials,mean(meanPupilITI),'--','LineWidth', 2, 'Color','black')
 

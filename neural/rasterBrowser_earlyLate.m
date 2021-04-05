@@ -45,9 +45,9 @@ total_raster = totalTrials + border*(totalRasters+1);
 psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
-rasterColors = [1 0 1; 0 1 1];
+rasterColors = [1 .5 0; 0 1 .7];
 rasterLabels = {'Early';'Late'};
-psthColors = [1 0 1; 0 1 1];
+psthColors = [1 .5 0; 0 1 .7];
 
 %% plot (all trials)
 fig = figure;
@@ -80,6 +80,7 @@ while k <= max_k
     yMin = [];
     yMax = [];
 
+    hold on;
     for a = 1:3
         for iCond = 1:length(trialLists{a})
             
