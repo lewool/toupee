@@ -62,6 +62,7 @@ xlabel('Previous trial condition')
 ylabel('Fraction of early moves')
 line([1 2],[.92 .92],'Color','k')
 text(1.5,.94,'*','Fontsize',16)
+legend()
 
 
 %% plot pre stim period in current trial 
@@ -87,12 +88,13 @@ line([1 2],[.92 .92],'Color','k')
 text(1.5,.94,'*','Fontsize',16)
 
 %% do a Two-sample Kolmogorov-Smirnov test
+%insert the rows corrsponding to each individual animal 
 disp('movetime')
-[h,p] = kstest2(PT.propEarly_followingEarly,PT.propEarly_followingLate)
+[h,p] = kstest2(PT.propEarly_followingEarly(52:61),PT.propEarly_followingLate(52:61))
 disp('reward')
-[h,p] = kstest2(PT.propEarly_followingCorrect,PT.propEarly_followingIncorrect)
+[h,p] = kstest2(PT.propEarly_followingCorrect(52:61),PT.propEarly_followingIncorrect(52:61))
 disp('pre-stimmove')
-[h,p] = kstest2(PT.propEarly_followingActive,PT.propEarly_followingQuiescent)
+[h,p] = kstest2(PT.propEarly_followingActive(52:61),PT.propEarly_followingQuiescent(52:61))
 
 
 %% beeswarm plot (not yet working!)
@@ -106,7 +108,7 @@ hold on
 ylabel('Fraction of early trials of all trials','Fontsize',14)
 %}
 %% plot line mean+SEM whisking and pupil for prev Trial conditions 
-whichSessions = 10:18; %LEW032
+whichSessions = 10:17; %LEW032
 clear pupilEarly pupilLate pupilHit pupilMiss whiskEarly whiskLate whiskHit whiskMiss
 for iX = whichSessions
    [~,prevEarly] = selectCondition(expInfo(iX), [-1 -.5 -.12 -.05 0 .05 .12 .5 1],...
@@ -149,7 +151,7 @@ pupilArray{1,1} = 1:size(pupilEarly,1);
 pupilArray{2,1} = [1:size(pupilEarly,1)] + size(pupilEarly,1);
 figure;
 [meanPSTH, semPSTH, ~] = computePSTHs(allpupil,pupilArray);
-plotPSTHs(eyeData(1).eta.eventWindow, cell2mat(meanPSTH), cell2mat(semPSTH), [.8 .4 0; 0 .5 .5],'-')
+plotPSTHs(eyeData(1).eta.eventWindow, cell2mat(meanPSTH), cell2mat(semPSTH), [.6 .3 0; 0 .3 .4],'-')
 set(gca,'tickdir','out', 'Fontsize',14);
 xlabel('Time from stimulus onset (s)')
 ylabel('Pupil area (zscored)')
@@ -167,7 +169,7 @@ pupilArray{1,1} = 1:size(pupilHit,1);
 pupilArray{2,1} = [1:size(pupilHit,1)] + size(pupilHit,1);
 figure;
 [meanPSTH, semPSTH, ~] = computePSTHs(allpupil,pupilArray);
-plotPSTHs(eyeData(1).eta.eventWindow, cell2mat(meanPSTH), cell2mat(semPSTH), [.9 .2 0; 0 .6 .2],'-')
+plotPSTHs(eyeData(1).eta.eventWindow, cell2mat(meanPSTH), cell2mat(semPSTH), [0 .6 .2;.9 .2 0],'-')
 set(gca,'tickdir','out', 'Fontsize',14);
 xlabel('Time from stimulus onset (s)')
 ylabel('Pupil area (zscored)')
@@ -186,7 +188,7 @@ whiskArray{1,1} = 1:size(whiskEarly,1);
 whiskArray{2,1} = [1:size(whiskEarly,1)] + size(whiskEarly,1);
 figure;
 [meanPSTH, semPSTH, ~] = computePSTHs(allwhisk,whiskArray);
-plotPSTHs(eyeData(1).eta.eventWindow, cell2mat(meanPSTH), cell2mat(semPSTH), [.8 .4 0; 0 .5 .5],'-')
+plotPSTHs(eyeData(1).eta.eventWindow, cell2mat(meanPSTH), cell2mat(semPSTH), [.6 .3 0; 0 .3 .4],'-')
 set(gca,'tickdir','out','Fontsize',14);
 xlabel('Time from stimulus onset (s)')
 ylabel('Whisking (zscored)')
@@ -204,7 +206,7 @@ whiskArray{1,1} = 1:size(whiskHit,1);
 whiskArray{2,1} = [1:size(whiskHit,1)] + size(whiskHit,1);
 figure;
 [meanPSTH, semPSTH, ~] = computePSTHs(allwhisk,whiskArray);
-plotPSTHs(eyeData(1).eta.eventWindow, cell2mat(meanPSTH), cell2mat(semPSTH), [.9 .2 0; 0 .6 .2],'-')
+plotPSTHs(eyeData(1).eta.eventWindow, cell2mat(meanPSTH), cell2mat(semPSTH), [0 .6 .2;.9 .2 0],'-')
 set(gca,'tickdir','out','Fontsize',14);
 xlabel('Time from stimulus onset (s)')
 ylabel('Whisking (zscored)')

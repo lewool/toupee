@@ -21,7 +21,6 @@ if strcmp(whichCells, 'all')
 else
     plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
 end
-
 %%
 
 [~, earlyTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
@@ -45,9 +44,15 @@ total_raster = totalTrials + border*(totalRasters+1);
 psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
+%<<<<<<< HEAD
 rasterColors = [1 .5 0; 0 1 .7];
 rasterLabels = {'Early';'Late'};
 psthColors = [1 .5 0; 0 1 .7];
+%=======
+rasterColors = [1 .5 0; 0 .6 .6];
+rasterLabels = {'Early';'Late'};
+psthColors = [1 .5 0; 0 .6 .6];
+%>>>>>>> master
 
 %% plot (all trials)
 fig = figure;
@@ -153,7 +158,13 @@ while k <= max_k
             subplot(total_length,length(trialLists),[spidx1 spidx2])
             caxis([min(iMin) max(iMax)*.5]);
             if iCond == length(trialLists{a})
-                xlabel('Time (s)')
+               if a==1 
+                    xlabel('Time(s) from stimulus')
+               elseif a==2 
+                    xlabel('Time(s) from movement') 
+               elseif a==3 
+                    xlabel('Time(s) from reward')
+               end
             end
         end
         spidxA = sub2ind([length(trialLists) total_length], a, 1);
@@ -176,8 +187,8 @@ while k <= max_k
       k = min(max_k, k + 1);
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'return')
         disp(strcat({'k = '},num2str(k)))
-        figName = strcat('earlyLate_',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
-        printfig(gcf, figName)
+        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\Rasters\final rasters\','earlyLate',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
+        print(gcf,'-dpng',saveName)   
         break
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'escape')
         disp(strcat({'k = '},num2str(k)))

@@ -1,48 +1,56 @@
-function figName = plotWhiskRasters(expInfo, behavioralData, neuralData, whichCells, whichTrials, k)
-%whichSort can be either:
-%'byEventTime' - this sorts trials by 1st move time
-%or 'byWhisk' - this sorts trials by mean pre-stimulus whsiking (120-0ms before stim) 
-%error needs fixing for sorting, change  on line 85
+function figName = rasterBrowser_earlyLate_Facemap(expInfo, behavioralData, eyeData, whichROIs, k)
 
+% pickTrials = {'side_direction', 'side_direction', 'outcome_direction'};
+% contrastOverride = 'contrast_direction';
+% trialStruct = trialTypes.intVar.cb2D;
 %% initialize experiment details
 
-alignedResps = neuralData.eta.alignedResps;
-eventWindow = neuralData.eta.eventWindow;
-bfcH = neuralData.stats.bfcH;
-pLabels = neuralData.stats.labels;
+alignedFace = eyeData.eta.alignedFace;
+eventWindow = eyeData.eta.eventWindow;
+% bfcH = neuralData.stats.bfcH;
+% pLabels = neuralData.stats.labels;
 et = behavioralData.eventTimes;
 wm = behavioralData.wheelMoves;
 
 
-%% choose cells
+%% choose ROIs
 
-% whichCells = 'leftStim'; %choose from 'pLabels' array
-if strcmp(whichCells, 'all')
-    plotCells = 1:size(alignedResps{1},3);
-else
-    plotCells = whichCells;
-end
+% whichROIs = 'leftStim'; %choose from 'pLabels' array
+if strcmp(whichROIs, 'all')
+    plotROIs = 1:5;
+end    
+%% 
 
-%%
+[~, earlyTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+    initTrialConditions('preStimMovement','quiescent','movementTime','early','specificRTs',[.1 1]));
+
+[~, lateTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+    initTrialConditions('preStimMovement','quiescent','movementTime','late','specificRTs',[1 1.2]));
+
 for iA = 1:3
-    for cond = 1:length(whichTrials)
-        trialLists{iA}{cond,1} = whichTrials{cond};
-    end
+    trialLists{iA}{1,1} = earlyTrials;
+    trialLists{iA}{2,1} = lateTrials;
 end
 
 %% set up some plot values
 
 %compute the total size of the figure based on trials
-totalTrials = sum(cellfun(@length, trialLists{1}));
+totalTrials = numel(trialLists{1}{1}) + numel(trialLists{1}{2});
 totalRasters = max(cellfun(@numel, trialLists));
 border = 1;
 total_raster = totalTrials + border*(totalRasters+1);
 psth = round(total_raster*.5);
 total_length = total_raster + psth;
 
-rasterColors = [1 0 1; 0 1 1];
-rasterLabels = {'Whisk' 'Quiesc'};
-psthColors = [1 0 1; 0 1 1];
+%<<<<<<< HEAD
+rasterColors = [1 .5 0; 0 1 .7];
+rasterLabels = {'Early';'Late'};
+psthColors = [1 .5 0; 0 1 .7];
+%=======
+rasterColors = [1 .5 0; 0 .6 .6];
+rasterLabels = {'Early';'Late'};
+psthColors = [1 .5 0; 0 .6 .6];
+%>>>>>>> master
 
 %% plot (all trials)
 fig = figure;
@@ -53,7 +61,7 @@ if ~exist('k') == 1
     k = 1;
 end
 
-max_k = length(plotCells);
+max_k = length(plotROIs);
 
 while k <= max_k
 
@@ -75,6 +83,7 @@ while k <= max_k
     yMin = [];
     yMax = [];
 
+    hold on;
     for a = 1:3
         for iCond = 1:length(trialLists{a})
             
@@ -82,16 +91,12 @@ while k <= max_k
             whichTrials = trialLists{a}{iCond};
             numTrials = size(whichTrials,2);
             
-            %sort the trials by whisking
-            %[relativeTimes,sortIdx] = sortTrialByWhiskgroup(whichTrials,eyeData,et,wm);
-             % sort the trials by event time, here 1st move
-            [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);           
-            
-           
+            % sort the trials by event time
+            [relativeTimes, sortIdx] = sortTrialTimes(whichTrials, et, wm);
             
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
-            f = imagesc(eventWindow,1:numTrials,alignedResps{a}(whichTrials(sortIdx),:,plotCells(k)));
+            f = imagesc(eventWindow,1:numTrials,alignedFace{a}(whichTrials(sortIdx),:,plotROIs(k)));
             colormap(ax,rasterColor(rasterColors(iCond,:)));
             hold on;
             %             line([0 0],[1 length(whichTrials)],'LineStyle','-','Color',[0 0 0]);
@@ -121,7 +126,7 @@ while k <= max_k
         spidxA = sub2ind([length(trialLists) total_length], a, 1);
         spidxB = sub2ind([length(trialLists) total_length], a, psth);
         subplot(total_length,length(trialLists),[spidxA spidxB])
-        [meanPSTH, semPSTH, rasters] = computePSTHs(alignedResps{a}(:,:,plotCells(k)),trialLists{a});
+        [meanPSTH, semPSTH, rasters] = computePSTHs(alignedFace{a}(:,:,plotROIs(k)),trialLists{a});
         for d = 1:size(meanPSTH,2)
             if d == 1
                 ls = '-';
@@ -149,14 +154,14 @@ while k <= max_k
         for iCond = 1:length(trialLists{a})
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             subplot(total_length,length(trialLists),[spidx1 spidx2])
-            caxis([min(iMin) max(iMax)*.5]);
+            caxis([min(iMin) max(iMax)*.2]);
             if iCond == length(trialLists{a})
-                if a == 1
-                    xlabel('Time from stimulus (s)')
-                elseif a ==2
-                    xlabel('Time from movement (s)')
-                elseif a == 3
-                    xlabel('Time from outcome (s)')
+                if a==1 
+                    xlabel('Time(s) from stimulus')
+                elseif a==2 
+                    xlabel('Time(s) from movement') 
+                elseif a==3 
+                    xlabel('Time(s) from reward')
                 end
             end
         end
@@ -164,11 +169,9 @@ while k <= max_k
         spidxB = sub2ind([length(trialLists) total_length], a, psth);    
         subplot(total_length,length(trialLists),[spidxA spidxB])
         box off
-        ylim([min(yMin) max(yMax)]);
-        if a == 1 
-            ylabel('Activity')
-        end
-
+        ylim([min(yMin) max(yMax)]);     
+        ylabel('Whisking')
+       
     end    
 
     
@@ -179,9 +182,14 @@ while k <= max_k
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'rightarrow')
       k = min(max_k, k + 1);
     elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'return')
-        disp(k)
-        saveName = strcat('C:\Users\Ella Svahn\Documents\eyedata\LEW031\Rasters\',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
-        print(gcf,'-dpng',saveName)
+        disp(strcat({'k = '},num2str(k)))
+        figName = strcat('earlyLate_',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotROIs(k)));
+        printfig(gcf, figName)
+        break
+    elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'escape')
+        disp(strcat({'k = '},num2str(k)))
+        figName = strcat('earlyLate_',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotROIs(k)));
+        close(fig)
         break
     end
 end
