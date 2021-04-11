@@ -89,11 +89,19 @@ plot(trials,mean(meanWhisk),'--','LineWidth', 2, 'Color','black')
 
 %% prepare data, test and plot baseline whisking & pupil during whole ITI 
 % ITI times -1.5s-0 
+%load data arrays genrated from ealryVsLate
 yEarlyW = earlyTrialsWhisk(:,26:101);
 yLateW = lateTrialsWhisk(:,26:101);
 yEarlyP = earlyTrialsPupil(:,1:101);
 yLateP = lateTrialsPupil(:,1:101);
 
+%% or use arrays created in meanSEMEarlyLate
+yEarlyW = whiskEarly(:,26:101);
+yLateW = whiskLate(:,26:101);
+yEarlyP = pupilEarly(:,1:101);
+yLateP = pupilLate(:,1:101);
+
+%%
 %calculate the session mean for all early & late trials 
 meanWhiskITI = zeros(length(yLateW(:,1)),2);
 for sesh = 1:length(yEarlyW(:,1))
@@ -114,31 +122,43 @@ disp('Whisking test')
 disp('pupil test')
 [p,h]= signrank(meanPupilITI(:,1),meanPupilITI(:,2))
 
+%%
+%plot a paired line graph for the means of early and late trials whisk&
+%pupil in ITI
 
-%plot a paired line graph for the means of early and late trials 
-trials = categorical(cellstr('Early'));
-trials(end+1) = categorical(cellstr('Late'));
-figure;
-for i = 1:length(meanWhiskITI(:,:))
-    plot(trials,meanWhiskITI(i,:), 'LineWidth', 3, 'Color',[160/255, 160/255, 160/255])
-    hold on   
-end
-plot(trials,mean(meanWhiskITI),'--','LineWidth', 2, 'Color','black')
-ylabel('Mean ITI baseline whisking','Fontsize',14)
-set(gca,'FontSize',14)
-box off
-ylim([-.4 .5])
-
-
-trials = categorical(cellstr('Early'));
-trials(end+1) = categorical(cellstr('Late'));
 figure;
 for i = 1:length(meanPupilITI(:,:))
-    plot(trials,meanPupilITI(i,:), 'LineWidth', 3, 'Color',[160/255, 160/255, 160/255])
-    ylabel('Mean ITI baseline pupil size','Fontsize',14)
-    set(gca,'FontSize',14)
-    hold on 
+    p = plot([1, 2],[meanPupilITI(i,1),meanPupilITI(i,2)],...
+        '-', 'LineWidth', 2, 'Color',[.5 .5 .5],'MarkerSize', 10);
+    hold on
 end
+plot([1, 2],mean(meanPupilITI),'--','LineWidth', 2, 'Color','black')
+xlim([.75 2.25])
+%ylim([0 1])
 box off
-plot(trials,mean(meanPupilITI),'--','LineWidth', 2, 'Color','black')
+set(gca,'tickdir','out', 'Fontsize', 12)
+xticks([1 2])
+set(gca, 'XTickLabels', {'Early', 'Late'})
+xlabel('Previous trial condition')
+ylabel('Mean ITI pupil size (z-scored)','Fontsize',14)
+line([1 2],[.42 .42],'Color','k')
+text(1.5,.44,'*','Fontsize',16)
+
+figure;
+for i = 1:length(meanWhiskITI(:,:))
+    p = plot([1, 2],[meanWhiskITI(i,1),meanWhiskITI(i,2)],...
+        '-', 'LineWidth', 2, 'Color',[.5 .5 .5],'MarkerSize', 10);
+    hold on
+end
+plot([1, 2],mean(meanWhiskITI),'--','LineWidth', 2, 'Color','black')
+xlim([.75 2.25])
+%ylim([0 1])
+box off
+set(gca,'tickdir','out', 'Fontsize', 12)
+xticks([1 2])
+set(gca, 'XTickLabels', {'Early', 'Late'})
+xlabel('Previous trial condition')
+ylabel('Mean ITI whisking (z-scored)','Fontsize',14)
+line([1 2],[.12 .12],'Color','k')
+text(1.5,.14,'*','Fontsize',16)
 
