@@ -21,7 +21,7 @@ nt = length(expInfo.block.events.endTrialTimes);
 Y_choice = behavioralData.wheelMoves.epochs(5).moveDir(whichTrials)';
 Y_stimulus = expInfo.block.events.contrastValues(whichTrials)';
 Y_block = expInfo.block.events.highRewardSideValues(whichTrials)';
-Y_block = expInfo.block.events.responseValues(whichTrials-1)';
+% Y_block = expInfo.block.events.responseValues(whichTrials-1)';
 
 X = baselineResps(whichTrials,plotCells);
 
@@ -143,7 +143,7 @@ end
 
 
 %%
-for b = 1:14
+for b = 1
 [baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(neuralData(b).eta);
 
 Y_vel = abs(behavioralData(b).wheelMoves.epochs(5).peakVel);

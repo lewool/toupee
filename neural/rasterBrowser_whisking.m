@@ -17,12 +17,13 @@ wm = behavioralData.wheelMoves;
 if strcmp(whichCells, 'all')
     plotCells = 1:size(alignedResps{1},3);
 else
-    plotCells = whichCells;
+    plotCells = find(bfcH(:,strcmp(pLabels,whichCells)) > 0);
 end
 
 %%
 if strcmp(whichTrials, 'all')
-    whichTrials = 1:size(alignedResps{1},1);
+    [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+    initTrialConditions('preStimMovement','quiescent','specificRTs',[.5 1.2]));
 end
 for iA = 1:3
     trialLists{iA}{1,1} = whichTrials;
@@ -81,7 +82,7 @@ while k <= max_k
             numTrials = size(whichTrials,2);
             
             % sort the trials by pre-trial whisking
-            [relativeTimes, sortIdx] = sortTrialsByWhisking(whichTrials, eyeData, et, wm);
+            [relativeTimes, sortIdx, ~] = sortTrialsByWhisking(whichTrials, eyeData, et, wm);
             
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             ax = subplot(total_length,length(trialLists),[spidx1 spidx2]);
@@ -92,7 +93,9 @@ while k <= max_k
             mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
             st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
             rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
-            set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            set([st], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            set([mt], 'MarkerSize',1,'MarkerFaceColor','r','MarkerEdgeColor','none');
+            set([rt], 'MarkerSize',1,'MarkerFaceColor','b','MarkerEdgeColor','none');
             box off
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
@@ -157,7 +160,7 @@ while k <= max_k
         for iCond = 1:length(trialLists{a})
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             subplot(total_length,length(trialLists),[spidx1 spidx2])
-            caxis([min(iMin) max(iMax)*.5]);
+%             caxis([min(iMin)*.1 max(iMax)*.5]);
             if iCond == length(trialLists{a})
                 if a == 1
                     xlabel('Time from stimulus (s)')

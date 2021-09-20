@@ -7,8 +7,8 @@ function plotMoveTypeHistory(expInfo, behavioralData, blockTag)
     if strcmp(blockTag,'none')
 
         clear trialConditions labels condIdx
-        contrasts = getUniqueContrasts(expInfo(ex));
-        allContrasts = getAllContrasts(expInfo(ex));
+%         contrasts = getUniqueContrasts(expInfo(ex));
+%         allContrasts = getAllContrasts(expInfo(ex));
 
         % %set up trial conditions for hi-L and hi-R blocks
         trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','early');
@@ -23,7 +23,7 @@ function plotMoveTypeHistory(expInfo, behavioralData, blockTag)
 
     else
 
-        % %set up trial conditions for hi-L and hi-R blocks
+        %set up trial conditions for hi-L and hi-R blocks
         trialConditions{1} = initTrialConditions('highRewardSide','left','movementDir','cw','movementTime','early');
         trialConditions{2} = initTrialConditions('highRewardSide','left','movementDir','ccw','movementTime','early');
         trialConditions{3} = initTrialConditions('highRewardSide','left','movementDir','cw','movementTime','late');
@@ -45,49 +45,49 @@ function plotMoveTypeHistory(expInfo, behavioralData, blockTag)
     end
     
     % plot proportion of early vs late as a function of trial number
-    allSessionLengths = [];
-    for ex = 1:size(expInfo,2)
-        sessionLength = length(behavioralData(ex).wheelMoves.epochs(3).onsetTimes);
-        allSessionLengths = [allSessionLengths sessionLength];
-    end
-    
-    binEdges = linspace(1,max(allSessionLengths),21);
-    
-    
-    for ex = 1:size(expInfo,2)
-        earlyTrials = find(~isnan(behavioralData(ex).wheelMoves.epochs(2).onsetTimes));
-        lateTrials = find(~isnan(behavioralData(ex).wheelMoves.epochs(3).onsetTimes) & isnan(behavioralData(ex).wheelMoves.epochs(2).onsetTimes));
-        earlyHist = histcounts(earlyTrials,binEdges); 
-        lateHist = histcounts(lateTrials,binEdges);
-        sumHist = earlyHist + lateHist;
-        earlyHists(ex,:) = earlyHist;
-        lateHists(ex,:) = lateHist;
-    end
-    
-    meanEarly = nanmean(earlyHists);
-    semEarly = std(earlyHists)/sqrt(sum(earlyHists>0));
-    meanLate = nanmean(lateHists);
-    semLate = std(lateHists)/sqrt(sum(lateHists>0));
-    meanSum = meanEarly + meanLate;
-    meanEarly_norm = meanEarly./meanSum;
-    semEarly_norm = semEarly./meanSum;
-    meanLate_norm = meanLate./meanSum;
-    semLate_norm = semLate./meanSum;
-    
-    figure;
-    hold on
-%     plot(binEdges(1:end-1),meanLate_norm,'c','linewidth',2);
-%     plotCI = fill([binEdges(1:end-1)';flipud(binEdges(1:end-1)')],[(meanLate_norm'-semLate_norm');flipud(meanLate_norm'+semLate_norm')],'c', 'LineStyle', 'none');
+%     allSessionLengths = [];
+%     for ex = 1:size(expInfo,2)
+%         sessionLength = length(behavioralData(ex).wheelMoves.epochs(3).onsetTimes);
+%         allSessionLengths = [allSessionLengths sessionLength];
+%     end
+%     
+%     binEdges = linspace(1,max(allSessionLengths),21);
+%     
+%     
+%     for ex = 1:size(expInfo,2)
+%         earlyTrials = find(~isnan(behavioralData(ex).wheelMoves.epochs(2).onsetTimes));
+%         lateTrials = find(~isnan(behavioralData(ex).wheelMoves.epochs(3).onsetTimes) & isnan(behavioralData(ex).wheelMoves.epochs(2).onsetTimes));
+%         earlyHist = histcounts(earlyTrials,binEdges); 
+%         lateHist = histcounts(lateTrials,binEdges);
+%         sumHist = earlyHist + lateHist;
+%         earlyHists(ex,:) = earlyHist;
+%         lateHists(ex,:) = lateHist;
+%     end
+%     
+%     meanEarly = nanmean(earlyHists);
+%     semEarly = std(earlyHists)/sqrt(sum(earlyHists>0));
+%     meanLate = nanmean(lateHists);
+%     semLate = std(lateHists)/sqrt(sum(lateHists>0));
+%     meanSum = meanEarly + meanLate;
+%     meanEarly_norm = meanEarly./meanSum;
+%     semEarly_norm = semEarly./meanSum;
+%     meanLate_norm = meanLate./meanSum;
+%     semLate_norm = semLate./meanSum;
+%     
+%     figure;
+%     hold on
+% %     plot(binEdges(1:end-1),meanLate_norm,'c','linewidth',2);
+% %     plotCI = fill([binEdges(1:end-1)';flipud(binEdges(1:end-1)')],[(meanLate_norm'-semLate_norm');flipud(meanLate_norm'+semLate_norm')],'c', 'LineStyle', 'none');
+% %     alpha(0.2); 
+%     plot(binEdges(1:end-1),meanEarly_norm,'m','linewidth',2);
+%     plotCI = fill([binEdges(1:end-1)';flipud(binEdges(1:end-1)')],[(meanEarly_norm'-semEarly_norm');flipud(meanEarly_norm'+semEarly_norm')],'m', 'LineStyle', 'none');
 %     alpha(0.2); 
-    plot(binEdges(1:end-1),meanEarly_norm,'m','linewidth',2);
-    plotCI = fill([binEdges(1:end-1)';flipud(binEdges(1:end-1)')],[(meanEarly_norm'-semEarly_norm');flipud(meanEarly_norm'+semEarly_norm')],'m', 'LineStyle', 'none');
-    alpha(0.2); 
-    
-    ax1 = gca;
-    ax1.TickDir = 'out';
-    xlabel('Trial number');
-    ylabel('Proportion choice type')
-    axis([1 700 0 1])
+%     
+%     ax1 = gca;
+%     ax1.TickDir = 'out';
+%     xlabel('Trial number');
+%     ylabel('Proportion choice type')
+%     axis([1 700 0 1])
     
     % compare proportion of early vs late across trial conditions
 

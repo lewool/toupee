@@ -112,6 +112,7 @@ elseif strcmp(procType,'python') == 1
         FcellNeuAll = dat.Fneu;
         neuropilCoeff = dat.ops.neucoeff;
         spikesAll = dat.spks;
+        meanImg = dat.ops.meanImgE;
         
         %extract the dat.stat.iscell values as logicals to create an indexing vector
         iscellIdx = logical(dat.iscell(:,1));
@@ -143,6 +144,7 @@ elseif strcmp(procType,'python') == 1
         planeTraces.FcellNeuAvg = mean(FcellNeuAll);
         planeTraces.FcellNeuAvgDFF = mean(FcellNeuAllDFF);
         planeTraces.spikes = spikes;
+        planeTraces.meanImage = meanImg;
 
         clearvars FcellAll FcellNeuAll Fcell FcellNeu neuropilCoeff FcellCorrected FcellCorrectedDFF FcellNeuDFF FcellNeuAllDFF spikes
         

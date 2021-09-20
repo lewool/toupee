@@ -44,12 +44,12 @@ dirColors = [0 .4 1; 1 0 0];
 
 %% plot responses to contrast x movement x block
 
-% whichNeuron = 9;
-whichNeuron = neuralData(1).stats.bfcH(:,5) == 1;
-% whichNeuron = 1:length(neuralData(1).stats.bfcH);
-cellResps = nanmean(neuralData.eta.alignedResps{2}(:,:,whichNeuron),3);
+whichNeuron = 1;
+whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'value')) > 0);
+whichNeuron = 1:length(neuralData(1).stats.bfcH);
+cellResps = nanmean(neuralData.eta.alignedResps{1}(:,:,whichNeuron),3);
 
-trialTypes = getTrialTypes(expInfo, behavioralData, 'late');
+trialTypes = getTrialTypes(expInfo, behavioralData, 'early');
 whichTrials = trialTypes.intVar.all.contrast_direction_block;
 
 for c = 1:size(whichTrials,1)
@@ -99,8 +99,28 @@ end
 
 %% plot responses to contrast x movement
 
-whichNeuron = 1;
-whichNeuron = neuralData(1).stats.bfcH(:,6) == 1 ;
+fig = figure;
+set(gcf,'position',[120 560 1580 180])
+
+for sp = 1:length(contrasts)
+    subplot(1,length(contrasts),sp)
+    hold on
+    box off
+    set(gca,'tickdir','out')
+end
+
+if ~exist('k') == 1
+    k = 1;
+end
+
+max_k = length(plotCells);
+
+while k <= max_k
+    
+   
+    
+whichNeuron = plotCells(k);
+% whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'stim')) > 0);
 % whichNeuron = 1:length(neuralData(1).stats.bfcH);
 cellResps = nanmean(neuralData(1).eta.alignedResps{1}(:,:,whichNeuron),3);
 
@@ -111,6 +131,13 @@ cellResps = nanmean(neuralData(1).eta.alignedResps{1}(:,:,whichNeuron),3);
 trialTypes = getTrialTypes(expInfo(1), behavioralData(1), 'late');
 whichTrials = trialTypes.intVar.all.contrast_direction;
 clear R_mL R_mR vel_mR vel_mL
+
+ %clear subplots
+    for c = 1:size(whichTrials,1)
+    subplot(1,length(contrasts),c)
+    cla;
+    end
+
 for c = 1:size(whichTrials,1)
     mL = whichTrials{c,1};
     mR = whichTrials{c,2};
@@ -122,17 +149,10 @@ for c = 1:size(whichTrials,1)
     
 end   
 
-figure;
-set(gcf,'position',[120 560 1580 180])
-for sp = 1:length(contrasts)
-    subplot(1,length(contrasts),sp)
-    hold on
-    box off
-    set(gca,'tickdir','out')
-end
+
 
 maxY = max(max([R_mL; R_mR]))*1.1;
-minY = min(min([R_mL; R_mR]))*.9;
+minY = min(min([R_mL; R_mR]))*2;
 
 for c = 1:size(whichTrials,1)
     subplot(1,length(contrasts),c)
@@ -160,10 +180,29 @@ end
 %     B_mR(c,:) = nanmean(baselineResps(mR,whichNeuron),1);    
 % end   
 
+was_a_key = waitforbuttonpress;
+    
+    if was_a_key && strcmp(get(fig, 'CurrentKey'), 'leftarrow')
+      k = max(1, k - 1);
+    elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'rightarrow')
+      k = min(max_k, k + 1);
+    elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'return')
+        disp(strcat({'k = '},num2str(k)))
+        figName = strcat('contrast_dir',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
+        printfig(gcf, figName)
+        break
+    elseif was_a_key && strcmp(get(fig, 'CurrentKey'), 'escape')
+        disp(strcat({'k = '},num2str(k)))
+        figName = strcat('contrast_dir',expInfo.mouseName,'_',expInfo.expDate,'_cell_',num2str(plotCells(k)));
+        close(fig)
+        break
+    end
+end
+
 %% plot responses to contrast x movement x previous choice
 
 % whichNeuron = 9;
-whichNeuron = neuralData(1).stats.bfcH(:,6) == 1;
+whichNeuron = neuralData(1).stats.bfcH(:,5) == 1;
 % whichNeuron = 1:length(neuralData(1).stats.bfcH);
 cellResps = nanmean(neuralData.eta.alignedResps{2}(:,:,whichNeuron),3);
 
@@ -221,7 +260,7 @@ end
 
 %% plot responses to contrast
 
-whichNeuron = 1;
+whichNeuron = 26;
 % whichNeuron = neuralData(1).stats.bfcH(:,2) == 1 ;
 % whichNeuron = 1:length(neuralData(1).stats.bfcH);
 cellResps = nanmean(neuralData(1).eta.alignedResps{1}(:,:,whichNeuron),3);

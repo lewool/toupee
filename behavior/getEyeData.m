@@ -2,7 +2,7 @@ function eyeData = getEyeData(expInfo)
 
 for ex = 1:length(expInfo)
     paths = data.dataPaths();
-    server = paths.server{1};
+    server = paths.server{2};
     eyefile = strcat(expInfo(ex).expDate,'_',num2str(expInfo(ex).expNum),'_',expInfo(ex).mouseName,'_eye.mat');
     eyeprocfile = strcat(expInfo(ex).expDate,'_',num2str(expInfo(ex).expNum),'_',expInfo(ex).mouseName,'_eye_proc.mat');
     

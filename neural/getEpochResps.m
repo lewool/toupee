@@ -1,7 +1,11 @@
-function [baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(eta)
+function [baselineResps, stimResps, pmovResps, movResps, rewResps, preCueResps] = getEpochResps(eta)
 
 Fs = 0.1;
-alignedResps = eta.alignedResps;
+try
+    alignedResps = eta.alignedResps;
+catch
+    alignedResps = eta.alignedFace;
+end
 events = eta.events;
 eventWindow = eta.eventWindow;
 
@@ -72,3 +76,22 @@ rewIdx = rew_eventIdx + rewTime(1) : rew_eventIdx + rewTime(2);
 
 %compute the mean perireward activity per cell, per trial (trials x neurons)
 rewResps = squeeze(mean(rew_alignedTraces(:,rewIdx,:),2));
+
+try
+    %% compute precue activity
+
+% align traces to movement onset
+event = 'interactiveOnTimes';
+cue_alignedTraces = alignedResps{strcmp(events,event)};
+cue_eventWindow = eventWindow;
+
+%designate a movement window
+cue_eventIdx = find(cue_eventWindow == 0);
+precueTime = [-0.6 -0.1] / Fs;
+precueIdx = cue_eventIdx + precueTime(1) : cue_eventIdx + precueTime(2);
+
+%compute the mean perireward activity per cell, per trial (trials x neurons)
+preCueResps = squeeze(mean(cue_alignedTraces(:,rewIdx,:),2));
+catch
+    preCueResps = [];
+end

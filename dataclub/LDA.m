@@ -1,4 +1,4 @@
-numExps = 1:14;
+numExps = 1;
 stimDim = nan(9, 41, 2, length(numExps));
 movDim = nan(9, 41, 2, length(numExps));
 clear whichTrials;
@@ -15,14 +15,10 @@ plotCells = getWhichCells('all',neuralData(iX));
 trialTypes = getTrialTypes(expInfo(iX), behavioralData(iX), 'late');
 contrasts = getUniqueContrasts(expInfo(iX));
 
-sL = trialTypes.singleVar.side{1};
-sR = trialTypes.singleVar.side{3};
-mL = trialTypes.singleVar.direction{1};
-mR = trialTypes.singleVar.direction{2};
-sLmL = trialTypes.intVar.all.side_direction{1,1};
-sLmR = trialTypes.intVar.all.side_direction{1,2};
-sRmL = trialTypes.intVar.all.side_direction{3,1};
-sRmR = trialTypes.intVar.all.side_direction{3,2};
+sL = [trialTypes.singleVar.contrast{1} trialTypes.singleVar.contrast{2}];
+sR = [trialTypes.singleVar.contrast{8} trialTypes.singleVar.contrast{9}];
+mL = cat(2,trialTypes.intVar.cb2D.contrast_direction{:,1});
+mR = cat(2,trialTypes.intVar.cb2D.contrast_direction{:,2});
 
 testTrials = 1:2:size(baselineResps,1);
 trainTrials = 2:2:size(baselineResps,1);
@@ -39,6 +35,9 @@ ms = 15;
 
 %% compute dot products
 clear whichResps
+[baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(neuralData(iX).eta);
+
+eventWindow = neuralData(iX).eta.eventWindow;
 
 dotProd_mL = nan(size(baselineResps,1),length(eventWindow));
 dotProd_mR = nan(size(baselineResps,1),length(eventWindow));
@@ -50,14 +49,14 @@ meanMoveRight = nan(1,length(baselineResps));
 meanStimLeft = nan(1,length(baselineResps));
 meanStimRight = nan(1,length(baselineResps));
 
+
+meanMoveLeft = nanmean(movResps(intersect(mL,trainTrials),:),1);
+meanMoveRight = nanmean(movResps(intersect(mR,trainTrials),:),1);
+meanStimLeft = nanmean(stimResps(intersect(sL,trainTrials),:),1);
+meanStimRight = nanmean(stimResps(intersect(sR,trainTrials),:),1);
+
 for iT = 1:size(neuralData(iX).eta.alignedResps{1},2)
     whichResps = neuralData(iX).eta.alignedResps{whichETA}(:,iT,plotCells);
-
-    % compute means from 'train' trails
-    meanMoveLeft = nanmean(whichResps(intersect(mL,trainTrials),:),1);
-    meanMoveRight = nanmean(whichResps(intersect(mR,trainTrials),:),1);
-    meanStimLeft = nanmean(whichResps(intersect(sL,trainTrials),:),1);
-    meanStimRight = nanmean(whichResps(intersect(sR,trainTrials),:),1);
 
     fullNorm = 1; % 1 if just angle, 0 if angle and relative magnitude
     for iTrial = testTrials
@@ -111,7 +110,7 @@ end
 
 %correct for hemisphere
 
-for iX = 1:14
+for iX = numExps
     if expInfo(iX).hemisphere < 0
         stimDim(:,:,1,iX) = flipud(stimDim(:,:,1,iX));
         stimDim(:,:,2,iX) = flipud(stimDim(:,:,2,iX));
@@ -120,9 +119,9 @@ for iX = 1:14
     end
 end
 %%
-lim = .35;
+lim = .15;
 tbi = 11:41;
-xi = 1;
+xi = 1
 figure;
 hold on
 subplot(1,2,1)
@@ -147,7 +146,7 @@ ylabel('movement dimension')
 hold on
     box off
     axis square
-%%
+%
 for it = length(tbi)
 for c = 1:4
     subplot(1,2,1)
@@ -178,19 +177,23 @@ for c = 6:9
     axis square
     set(gca,'tickdir','out')
 end
-printfig(gcf,strcat('LEW movie',num2str(it)))
+% printfig(gcf,strcat('LEW movie',num2str(xi)))
 end
 %% plot stim resps
+% epIdx = 15:20;
+epIdx = 20:25;
+% epIdx = 28:36;
+% epIdx = 37:41;
 for iX = 1:length(expInfo)
     for c = 1:length(whichTrials)
-        meanContraMove_stim(c,iX) = nanmean(stimDim(c,21:28,1,iX));
-        meanIpsiMove_stim(c,iX) = nanmean(stimDim(c,21:28,2,iX));
-        meanContraMove_mov(c,iX) = nanmean(movDim(c,21:28,1,iX));
-        meanIpsiMove_mov(c,iX) = nanmean(movDim(c,21:28,2,iX));
+        meanContraMove_stim(c,iX) = nanmean(stimDim(c,epIdx,1,iX));
+        meanIpsiMove_stim(c,iX) = nanmean(stimDim(c,epIdx,2,iX));
+        meanContraMove_mov(c,iX) = nanmean(movDim(c,epIdx,1,iX));
+        meanIpsiMove_mov(c,iX) = nanmean(movDim(c,epIdx,2,iX));
     end
 end
-%%
-lim=.1;
+%
+lim=.15;
 figure;
 hold on
 subplot(1,2,1)
@@ -216,14 +219,25 @@ set(gca,'tickdir','out')
 xlabel('stimulus dimension')
 ylabel('movement dimension')
 
-for c=6:9
+sessions = 1;
+for c=1:4
     
     subplot(1,2,1)
     hold on
-    plot(meanContraMove_stim(c,:),meanContraMove_mov(c,:),'ko','MarkerSize',8,'MarkerEdgeColor','none','MarkerFaceColor',colors(c,:),'LineStyle','none')
+    plot(meanContraMove_stim(c,sessions),meanContraMove_mov(c,sessions),'ko','MarkerSize',8,'MarkerEdgeColor','none','MarkerFaceColor',colors(c,:),'LineStyle','none')
     subplot(1,2,2)
     hold on
-    plot(meanIpsiMove_stim(c,:),meanIpsiMove_mov(c,:),'ko','MarkerSize',8,'MarkerEdgeColor','none','MarkerFaceColor',colors(c,:),'LineStyle','none')
+    plot(meanIpsiMove_stim(c,sessions),meanIpsiMove_mov(c,sessions),'ko','MarkerSize',8,'MarkerEdgeColor','none','MarkerFaceColor',colors(c,:),'LineStyle','none')
+end
+
+for c=6:9
+    
+    subplot(1,2,2)
+    hold on
+    plot(meanContraMove_stim(c,sessions),meanContraMove_mov(c,sessions),'ko','MarkerSize',8,'MarkerEdgeColor','none','MarkerFaceColor',colors(c,:),'LineStyle','none')
+    subplot(1,2,1)
+    hold on
+    plot(meanIpsiMove_stim(c,sessions),meanIpsiMove_mov(c,sessions),'ko','MarkerSize',8,'MarkerEdgeColor','none','MarkerFaceColor',colors(c,:),'LineStyle','none')
 end
 %%
 lim=.06;
@@ -243,14 +257,14 @@ ylabel('movement dimension')
 
 for c = 1:4
     if c < 5
-        P2 = nanmean([meanContraMove_stim(c,:)',meanContraMove_mov(c,:)']);
-        P1 = nanmean([meanIpsiMove_stim(c,:)',meanIpsiMove_mov(c,:)']);
+        P2 = nanmean([meanContraMove_stim(c,:)',meanContraMove_mov(c,:)'],1);
+        P1 = nanmean([meanIpsiMove_stim(c,:)',meanIpsiMove_mov(c,:)'],1);
         U =  P2(:,1)-P1(:,1);
         V =  P2(:,2)-P1(:,2);
         quiver(P1(:,1),P1(:,2),U,V,0,'LineWidth',3,'Color',colors(c,:),'MaxHeadSize',1)
     else
-     P1 = nanmean([meanContraMove_stim(c,:)',meanContraMove_mov(c,:)']);
-        P2 = nanmean([meanIpsiMove_stim(c,:)',meanIpsiMove_mov(c,:)']);
+        P1 = nanmean([meanContraMove_stim(c,:)',meanContraMove_mov(c,:)'],1);
+        P2 = nanmean([meanIpsiMove_stim(c,:)',meanIpsiMove_mov(c,:)'],1);
         U =  P2(:,1)-P1(:,1);
         V =  P2(:,2)-P1(:,2);
         quiver(P1(:,1),P1(:,2),U,V,0,'LineWidth',3,'Color',colors(c,:),'MaxHeadSize',1)
@@ -270,8 +284,8 @@ ylabel('movement dimension')
 
 for c = 6:9
     if c < 10
-        P2 = nanmean([meanContraMove_stim(c,:)',meanContraMove_mov(c,:)']);
-        P1 = nanmean([meanIpsiMove_stim(c,:)',meanIpsiMove_mov(c,:)']);
+        P2 = nanmean([meanContraMove_stim(c,:)',meanContraMove_mov(c,:)'],1);
+        P1 = nanmean([meanIpsiMove_stim(c,:)',meanIpsiMove_mov(c,:)'],1);
         U =  P2(:,1)-P1(:,1);
         V =  P2(:,2)-P1(:,2);
         quiver(P1(:,1),P1(:,2),U,V,0,'LineWidth',3,'Color',colors(c,:),'MaxHeadSize',1)
@@ -325,14 +339,20 @@ meanMoveRight = nan(1,length(baselineResps));
 meanStimLeft = nan(1,length(baselineResps));
 meanStimRight = nan(1,length(baselineResps));
 
+meanMoveLeft = nanmean(movResps(intersect(mL,trainTrials),:),1);
+meanMoveRight = nanmean(movResps(intersect(mR,trainTrials),:),1);
+meanStimLeft = nanmean(stimResps(intersect(sL,trainTrials),:),1);
+meanStimRight = nanmean(stimResps(intersect(sR,trainTrials),:),1);
+
+
 for iT = 1:size(neuralData(iX).eta.alignedResps{1},2)
     whichResps = neuralData(iX).eta.alignedResps{whichETA}(:,iT,plotCells);
 
-    % compute means from 'train' trails
-    meanMoveLeft = nanmean(whichResps(intersect(mL,trainTrials),:),1);
-    meanMoveRight = nanmean(whichResps(intersect(mR,trainTrials),:),1);
-    meanStimLeft = nanmean(whichResps(intersect(sL,trainTrials),:),1);
-    meanStimRight = nanmean(whichResps(intersect(sR,trainTrials),:),1);
+%     % compute means from 'train' trails
+%     meanMoveLeft = nanmean(whichResps(intersect(mL,trainTrials),:),1);
+%     meanMoveRight = nanmean(whichResps(intersect(mR,trainTrials),:),1);
+%     meanStimLeft = nanmean(whichResps(intersect(sL,trainTrials),:),1);
+%     meanStimRight = nanmean(whichResps(intersect(sR,trainTrials),:),1);
 
     fullNorm = 1; % 1 if just angle, 0 if angle and relative magnitude
     for iTrial = testTrials
@@ -362,6 +382,13 @@ for iT = 1:length(eventWindow)
     D1(2,iT) = nanmean(dotProd_sR(whichTrials{2},iT) - dotProd_sL(whichTrials{2},iT));
     D2(1,iT) = nanmean(dotProd_mR(whichTrials{1},iT) - dotProd_mL(whichTrials{1},iT));
     D2(2,iT) = nanmean(dotProd_mR(whichTrials{2},iT) - dotProd_mL(whichTrials{2},iT));
+end
+
+for iT = 1:length(eventWindow)
+    D1_all{1,iT} = (dotProd_sR(whichTrials{1},iT) - dotProd_sL(whichTrials{1},iT));
+    D1_all{2,iT} = (dotProd_sR(whichTrials{2},iT) - dotProd_sL(whichTrials{2},iT));
+    D2_all{1,iT} = (dotProd_mR(whichTrials{1},iT) - dotProd_mL(whichTrials{1},iT));
+    D2_all{2,iT} = (dotProd_mR(whichTrials{2},iT) - dotProd_mL(whichTrials{2},iT));
 end
 
 %% figure
@@ -419,4 +446,64 @@ subplot(1,3,3)
 cla
 end
 
+%%
+figure;
+subplot(1,3,1)
+iT = 15;
+scatter(D1_all{1,iT},D2_all{1,iT},ms*2,'MarkerEdgeColor','none','MarkerFaceColor',color{1},'MarkerFaceAlpha', .2)
+hold on
+scatter(D1_all{2,iT},D2_all{2,iT},ms*2,'MarkerEdgeColor','none','MarkerFaceColor',color{2},'MarkerFaceAlpha', .2)
+plot(D1(1,iT),D2(1,iT),'o','MarkerSize',ms/2,'MarkerEdgeColor','k','MarkerFaceColor',color{1})
+plot(D1(2,iT),D2(2,iT),'o','MarkerSize',ms/2,'MarkerEdgeColor','k','MarkerFaceColor',color{2})
+
+line([-.4 .4],[0 0],'LineStyle','--','Color',[.5 .5 .5])
+line([0 0],[-.4 .4],'LineStyle','--','Color',[.5 .5 .5])
+xlim([-.2 .2]);
+ylim([-.2 .2]);
+axis square
+box off
+set(gca,'tickdir','out')
+ylabel('choice dimension')
+xlabel('stimulus dimension')
+yticks([-.2 -.1 0 .1 .2])
+set(gca, 'YTickLabels', {'-0.2', '-0.1', '0','0.1', '0.2'})
+
+subplot(1,3,2)
+iT = 25;
+scatter(D1_all{1,iT},D2_all{1,iT},ms*2,'MarkerEdgeColor','none','MarkerFaceColor',color{1},'MarkerFaceAlpha', .2)
+hold on
+scatter(D1_all{2,iT},D2_all{2,iT},ms*2,'MarkerEdgeColor','none','MarkerFaceColor',color{2},'MarkerFaceAlpha', .2)
+plot(D1(1,iT),D2(1,iT),'o','MarkerSize',ms/2,'MarkerEdgeColor','k','MarkerFaceColor',color{1})
+plot(D1(2,iT),D2(2,iT),'o','MarkerSize',ms/2,'MarkerEdgeColor','k','MarkerFaceColor',color{2})
+line([-.4 .4],[0 0],'LineStyle','--','Color',[.5 .5 .5])
+line([0 0],[-.4 .4],'LineStyle','--','Color',[.5 .5 .5])
+xlim([-.2 .2]);
+ylim([-.2 .2]);
+yticks([-.2 -.1 0 .1 .2])
+set(gca, 'YTickLabels', {'-0.2', '-0.1', '0','0.1', '0.2'})
+
+axis square
+box off
+set(gca,'tickdir','out')
+ylabel('choice dimension')
+xlabel('stimulus dimension')
+
+subplot(1,3,3)
+iT = 35;
+scatter(D1_all{1,iT},D2_all{1,iT},ms*2,'MarkerEdgeColor','none','MarkerFaceColor',color{1},'MarkerFaceAlpha', .2)
+hold on
+scatter(D1_all{2,iT},D2_all{2,iT},ms*2,'MarkerEdgeColor','none','MarkerFaceColor',color{2},'MarkerFaceAlpha', .2)
+plot(D1(1,iT),D2(1,iT),'o','MarkerSize',ms/2,'MarkerEdgeColor','k','MarkerFaceColor',color{1})
+plot(D1(2,iT),D2(2,iT),'o','MarkerSize',ms/2,'MarkerEdgeColor','k','MarkerFaceColor',color{2})
+line([-.4 .4],[0 0],'LineStyle','--','Color',[.5 .5 .5])
+line([0 0],[-.4 .4],'LineStyle','--','Color',[.5 .5 .5])
+xlim([-.2 .2]);
+ylim([-.2 .2]);
+axis square
+box off
+set(gca,'tickdir','out')
+ylabel('choice dimension')
+xlabel('stimulus dimension')
+yticks([-.2 -.1 0 .1 .2])
+set(gca, 'YTickLabels', {'-0.2', '-0.1', '0','0.1', '0.2'})
 

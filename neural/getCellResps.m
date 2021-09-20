@@ -20,7 +20,7 @@ if nargin < 3
 end
 
 %% GET FRAME TIMES
-planeInfo = getPlaneFrameTimes(Timeline, numPlanes);
+planeInfo = getPlaneFrameTimes(expInfo(ex));
 
 for p = 1:length(planeInfo)
     minTs(p) = min(planeInfo(p).frameTimes);

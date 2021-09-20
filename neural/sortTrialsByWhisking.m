@@ -1,4 +1,4 @@
-function [relativeTimes, sortIdxWhisk] = sortTrialsByWhisking(whichTrials, eyeData, et, wm)
+function [relativeTimes, sortIdxWhisk, meanPreStimWhisk] = sortTrialsByWhisking(whichTrials, eyeData, et, wm)
 
 %find time diff between stimOn and moveOn, sort trials by this
 %difference

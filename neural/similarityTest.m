@@ -33,7 +33,7 @@ pLabels = neuralData(m).stats.labels;
 
 %% select cells with the properties you want
 
-plotCells = getWhichCells('leftStim',neuralData(m));
+plotCells = getWhichCells('all',neuralData(m));
 whichETA = 1;
 
 %% report the mean response of each cell to your event, per trial, at a given timepoint

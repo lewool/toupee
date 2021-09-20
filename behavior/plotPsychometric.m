@@ -34,7 +34,7 @@ if nargin == 1
         
         trialLimit = length(block.events.endTrialValues);
         contrastValues = block.events.contrastValues(1:trialLimit);
-        RTs = (block.events.feedbackTimes(1:trialLimit) - block.events.stimulusOnTimes(1:trialLimit)) < 3.2;
+        RTs = (block.events.feedbackTimes(1:trialLimit) - block.events.stimulusOnTimes(1:trialLimit)) < Inf;
         moveTypes = true(1,trialLimit);
         
         allContrastValues = [allContrastValues, contrastValues];
@@ -78,7 +78,7 @@ elseif nargin == 2
         
         trialLimit = length(block.events.endTrialValues);
         contrastValues = block.events.contrastValues(1:trialLimit);
-        RTs = (block.events.feedbackTimes(1:trialLimit) - block.events.stimulusOnTimes(1:trialLimit)) < 3.2;
+        RTs = (block.events.feedbackTimes(1:trialLimit) - block.events.stimulusOnTimes(1:trialLimit)) < Inf;
         moveTypes = true(1,trialLimit);
         
         allContrastValues = [allContrastValues, contrastValues];

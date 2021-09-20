@@ -30,7 +30,7 @@ for ex = 1:length(expInfo)
     rawPos = rawPos./(rotaryEncoderResolution)*2*pi*wheelRadius; % convert to mm
 
     % %compute wheel velocity
-    [vel, ~] = wheel.computeVelocity2(pos, 1, Fs);
+    [vel, ~] = wheel.computeVelocity2(pos, .1, Fs);
 
     %% trial-by-trial traces
 
@@ -62,6 +62,7 @@ for ex = 1:length(expInfo)
         % record the traces/times
         wheelTraceTimes{i} = trialWheelTimes;
         wheelTraceValues{i} = pos(trialIdx) - mean(pos(idxPre));
+        wheelTraceVelValues{i} = vel(trialIdx);
 
     end
 
@@ -269,8 +270,9 @@ for ex = 1:length(expInfo)
         'peakVel', firstMoveVel ...
         );
 
-     wheelMoves.traces.pos = wheelTraceValues;
      wheelMoves.traces.time = wheelTraceTimes;
+     wheelMoves.traces.pos = wheelTraceValues;
+     wheelMoves.traces.vel = wheelTraceVelValues;
      
      allWheelMoves{ex} = wheelMoves;
      clearvars -except ex expInfo allWheelMoves allEventTimes

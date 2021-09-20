@@ -34,7 +34,7 @@ addParameter(p, 'posThresh', 1, validator);
 addParameter(p, 'tThresh', 0.2, validator);
 % Any movements that have this little time between the end of one and the
 % start of the next, we'll join them.
-addParameter(p, 'minGap', 0.1, validator);
+addParameter(p, 'minGap', 0.5, validator);
 % A lower threshold, used when finding exact onset times.
 addParameter(p, 'posThreshOnset', 1.5, validator);
 % Minimum duration in second.  Movements shorter than this are dropped.

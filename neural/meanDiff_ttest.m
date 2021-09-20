@@ -1,6 +1,7 @@
 clear all
 expInfo = initExpInfo({{'LEW031'}},{{'2020-02-03',1,[1]}});
 [expInfo, neuralData, behavioralData] = processExperiment(expInfo);
+%%
 alignedResps = neuralData.eta.alignedResps;
 pLabels = neuralData.stats.labels;
 bfcH = neuralData.stats.bfcH;
@@ -10,7 +11,7 @@ eventWindow = neuralData.eta.eventWindow;
 
 %% choose cells
 
-whichCells = 'advanceDirection';
+whichCells = 'leftMov';
 % whichCells = 'leftStim'; %choose from 'pLabels' array
 if strcmp(whichCells, 'all')
     plotCells = 1:size(alignedResps{1},3);

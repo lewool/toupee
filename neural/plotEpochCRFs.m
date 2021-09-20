@@ -31,8 +31,8 @@ mCRF_mI = CRF.(matlab.lang.makeValidName(subpop)).mI.mCRF(:,expIdx);
 
 %% plotting
 
-maxY = 1.1*max(max([nanmean(bCRF_mC,2) nanmean(bCRF_mI,2) nanmean(sCRF_mC,2) nanmean(sCRF_mI,2) nanmean(mCRF_mC,2) mean(mCRF_mI,2)]));
-minY = 1.1*min(min([nanmean(bCRF_mC,2) nanmean(bCRF_mI,2) nanmean(sCRF_mC,2) nanmean(sCRF_mI,2) nanmean(mCRF_mC,2) mean(mCRF_mI,2)]));
+maxY = 1.1*max(max([nanmean(bCRF_mC,2) nanmean(bCRF_mI,2) nanmean(sCRF_mC,2) nanmean(sCRF_mI,2) nanmean(pCRF_mC,2) nanmean(pCRF_mI,2) nanmean(mCRF_mC,2) mean(mCRF_mI,2)]));
+minY = 1.1*min(min([nanmean(bCRF_mC,2) nanmean(bCRF_mI,2) nanmean(sCRF_mC,2) nanmean(sCRF_mI,2) nanmean(pCRF_mC,2) nanmean(pCRF_mI,2) nanmean(mCRF_mC,2) mean(mCRF_mI,2)]));
 minX = contrasts(1)*1.1;
 maxX = contrasts(end)*1.1;
 

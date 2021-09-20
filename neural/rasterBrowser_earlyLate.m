@@ -5,10 +5,10 @@ function figName = rasterBrowser_earlyLate(expInfo, behavioralData, neuralData, 
 % trialStruct = trialTypes.intVar.cb2D;
 %% initialize experiment details
 
-alignedResps = neuralData.eta.alignedFace;
+alignedResps = neuralData.eta.alignedResps;
 eventWindow = neuralData.eta.eventWindow;
-% bfcH = neuralData.stats.bfcH;
-% pLabels = neuralData.stats.labels;
+bfcH = neuralData.stats.bfcH;
+pLabels = neuralData.stats.labels;
 et = behavioralData.eventTimes;
 wm = behavioralData.wheelMoves;
 
@@ -99,22 +99,31 @@ while k <= max_k
             mt = plot(relativeTimes(:,2,a),1:numTrials,'bo');
             st = plot(relativeTimes(:,1,a),1:numTrials,'ko');
             rt = plot(relativeTimes(:,3,a),1:numTrials,'ko');
-            set([st mt rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            set([st], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            set([mt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
+            set([rt], 'MarkerSize',1,'MarkerFaceColor','k','MarkerEdgeColor','none');
             box off
             set(gca,'ytick',[]);
             set(gca,'tickdir','out')
             ylabel(rasterLabels(iCond))
-            if iCond < length(trialLists{a})
-                set(gca,'xtick',[]);
-            end
+            
             iMax(end+1) = max(max(f.CData));
             iMin(end+1) = min(min(f.CData));
             if a > 1
                 xlim([-1.5 1]);
+                set(gca,'xtick',[-1 0 1])
+                if iCond < length(trialLists{a})
+                    set(gca,'xtick',[]);
+                end
+                
             else
                 xlim([-.5 1.5]);
+                set(gca,'xtick',[-1 0 1])
+                if iCond < length(trialLists{a})
+                    set(gca,'xtick',[]);
+                end
             end
-            set(gca,'xtick',[-1 0 1])
+            
         end
     
 
@@ -150,9 +159,15 @@ while k <= max_k
         for iCond = 1:length(trialLists{a})
             [spidx1, spidx2] = goToRasterSubplot(length(trialLists), total_length, cellfun(@length, trialLists{a})', a, iCond, 1, psth);
             subplot(total_length,length(trialLists),[spidx1 spidx2])
-            caxis([min(iMin) max(iMax)*.5]);
+            caxis([min(iMin)*0.1 max(iMax)*.5]);
             if iCond == length(trialLists{a})
-                xlabel('Time (s)')
+                if a == 1
+                    xlabel('Time from stimulus (s)')
+                elseif a == 2
+                    xlabel('Time from movement (s)')
+                elseif a == 3
+                    xlabel('Time from outcome (s)')
+                end
             end
         end
         spidxA = sub2ind([length(trialLists) total_length], a, 1);

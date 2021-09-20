@@ -10,7 +10,7 @@ for i = 1:size(trialsArray,1)
             %compute mean+sem responses
             rasters{i,j} = cellArray(ti,:);
             meanPSTH{i,j} = nanmean(cellArray(ti,:),1);
-            semPSTH{i,j} = nanstd(cellArray(ti,:))/sqrt(length(ti));
+            semPSTH{i,j} = nanstd(cellArray(ti,:),[],1)/sqrt(length(ti));
         end
     catch
         for j = 1

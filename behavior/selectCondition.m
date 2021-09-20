@@ -68,19 +68,25 @@ for iExp = 1:numExps
         case 'ccw' %moved the stimulus from right to left
             if strcmp(movementTime,'early')
                 idxDirection = wm.epochs(2).moveDir == 1;
+%                 idxDirection = b.events.responseValues == 1;
             elseif strcmp(movementTime,'late')
-                idxDirection = wm.epochs(3).moveDir == 1;
+%                 idxDirection = wm.epochs(3).moveDir == 1;
+                idxDirection = b.events.responseValues == 1;
             elseif strcmp(movementTime,'all')
-                idxDirection = firstMoveDirs == 1;
+%                 idxDirection = firstMoveDirs == 1;
+                idxDirection = b.events.responseValues == 1;
             end
             idxDirection = idxDirection(1:nt);
         case 'cw' %moved the stimulus from left to right
             if strcmp(movementTime,'early')
                 idxDirection = wm.epochs(2).moveDir == -1;
+%                 idxDirection = b.events.responseValues == -1;
             elseif strcmp(movementTime,'late')
-                idxDirection = wm.epochs(3).moveDir == -1;
+%                 idxDirection = wm.epochs(3).moveDir == -1;
+                idxDirection = b.events.responseValues == -1;
             elseif strcmp(movementTime,'all')
-                idxDirection = firstMoveDirs == -1;
+%                 idxDirection = firstMoveDirs == -1;
+                idxDirection = b.events.responseValues == -1;
             end
             idxDirection = idxDirection(1:nt);
         case 'all'

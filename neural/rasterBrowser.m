@@ -181,7 +181,13 @@ while k <= max_k
             subplot(total_length,length(trialLists),[spidx1 spidx2])
             caxis([min(iMin) max(iMax)*.5]);
             if iCond == length(trialLists{a})
-                xlabel('Time (s)')
+                if a == 1
+                    xlabel('Time – stimOn (s)')
+                elseif a == 2
+                    xlabel('Time – movOn (s)')
+                elseif a == 3
+                    xlabel('Time – rewOn (s)')
+                end
             end
         end
         spidxA = sub2ind([length(trialLists) total_length], a, 1);
