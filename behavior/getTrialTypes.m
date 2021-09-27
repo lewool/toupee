@@ -21,44 +21,44 @@ contrasts = getUniqueContrasts(expInfo);
 if strcmp(movementTime,'>0.5')
     %by stimulus contrast
     for i = 1:length(contrasts)
-        [~, co{i,1}] = selectCondition(expInfo, contrasts(i), behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 2]));
+        [~, co{i,1}] = selectCondition(expInfo, contrasts(i), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 2]));
     end
     %by stimulus side
-    [~, si{1,1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 2]));
-    [~, si{2,1}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 2]));
-    [~, si{3,1}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 2]));
+    [~, si{1,1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 2]));
+    [~, si{2,1}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 2]));
+    [~, si{3,1}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 2]));
     %by movement direction
     for i = 1:length(dirs)
-        [~, di{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 2],'movementDir',dirs{i}));
+        [~, di{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 2],'movementDir',dirs{i}));
     end
     %by outcome
     for i = 1:length(outcomes)
-        [~, ou{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 2],'responseType',outcomes{i}));
+        [~, ou{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 2],'responseType',outcomes{i}));
     end
     %by block
     for i = 1:length(blocks)
-        [~, bl{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 2],'highRewardSide',blocks{i}));
+        [~, bl{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 2],'highRewardSide',blocks{i}));
     end
 else
     %by stimulus contrast
     for i = 1:length(contrasts)
-        [~, co{i,1}] = selectCondition(expInfo, contrasts(i), behavioralData, initTrialConditions('movementTime',movementTime));
+        [~, co{i,1}] = selectCondition(expInfo, contrasts(i), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime));
     end
     %by stimulus side
-    [~, si{1,1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('movementTime',movementTime));
-    [~, si{2,1}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('movementTime',movementTime));
-    [~, si{3,1}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('movementTime',movementTime));
+    [~, si{1,1}] = selectCondition(expInfo, contrasts(contrasts<0), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime));
+    [~, si{2,1}] = selectCondition(expInfo, contrasts(contrasts==0), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime));
+    [~, si{3,1}] = selectCondition(expInfo, contrasts(contrasts>0), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime));
     %by movement direction
     for i = 1:length(dirs)
-        [~, di{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('movementTime',movementTime,'movementDir',dirs{i}));
+        [~, di{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime,'movementDir',dirs{i}));
     end
     %by outcome
     for i = 1:length(outcomes)
-        [~, ou{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('movementTime',movementTime,'responseType',outcomes{i}));
+        [~, ou{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime,'responseType',outcomes{i}));
     end
     %by block
     for i = 1:length(blocks)
-        [~, bl{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('movementTime',movementTime,'highRewardSide',blocks{i}));
+        [~, bl{i,1}] = selectCondition(expInfo, contrasts, behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime,'highRewardSide',blocks{i}));
     end
 end
 %log
@@ -76,9 +76,9 @@ trialTypes.singleVar = struct(...
 for d = 1:length(dirs)
     for c = 1:length(contrasts)
         if strcmp(movementTime,'>0.5')
-            [~, co_di{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 Inf],'movementDir',dirs{d}));
+            [~, co_di{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 Inf],'movementDir',dirs{d}));
         else
-            [~, co_di{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime',movementTime,'movementDir',dirs{d}));
+            [~, co_di{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime,'movementDir',dirs{d}));
         end
     end
 end
@@ -92,9 +92,9 @@ end
 for o = 1:length(outcomes)
     for c = 1:length(contrasts)
         if strcmp(movementTime,'>0.5')
-            [~, co_ou{c,o}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 Inf],'responseType',outcomes{o}));
+            [~, co_ou{c,o}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 Inf],'responseType',outcomes{o}));
         else
-            [~, co_ou{c,o}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime',movementTime,'responseType',outcomes{o}));
+            [~, co_ou{c,o}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime,'responseType',outcomes{o}));
         end
     end
 end
@@ -108,9 +108,9 @@ end
 for d = 1:length(blocks)
     for c = 1:length(contrasts)
         if strcmp(movementTime,'>0.5')
-            [~, co_bl{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('responseType','correct','movementTime','all','specificRTs',[.5 Inf],'highRewardSide',blocks{d}));
+            [~, co_bl{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'responseType','correct','movementTime','all','specificRTs',[.5 Inf],'highRewardSide',blocks{d}));
         else
-            [~, co_bl{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('responseType','correct','movementTime',movementTime,'highRewardSide',blocks{d}));
+            [~, co_bl{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'responseType','correct','movementTime',movementTime,'highRewardSide',blocks{d}));
         end
     end
 end
@@ -131,9 +131,9 @@ for d = 1:length(dirs)
     for h = 1:length(blocks)
         for c = 1:length(contrasts)
             if strcmp(movementTime,'>0.5')
-                [~, co_di_bl{c,d,h}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime','all','specificRTs',[.5 Inf],'movementDir',dirs{d},'highRewardSide',blocks{h}));
+                [~, co_di_bl{c,d,h}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 Inf],'movementDir',dirs{d},'highRewardSide',blocks{h}));
             else
-                [~, co_di_bl{c,d,h}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('movementTime',movementTime,'movementDir',dirs{d},'highRewardSide',blocks{h}));
+                [~, co_di_bl{c,d,h}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime,'movementDir',dirs{d},'highRewardSide',blocks{h}));
             end
         end
     end

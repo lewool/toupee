@@ -29,7 +29,7 @@ addRequired(p, 'pos', @(x) isnumeric(x) && isvector(x));
 addRequired(p, 't', @(x) isnumeric(x) && isvector(x));
 addRequired(p, 'Fs', validator);
 % If position changes by less than this...
-addParameter(p, 'posThresh', 1, validator);
+addParameter(p, 'posThresh', 8, validator);
 % over at least this much time, then it is a quiescent period.
 addParameter(p, 'tThresh', 0.2, validator);
 % Any movements that have this little time between the end of one and the

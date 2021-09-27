@@ -12,7 +12,7 @@ trialTypes = getTrialTypes(expInfo(iX), behavioralData(iX), 'late');
     [~, lateTrials] = selectCondition(expInfo(iX), getUniqueContrasts(expInfo(iX)), behavioralData(iX), ...
     initTrialConditions('preStimMovement','quiescent','movementTime','late','specificRTs',[.1 inf]));
 
-[correct_highSide, correct_lowSide, incorrect] = getHighLoRewardTrials(expInfo(iX), behavioralData(iX));
+% [correct_highSide, correct_lowSide, incorrect] = getHighLoRewardTrials(expInfo(iX), behavioralData(iX));
 
 %% compute action vs stimulus coding for each cell
 [baselineResps, stimResps, pmovResps, movResps, rewResps] = getEpochResps(neuralData(iX).eta);
@@ -42,9 +42,9 @@ relRewResps = rewResps - baselineResps;
             nanmean(relMovResps(earlyTrials,:)) - ...
             nanmean(relMovResps(lateTrials,:));
         
-        hilo{iX} = ...
-            nanmean(relRewResps(correct_highSide,:)) - ...
-            nanmean(relRewResps(correct_lowSide,:));
+%         hilo{iX} = ...
+%             nanmean(relRewResps(correct_highSide,:)) - ...
+%             nanmean(relRewResps(correct_lowSide,:));
     else
         
         dir{iX} = ... 
@@ -63,9 +63,9 @@ relRewResps = rewResps - baselineResps;
             nanmean(relMovResps(earlyTrials,:)) - ...
             nanmean(relMovResps(lateTrials,:));
         
-        hilo{iX} = ...
-            nanmean(relRewResps(correct_highSide,:)) - ...
-            nanmean(relRewResps(correct_lowSide,:));
+%         hilo{iX} = ...
+%             nanmean(relRewResps(correct_highSide,:)) - ...
+%             nanmean(relRewResps(correct_lowSide,:));
     end
 end
 %%
@@ -116,7 +116,7 @@ dirIndex = cat(2,dir{:});
 sideIndex = cat(2,side{:});
 rewIdx = cat(2,feed{:});
 timeIdx = cat(2,timing{:});
-hiloIdx = cat(2,hilo{:});
+% hiloIdx = cat(2,hilo{:});
 
 figure(2);
 minLim = min([dirIndex, sideIndex]);
