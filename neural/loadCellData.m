@@ -114,6 +114,7 @@ elseif strcmp(procType,'python') == 1
         spikesAll = dat.spks;
         meanImg = dat.ops.meanImgE;
         
+        
         %extract the dat.stat.iscell values as logicals to create an indexing vector
         iscellIdx = logical(dat.iscell(:,1));
         
@@ -135,6 +136,9 @@ elseif strcmp(procType,'python') == 1
         % extract the deconvolved spikes as well
         spikes = spikesAll(iscellIdx,:);
         
+        % extract the stat info (for xy coords)
+        stat = dat.stat(iscellIdx);
+        
         planeTraces.Fcell = Fcell;
         planeTraces.FcellNeu = FcellNeu;
         planeTraces.neuropilCoefficient = neuropilCoeff;
@@ -145,6 +149,7 @@ elseif strcmp(procType,'python') == 1
         planeTraces.FcellNeuAvgDFF = mean(FcellNeuAllDFF);
         planeTraces.spikes = spikes;
         planeTraces.meanImage = meanImg;
+        planeTraces.stat = stat';
 
         clearvars FcellAll FcellNeuAll Fcell FcellNeu neuropilCoeff FcellCorrected FcellCorrectedDFF FcellNeuDFF FcellNeuAllDFF spikes
         
