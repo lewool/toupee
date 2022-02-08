@@ -25,3 +25,4 @@ figure;
 plot(neuralData.eta.eventWindow, (weights(2,:)))
 hold on
 plot(neuralData.eta.eventWindow, (weights(3,:)))
+plot(neuralData.eta.eventWindow, (weights(4,:)))

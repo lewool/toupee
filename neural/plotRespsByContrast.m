@@ -42,14 +42,80 @@ zeroGray = find(allColors(:,1) == .75);
 colors = allColors(zeroGray-walkback:zeroGray + walkup,:);
 dirColors = [0 .4 1; 1 0 0];
 
-%% plot responses to contrast x movement x block
+%% plot responses to contrast x block
 
-whichNeuron = 1;
-whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'value')) > 0);
-whichNeuron = 1:length(neuralData(1).stats.bfcH);
+% whichNeuron = 41;
+whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'stim')) > 0);
+% whichNeuron = 1:length(neuralData(1).stats.bfcH);
 cellResps = nanmean(neuralData.eta.alignedResps{1}(:,:,whichNeuron),3);
 
-trialTypes = getTrialTypes(expInfo, behavioralData, 'early');
+trialTypes = getTrialTypes(expInfo, behavioralData, 'late');
+whichTrials = trialTypes.intVar.all.contrast_block;
+
+[baselineResps, stimResps, pmovResps, movResps, rewResps, preCueResps] = getEpochResps(neuralData.eta);
+
+for c = 1:size(whichTrials,1)
+    hL = whichTrials{c,1};
+    hR = whichTrials{c,2};
+    
+    R_hL(c,:) = nanmean(cellResps(hL,:),1);
+    R_hR(c,:) = nanmean(cellResps(hR,:),1);
+    
+    CRF_hL(c) = nanmean(nanmean(stimResps(hL,whichNeuron),1));
+    CRF_hR(c) = nanmean(nanmean(stimResps(hR,whichNeuron),1));
+    
+end   
+
+figure;
+set(gcf,'position',[120 560 1580 210])
+for sp = 1:length(contrasts)*2
+    subplot(2,length(contrasts),sp)
+    hold on
+    box off
+    set(gca,'tickdir','out')
+    if sp == 1
+        ylabel('left choices')
+    elseif sp == length(contrasts)+1
+        ylabel('right choices')
+    end
+end
+
+maxY = max(max([R_hL; R_hR]));
+minY = min(min([R_hL; R_hR]));
+
+for c = 1:size(whichTrials,1)
+    subplot(1,length(contrasts)+2,c)
+    plot(eventWindow, R_hL(c,:), 'Color',colors(c,:),'LineStyle','-','LineWidth',2);
+    hold on
+    plot(eventWindow, R_hR(c,:), 'Color',colors(c,:),'LineStyle',':','LineWidth',2);
+    ylim([minY maxY]);
+    xlim([-.5 1.5]);
+    box off
+    set(gca,'tickdir','out')
+end
+
+subplot(1,length(contrasts)+2,length(contrasts)+1:length(contrasts)+2)
+ plot(contrasts,CRF_hL,'Color','k','LineStyle','-','LineWidth',1.5);
+ hold on;
+ plot(contrasts,CRF_hR,'Color','k','LineStyle',':','LineWidth',1.5);
+ 
+for c = 1:length(contrasts)
+    plot(contrasts(c),CRF_hL(c), 'ko', 'MarkerFaceColor',colors(c,:),'MarkerEdgeColor','w');
+    plot(contrasts(c),CRF_hR(c), 'ko', 'MarkerFaceColor',colors(c,:),'MarkerEdgeColor','w');
+end
+
+box off
+set(gca,'tickdir','out')
+xlim([-1.1 1.1]);
+
+%% plot responses to contrast x movement x block
+
+% whichNeuron = 41;
+whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'stim')) > 0);
+% whichNeuron = 1:length(neuralData(1).stats.bfcH);
+cellResps = nanmean(neuralData.eta.alignedResps{1}(:,:,whichNeuron),3);
+
+trialTypes = getTrialTypes(expInfo, behavioralData, 'late');
 whichTrials = trialTypes.intVar.all.contrast_direction_block;
 
 for c = 1:size(whichTrials,1)
@@ -260,7 +326,7 @@ end
 
 %% plot responses to contrast
 
-whichNeuron = 26;
+whichNeuron = 41;
 % whichNeuron = neuralData(1).stats.bfcH(:,2) == 1 ;
 % whichNeuron = 1:length(neuralData(1).stats.bfcH);
 cellResps = nanmean(neuralData(1).eta.alignedResps{1}(:,:,whichNeuron),3);

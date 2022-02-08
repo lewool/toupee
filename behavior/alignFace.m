@@ -10,9 +10,9 @@ Fs = 0.02;
 if nargin < 4
     timeBefore = 2;
     timeAfter = 2;
-    events = {'stimulusOnTimes' 'firstMoveTimes' 'feedbackTimes'};
+    events = {'stimulusOnTimes' 'firstMoveTimes' 'feedbackTimes' 'interactiveOnTimes'};
 elseif nargin < 5
-    events = {'stimulusOnTimes' 'firstMoveTimes' 'feedbackTimes'};
+    events = {'stimulusOnTimes' 'firstMoveTimes' 'feedbackTimes' 'interactiveOnTimes'};
     
     % call window range; if fails, set default
     try
@@ -30,6 +30,26 @@ elseif nargin < 5
 end
 
 for ex = 1:length(expInfo)
+    
+    expRef = data.constructExpRef(...
+        expInfo(ex).mouseName,...
+        expInfo(ex).expDate,...
+        num2str(expInfo(ex).expNum));
+    eyefile = strcat(expRef,'_eye.mj2');
+    eyedir = fullfile(...
+        expInfo(ex).server,...
+        expInfo(ex).mouseName,...
+        expInfo(ex).expDate,...
+        num2str(expInfo(ex).expSeries),...
+        eyefile);
+    eyeData.veye = VideoReader(eyedir);
+    
+    
+    eyeData.timeInterp = interp1(...
+        expInfo.Timeline.rawDAQTimestamps,...
+        expInfo.Timeline.rawDAQTimestamps,...
+        eyeData.timeAligned, 'nearest', 'extrap');
+    vidIdx = 1:length(eyeData.timeInterp);
     
     et = behavioralData(ex).eventTimes;
     wm = behavioralData(ex).wheelMoves;
@@ -53,6 +73,7 @@ for ex = 1:length(expInfo)
         end
     end
     
+    vidIdx_int = interp1(eyeData(ex).timeAligned,vidIdx, expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
     for f = 1:size(faceROIs, 1)
         faceROIs_int(f,:) = interp1(eyeData(ex).timeAligned,faceROIs(f,:), expInfo(ex).Timeline.rawDAQTimestamps,'nearest','extrap');
     end
@@ -78,7 +99,9 @@ for ex = 1:length(expInfo)
 
         %initialize alignedResp cell
         alignedFace{ev} = zeros(nt, length(eventWindow), nr);
+        alignedFrames{ev} = zeros(nt, length(eventWindow));
         
+        alignedFrames{ev} = interp1(expInfo(ex).Timeline.rawDAQTimestamps,vidIdx_int,periEventTimes,'nearest','extrap');
         %grab cell responses associated with the event time windows 
         %(size is nTrials x windowLength x nCells)
         for iCell = 1:nr     
@@ -89,7 +112,7 @@ for ex = 1:length(expInfo)
     
     % save data into the neuralData struct
     eyeData(ex).eta.alignedFace = alignedFace;
-%     neuralData(ex).eta.alignedPCs = alignedPCs;
+    eyeData(ex).eta.alignedFrames = alignedFrames;
     eyeData(ex).eta.events = events;
     eyeData(ex).eta.eventWindow = eventWindow;
     

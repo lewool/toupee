@@ -54,8 +54,8 @@ if matched == 0
             pValues = zeros(size(baselineResps,2),length(labels));
             for iCell = 1:size(baselineResps,2)
                 pValues(iCell,1) = signrank(stimResps(leftScreens,iCell),baselineResps(leftScreens,iCell),'tail','right');
-                pValues(iCell,2) = signrank(stimResps(centerScreens,iCell),stimResps(centerScreens,iCell),'tail','right');
-                pValues(iCell,3) = signrank(stimResps(rightScreens,iCell),stimResps(rightScreens,iCell),'tail','right');
+                pValues(iCell,2) = signrank(stimResps(centerScreens,iCell),baselineResps(centerScreens,iCell),'tail','right');
+                pValues(iCell,3) = signrank(stimResps(rightScreens,iCell),baselineResps(rightScreens,iCell),'tail','right');
             end
         
         catch

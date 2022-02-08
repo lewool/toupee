@@ -2,7 +2,7 @@ function eyeData = getEyeData(expInfo)
 
 for ex = 1:length(expInfo)
     paths = data.dataPaths();
-    server = paths.server{2};
+    server = paths.server{3};
     eyefile = strcat(expInfo(ex).expDate,'_',num2str(expInfo(ex).expNum),'_',expInfo(ex).mouseName,'_eye.mat');
     eyeprocfile = strcat(expInfo(ex).expDate,'_',num2str(expInfo(ex).expNum),'_',expInfo(ex).mouseName,'_eye_proc.mat');
     
@@ -65,23 +65,23 @@ for ex = 1:length(expInfo)
     
     % plot to check alignment
     expRef = strcat({expInfo(ex).mouseName},{'_'},{expInfo(ex).expDate},{'_'},{num2str(expInfo(ex).expNum)});
-    figure;
-    set(gcf,'position',[44 635 1767 343]);
-    p1 = plot(expInfo(ex).Timeline.rawDAQTimestamps(1:end-1),diff(expInfo(ex).Timeline.rawDAQData(:,12)),'Color',[.7 .7 .7]);
-    p1.Color(4) = 1;
-    ax = gca;
-    title(strcat({'lick data alignment: '},{char(expRef)},{' (shift = '},{num2str(timeShift)},{' s)'}),'Interpreter','none')
-    ax.TickDir = 'out';
-    xlabel('time (seconds)')
-    ylabel('optical beam events')
-    xlim([0 100]);
-    box off
-    yyaxis right;
-    p2 = plot(eyeData(ex).timeAligned, eyeData(ex).proc.face{2}.motion,'m');
-    p2.Color(4) = .5;
-    xlim([0 100]);
-    ylabel('video ROI motion SVD')
-    set(gca, 'YColor', 'm');
-    box off
+%     figure;
+%     set(gcf,'position',[44 635 1767 343]);
+%     p1 = plot(expInfo(ex).Timeline.rawDAQTimestamps(1:end-1),diff(expInfo(ex).Timeline.rawDAQData(:,12)),'Color',[.7 .7 .7]);
+%     p1.Color(4) = 1;
+%     ax = gca;
+%     title(strcat({'lick data alignment: '},{char(expRef)},{' (shift = '},{num2str(timeShift)},{' s)'}),'Interpreter','none')
+%     ax.TickDir = 'out';
+%     xlabel('time (seconds)')
+%     ylabel('optical beam events')
+%     xlim([0 100]);
+%     box off
+%     yyaxis right;
+%     p2 = plot(eyeData(ex).timeAligned, eyeData(ex).proc.face{2}.motion,'m');
+%     p2.Color(4) = .5;
+%     xlim([0 100]);
+%     ylabel('video ROI motion SVD')
+%     set(gca, 'YColor', 'm');
+%     box off
     
 end

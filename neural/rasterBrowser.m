@@ -42,8 +42,8 @@ total_length = total_raster + psth;
 
 for iETA = 1:3
     if contains(pickTrials{iETA},'side')
-        if contains(pickTrials{iETA},'_direction') || contains(pickTrials{iETA},'_block')
-            rasterColors{iETA} = [0 0 1; 0 0 1; 0 0 0; 0 0 0; 1 0 0; 1 0 0];
+        if contains(pickTrials{iETA},'_direction') || contains(pickTrials{iETA},'_block') || contains(pickTrials{iETA},'_outcome')
+            rasterColors{iETA} = [0 .4 1; 0 .4 1; 0 0 0; 0 0 0; 1 0 0; 1 0 0];
             rasterLabels{iETA} = {'L' 'L' '0' '0' 'R' 'R'};
             psthColors{iETA} = [0 .4 1; .75 .75 .75; 1 0 0];
         else
@@ -61,20 +61,40 @@ for iETA = 1:3
             rasterLabels{iETA} = {'Cor' 'Inc'};
             psthColors{iETA} = [.1 .7 .1; .75 0 0];
         end
+    elseif contains(pickTrials{iETA},'reward')
+        if contains(pickTrials{iETA},'_direction') 
+            psthColors{iETA} = [0 .5 0; .5 1 .5; .75 0 0];
+            rasterLabels{iETA} = {'Hi L' 'Hi R' 'Lo L' 'Lo R' 'No L' 'No R'};
+            rasterColors{iETA} = [0 .5 0; 0 .5 0; .5 1 .5; .5 1 .5; .75 0 0; .75 0 0];
+        else
+            rasterColors{iETA} = [0 .5 0; .5 1 .5; .75 0 0];
+            rasterLabels{iETA} = {'Hi' 'Lo' 'No'};
+            psthColors{iETA} = [0 .5 0; .5 1 .5; .75 0 0];
+        end
     elseif contains(pickTrials{iETA},'direction')
         if contains(pickTrials{iETA},'_block')
-            rasterColors{iETA} = [0 0 1; 0 0 1; 1 0 0; 1 0 0];
+            rasterColors{iETA} = [0 0 1; 0 0 1; .75 0 0; .75 0 0];
             rasterLabels{iETA} = {'L' 'L' 'R' 'R'};
-            psthColors{iETA} = [0 .4 1; 1 0 0];
+            psthColors{iETA} = [0 0 1; .75 0 0];
         else
-            rasterColors{iETA} = [0 0 1; 1 0 0];
+            rasterColors{iETA} = [0 .4 1; 1 0 0];
             rasterLabels{iETA} = {'L' 'R'};
-            psthColors{iETA} = [0 .4 1; 1 0 0];
+            psthColors{iETA} = [0 0.4 1; 1 0 0];
         end
     elseif contains(pickTrials{iETA},'block')
-        rasterColors{iETA} = [0 0 1; 1 0 0];
+        rasterColors{iETA} = [0.1 .7 .1; 1 .6 0];
         rasterLabels{iETA} = {'L' 'R'};
-        psthColors{iETA} = [0 0 1; .5 0 0];
+        psthColors{iETA} = [0.1 .7 .1; 1 .6 0];     
+    elseif contains(pickTrials{iETA},'contrast')
+        contrasts = getUniqueContrasts(expInfo);
+        zeroIdx = find(contrasts == 0);
+        walkup = length(contrasts) - zeroIdx;
+        walkback = zeroIdx - 1;
+        allColors = [0 0 .5; 0 0 1; 0 .4 1; .6 .8 1; .75 .75 .75; .8 .45 .45; 1 0 0; .5 0 0; .25 0 0];
+        zeroGray = find(allColors(:,1) == .75);
+        rasterColors{iETA} = allColors(zeroGray-walkback:zeroGray + walkup,:);
+        rasterLabels{iETA} = {'100' '50' '12' '5' '0' '5' '12' '50' '100'};
+        psthColors{iETA} = allColors(zeroGray-walkback:zeroGray + walkup,:);
     end
 end
 

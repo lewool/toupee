@@ -4,7 +4,7 @@ function neuralData = getSignificantActivity(expInfo, behavioralData, neuralData
 % identity (ITI)
 
 Fs = 0.1;
-    
+trialTypes = getTrialTypes(expInfo, behavioralData, 'late');    
 if matched == 0
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% UNMATCHED STATS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
     for ex = 1:length(expInfo)
@@ -27,7 +27,7 @@ if matched == 0
     %%%% compute peristimulus activity
 
     %designate a peristimulus window
-    stimTime = [0 0.3] / Fs;
+    stimTime = [0 0.5] / Fs;
     stimIdx = stim_eventIdx + stimTime(1) :stim_eventIdx + stimTime(2);
 
     %compute the mean peristimulus activity per cell, per trial (trials x neurons)
@@ -42,7 +42,7 @@ if matched == 0
 
     %designate a movement window
     mov_eventIdx = find(mov_eventWindow == 0);
-    movTime = [-0.2 0.1] / Fs;
+    movTime = [-0.1 0.2] / Fs;
     movIdx = mov_eventIdx + movTime(1) : mov_eventIdx + movTime(2);
 
     %compute the mean perimovement activity per cell, per trial (trials x neurons)
@@ -67,7 +67,7 @@ if matched == 0
 
     %designate a movement window
     rew_eventIdx = find(rew_eventWindow == 0);
-    rewTime = [0 0.2] / Fs;
+    rewTime = [0 0.5] / Fs;
     rewIdx = rew_eventIdx + rewTime(1) : rew_eventIdx + rewTime(2);
 
     %compute the mean perireward activity per cell, per trial (trials x neurons)
@@ -84,9 +84,11 @@ if matched == 0
     [~, zerostimTrials] = selectCondition(expInfo(ex), 0, et, initTrialConditions('movementTime','late'));
 
     %movement
-    [~, movleftTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('movementDir','cw'));
-    [~, movrightTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('movementDir','ccw'));
-
+%     [~, movleftTrials] = selectCondition(expInfo(ex), 0, et, initTrialConditions('movementDir','cw'));
+%     [~, movrightTrials] = selectCondition(expInfo(ex), 0, et, initTrialConditions('movementDir','ccw'));
+    movleftTrials = trialTypes.intVar.cb2D.direction{1};
+    movrightTrials = trialTypes.intVar.cb2D.direction{2};
+    
     %reward
     [~, correctTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('responseType','correct'));
     [~, incorrectTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('responseType','incorrect'));
@@ -94,11 +96,15 @@ if matched == 0
     %value
     [~, highleftTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('movementTime','late','highRewardSide','left'));
     [~, highrightTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('movementTime','late','highRewardSide','right'));
+    
+    %value
+    [~, lateTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('movementTime','late'));
+    [~, earlyTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('movementTime','early'));
 
 
     %%%%%%%%%%%%%%%% Wilcoxon tests
 
-    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'reward', 'value','advanceMov'};
+    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'hit', 'value','miss','patient','impulsive','outcome'};
     pValues = zeros(size(baselineResps,2),length(labels));
     for iCell = 1:size(baselineResps,2)
         pValues(iCell,1) = signrank(stimResps(stimTrials,iCell),baselineResps(stimTrials,iCell),'tail','right');
@@ -107,9 +113,12 @@ if matched == 0
         pValues(iCell,4) = signrank(baselineResps(:,iCell),movResps(:,iCell));
         pValues(iCell,5) = ranksum(movResps(movleftTrials,iCell),movResps(movrightTrials,iCell),'tail','right');
         pValues(iCell,6) = ranksum(movResps(movrightTrials,iCell),movResps(movleftTrials,iCell),'tail','right');
-        pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell));
+        pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell),'tail','right');
         pValues(iCell,8) = ranksum(stimResps(highleftTrials,iCell),stimResps(highrightTrials,iCell)); 
-        pValues(iCell,9) = signrank(pmovResps(:,iCell),baselineResps(:,iCell)); 
+        pValues(iCell,9) = ranksum(rewResps(incorrectTrials,iCell),rewResps(correctTrials,iCell),'tail','right');
+        pValues(iCell,10) = ranksum(movResps(lateTrials,iCell),movResps(earlyTrials,iCell),'tail','right');
+        pValues(iCell,11) = ranksum(movResps(earlyTrials,iCell),movResps(lateTrials,iCell),'tail','right');
+        pValues(iCell,112) = signrank(movResps(:,iCell),rewResps(:,iCell));
     end
     
     %%%%%%%%%%%%%%%% Bonferroni correction
@@ -117,6 +126,7 @@ if matched == 0
     alpha = 0.05;
     bfc = size(pValues,2);
     bfcAlpha = alpha/bfc;
+    bfcAlpha = alpha/1;
     bfcH = pValues < bfcAlpha;
     
     %%%%%%%%%%%%%%%% collect into struct

@@ -54,8 +54,9 @@ for iPlane = 1:numPlanes-1
 end
 
     
-cellResps{ex} = zscore(resps);
+% cellResps{ex} = zscore(resps);
 % cellResps{ex} = resps./max(resps);
+cellResps{ex} = resps./prctile(resps,99);
 
 %get rid of bad cells
 someNaNs = find(isnan(cellResps{ex}));

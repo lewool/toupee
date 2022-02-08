@@ -29,7 +29,7 @@ end
 Mresh = reshape(M,size(M,1), size(M,2)*size(M,3));
 Mresh = bsxfun(@minus, Mresh, mean(Mresh,2));
 [U,S,V] = svd(Mresh,'econ');
-newM = S*abs(V');
+newM = S*(V');
 newMresh = reshape(newM,size(M,1),size(M,2), size(M,3));
 
 

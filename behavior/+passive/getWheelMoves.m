@@ -13,8 +13,12 @@ for ex = 1:length(expInfo)
         
         %% feed in the wheel trace from the experiment
         rawPos = Timeline.rawDAQData(:,strcmp({Timeline.hw.inputs.name},'rotaryEncoder'))';
-        rawPos = wheel.correctCounterDiscont(rawPos); % correction because sometimes negative wheel positions wrap around
         rawTimes = Timeline.rawDAQTimestamps;
+        if isempty(rawPos) %old TL doesn't have this field, so use block
+            rawPos = block.inputs.wheelValues;
+            rawTimes = block.inputs.wheelTimes;
+        end
+        rawPos = wheel.correctCounterDiscont(rawPos); % correction because sometimes negative wheel positions wrap around
 
         % sample/interpolate the trace
         Fs = 1000;
@@ -205,7 +209,6 @@ for ex = 1:length(expInfo)
         % % TODO: put workbench (below) here to replace line 206 (nan) % %
         allWheelMoves{ex} = NaN;
         clearvars -except ex expInfo allWheelMoves allEventTimes
-        disp(char(strcat({'session '},num2str(ex),{' completed'})))
     end
 end
 

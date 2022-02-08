@@ -277,6 +277,5 @@ for ex = 1:length(expInfo)
      allWheelMoves{ex} = wheelMoves;
      clearvars -except ex expInfo allWheelMoves allEventTimes
      
-     disp(char(strcat({'session '},num2str(ex),{' completed'})))
      
 end
