@@ -90,8 +90,8 @@ if matched == 0
     movrightTrials = trialTypes.intVar.cb2D.direction{2};
     
     %reward
-    [~, correctTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('responseType','correct'));
-    [~, incorrectTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('responseType','incorrect'));
+    [~, correctTrials] = selectCondition(expInfo(ex), 0, et, initTrialConditions('responseType','correct'));
+    [~, incorrectTrials] = selectCondition(expInfo(ex), 0, et, initTrialConditions('responseType','incorrect'));
 
     %value
     [~, highleftTrials] = selectCondition(expInfo(ex), contrasts, et, initTrialConditions('movementTime','late','highRewardSide','left'));
@@ -104,7 +104,7 @@ if matched == 0
 
     %%%%%%%%%%%%%%%% Wilcoxon tests
 
-    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'hit', 'value','miss','patient','impulsive','outcome'};
+    labels = {'stim', 'leftStim', 'rightStim', 'mov', 'leftMov', 'rightMov', 'correct', 'incorrect','leftVal','rightVal','patient','impulsive',};
     pValues = zeros(size(baselineResps,2),length(labels));
     for iCell = 1:size(baselineResps,2)
         pValues(iCell,1) = signrank(stimResps(stimTrials,iCell),baselineResps(stimTrials,iCell),'tail','right');
@@ -114,11 +114,11 @@ if matched == 0
         pValues(iCell,5) = ranksum(movResps(movleftTrials,iCell),movResps(movrightTrials,iCell),'tail','right');
         pValues(iCell,6) = ranksum(movResps(movrightTrials,iCell),movResps(movleftTrials,iCell),'tail','right');
         pValues(iCell,7) = ranksum(rewResps(correctTrials,iCell),rewResps(incorrectTrials,iCell),'tail','right');
-        pValues(iCell,8) = ranksum(stimResps(highleftTrials,iCell),stimResps(highrightTrials,iCell)); 
-        pValues(iCell,9) = ranksum(rewResps(incorrectTrials,iCell),rewResps(correctTrials,iCell),'tail','right');
-        pValues(iCell,10) = ranksum(movResps(lateTrials,iCell),movResps(earlyTrials,iCell),'tail','right');
-        pValues(iCell,11) = ranksum(movResps(earlyTrials,iCell),movResps(lateTrials,iCell),'tail','right');
-        pValues(iCell,112) = signrank(movResps(:,iCell),rewResps(:,iCell));
+        pValues(iCell,8) = ranksum(rewResps(incorrectTrials,iCell),rewResps(correctTrials,iCell),'tail','right');
+        pValues(iCell,9) = ranksum(stimResps(highleftTrials,iCell),stimResps(highrightTrials,iCell),'tail','right');
+        pValues(iCell,10) = ranksum(stimResps(highrightTrials,iCell),stimResps(highleftTrials,iCell),'tail','right');
+        pValues(iCell,11) = ranksum(movResps(lateTrials,iCell),movResps(earlyTrials,iCell),'tail','right');
+        pValues(iCell,12) = ranksum(movResps(earlyTrials,iCell),movResps(lateTrials,iCell),'tail','right');
     end
     
     %%%%%%%%%%%%%%%% Bonferroni correction

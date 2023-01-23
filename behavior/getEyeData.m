@@ -2,7 +2,7 @@ function eyeData = getEyeData(expInfo)
 
 for ex = 1:length(expInfo)
     paths = data.dataPaths();
-    server = paths.server{3};
+    server = paths.server{2};
     eyefile = strcat(expInfo(ex).expDate,'_',num2str(expInfo(ex).expNum),'_',expInfo(ex).mouseName,'_eye.mat');
     eyeprocfile = strcat(expInfo(ex).expDate,'_',num2str(expInfo(ex).expNum),'_',expInfo(ex).mouseName,'_eye_proc.mat');
     
@@ -47,6 +47,10 @@ for ex = 1:length(expInfo)
     
     %align video timestams to Timeline using xcorr
     lickMotion = eyeData(ex).proc.face{2}.motion;
+    if sum(lickMotion > 50) > 0
+        warning('Large values from lickMotion removed')
+        lickMotion(lickMotion > 50) = 0;
+    end
     lickport = diff(expInfo(ex).Timeline.rawDAQData(:,12));
 
     lickMotion_int = interp1(...

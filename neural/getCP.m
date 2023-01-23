@@ -1,4 +1,4 @@
-function [cp, cp_shuffDist, ifSig] = getCP(iCell, resps, trialArray)
+function [cp, cp_shuffDist, cpSig, bp, bp_shuffDist, bpSig] = getCP(plotCells, resps, timeRange, behavioralData, expInfo)
 
 %this function retrives the choice probability of a cell's responses at
 %a particular epoch or timestamp, comparing trials in trialArray using a
@@ -16,44 +16,106 @@ function [cp, cp_shuffDist, ifSig] = getCP(iCell, resps, trialArray)
 %conditions besides stimulus but it's not been well tested for this purpose
 %so YMMV.
 
-numShuffles = 2000;
-alphaValue = 0.05;
-CIIdx = [alphaValue/2 * numShuffles numShuffles - (alphaValue/2 * numShuffles)];
+%set some params
+stimRange = 1:9;
+numShuffles = 1000;
 
-for stimCond = 1:size(trialArray, 1)
+trialTypes = getTrialTypes(expInfo, behavioralData, 'late');
+
+%initialize vars
+cpu1 = nan(length(plotCells),length(stimRange), length(timeRange));
+% cpu2 = nan(length(plotCells),length(stimRange), length(timeRange));
+cpn = nan(length(plotCells),length(stimRange), length(timeRange));
+
+cpu1_shuff = nan(length(plotCells),length(stimRange), length(timeRange), numShuffles);
+% cpu2_shuff = nan(length(plotCells),length(stimRange), length(timeRange), numShuffles);
+cpn_shuff = nan(length(plotCells),length(stimRange), length(timeRange), numShuffles);
+
+bpu1 = nan(length(plotCells),length(stimRange), length(timeRange));
+% bpu2 = nan(length(plotCells),length(stimRange), length(timeRange));
+bpn = nan(length(plotCells),length(stimRange), length(timeRange));
+
+bpu1_shuff = nan(length(plotCells),length(stimRange), length(timeRange), numShuffles);
+% bpu2_shuff = nan(length(plotCells),length(stimRange), length(timeRange), numShuffles);
+bpn_shuff = nan(length(plotCells),length(stimRange), length(timeRange), numShuffles);
+
+
+for s = 1:length(stimRange)
+    stimCond = stimRange(s);
+    
+    stimTrials = trialTypes.singleVar.contrast{stimCond};
+        
     %pick the trial IDs corresponding to the two groups you want to compare
-    trials1 = trialArray{stimCond,1};
-    trials2 = trialArray{stimCond,2};
-    trialsAll = cat(2, trials1,trials2);
+    cpTrials1 = stimTrials(behavioralData.wheelMoves.epochs(5).moveDir(stimTrials) == -1);
+    cpTrials2 = stimTrials(behavioralData.wheelMoves.epochs(5).moveDir(stimTrials) == 1);
+    cpTrialsAll = cat(2, cpTrials1,cpTrials2);
     
-    %find the cell responses for those trial IDs
-    group1 = resps(trials1,iCell);
-    group2 = resps(trials2,iCell);
+    bpTrials1 = stimTrials(expInfo.block.events.highRewardSideValues(stimTrials) == -1);
+    bpTrials2 = stimTrials(expInfo.block.events.highRewardSideValues(stimTrials) == 1);
+    bpTrialsAll = cat(2, bpTrials1,bpTrials2);
     
-    %compute the MWU value for the two groups
-    [u1(stimCond), u2(stimCond), n(stimCond)] = getMannWhitU(group1,group2);
-    
-    %compute the MWU value for 2000 shuffles
+    %shuffles
+    clear cprp bprp
     for iShuff = 1:numShuffles
-        %permute
-        rp = trialsAll(randperm(length(trialsAll),length(trialsAll)));
-        
-        %split into shuffled groups and find cell responses
-        shuff1 = resps(rp(1:length(trials1)),iCell);
-        shuff2 = resps(rp(length(trials1)+1:end),iCell);
-        
-        %compute the MWU value for the two groups
-        [u1_shuff(stimCond,iShuff), u2_shuff(stimCond,iShuff), n_shuff(stimCond,iShuff)] = getMannWhitU(shuff1,shuff2);
+        cprp(iShuff,:) = cpTrialsAll(randperm(length(cpTrialsAll),length(cpTrialsAll)));
+        bprp(iShuff,:) = bpTrialsAll(randperm(length(bpTrialsAll),length(bpTrialsAll)));
     end
     
+    tic
+    for t = 1:length(timeRange)
+        
+        parfor iCell = 1:length(plotCells)
+            
+            %find the cell responses for those trial IDs and
+            %compute the MWU value for the two groups
+            [cpu1(iCell,s,t), ~, cpn(iCell,s,t)] = getMannWhitU(...
+                resps(cpTrials1,timeRange(t),plotCells(iCell)),... %group1
+                resps(cpTrials2,timeRange(t),plotCells(iCell))); %group2
+            
+               [bpu1(iCell,s,t), ~, bpn(iCell,s,t)] = getMannWhitU(...
+                resps(bpTrials1,timeRange(t),plotCells(iCell)),... %group1
+                resps(bpTrials2,timeRange(t),plotCells(iCell))); %group2
+
+            %compute the MWU value for 2000 shuffles
+            
+            for iShuff = 1:numShuffles
+
+                %split into shuffled groups and find cell responses and
+                %compute the MWU value for the two groups
+
+                [cpu1_shuff(iCell,s,t,iShuff), ...
+                    ~, ...
+                    cpn_shuff(iCell,s,t,iShuff)] = getMannWhitU(...
+                    resps(cprp(iShuff, 1:length(cpTrials1)),timeRange(t),plotCells(iCell)),...
+                    resps(cprp(iShuff, length(cpTrials1)+1:end),timeRange(t),plotCells(iCell)));
+                
+                [bpu1_shuff(iCell,s,t,iShuff), ...
+                    ~, ...
+                    bpn_shuff(iCell,s,t,iShuff)] = getMannWhitU(...
+                    resps(bprp(iShuff, 1:length(bpTrials1)),timeRange(t),plotCells(iCell)),...
+                    resps(bprp(iShuff, length(bpTrials1)+1:end),timeRange(t),plotCells(iCell)));
+            end
+            
+        end
+       
+    end 
+    toc
 end
+
 
 %sum all MWU stats (u1) and all possible comparisons (n) across conditions,
 %then report the ratio
-cp = sum(u1)/sum(n);
+cp = squeeze(sum(cpu1,2)./sum(cpn,2));
+bp = squeeze(sum(bpu1,2)./sum(bpn,2));
 
 %do the same across conditions for the shuffles
-cp_shuffDist = sort(sum(u1_shuff)./sum(n_shuff));
+cp_shuffDist = squeeze(sum(cpu1_shuff,2))./squeeze(sum(cpn_shuff,2));
+bp_shuffDist = squeeze(sum(bpu1_shuff,2))./squeeze(sum(bpn_shuff,2));
 
 %test significance (outside the 95% CI)
-ifSig = cp < cp_shuffDist(CIIdx(1)) | cp > cp_shuffDist(CIIdx(2));
+for iCell = 1:length(plotCells)
+    cpSig(iCell,:) = cp(iCell,:) < prctile(cp_shuffDist(iCell,:),2.5) | cp(iCell) > prctile(cp_shuffDist(iCell,:),97.5);
+    bpSig(iCell,:) = bp(iCell,:) < prctile(bp_shuffDist(iCell,:),2.5) | bp(iCell) > prctile(bp_shuffDist(iCell,:),97.5);
+end
+
+%%

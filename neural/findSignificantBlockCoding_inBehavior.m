@@ -165,7 +165,7 @@ for m = 14:length(mouseList)
     blue3 = 0.25*cat(3, ones(size(tmap{m}))*colors(2,1), ones(size(tmap{m}))*colors(2,2), ones(size(tmap{m}))*colors(2,3));
 
     imshow(tmap{m}(:,:,:,1));
-    caxis([0 125]);
+    caxis([0 2]);
     hold on;
 
     h3 = image(red3);

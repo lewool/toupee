@@ -1,29 +1,38 @@
-for a = 1:size(videoSVD.motSVD_1,2)
-    videoSVD.motSVD_int(:,a) = interp1(eyeData.timeAligned, videoSVD.motSVD_1(:,a)', neuralData.respTimes,'nearest');
-end
+% for a = 1:size(videoSVD.motSVD_1,2)
+%     videoSVD.motSVD_int(:,a) = interp1(eyeData.timeAligned, videoSVD.motSVD_1(:,a)', neuralData.respTimes,'nearest');
+% end
+% 
+% %%
+% 
+% midpoint = floor(size(videoSVD.motSVD_int,1)/2);
+% Y = nanmean(neuralData.cellResps(:,isort1(1500:1700)),2);
+% X = videoSVD.motSVD_int;
+% 
+% X_test = X(1:midpoint,:);
+% Y_test = Y(1:midpoint,:);
+% X_train = X(midpoint:end,:);
+% Y_train = Y(midpoint:end,:);
+% 
+% %%
+% 
+% [B,dev,stats] = glmfit(X,Y);
+% %%
+% lambdas = [0, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1];
+% [B,FitInfo] = lassoglm(X,Y,'normal','Lambda',lambdas);
+% 
+% %%
+% 
+% k = [0 1 10 100 1000 10000];
+% B = ridge(Y,X,k,1);
+
+eyeData = getEyeData(expInfo);
+[eyeData] = alignFace(expInfo, eyeData, behavioralData);
 
 %%
 
-midpoint = floor(size(videoSVD.motSVD_int,1)/2);
-Y = nanmean(neuralData.cellResps(:,isort1(1500:1700)),2);
-X = videoSVD.motSVD_int;
-
-X_test = X(1:midpoint,:);
-Y_test = Y(1:midpoint,:);
-X_train = X(midpoint:end,:);
-Y_train = Y(midpoint:end,:);
-
-%%
-
-[B,dev,stats] = glmfit(X,Y);
-%%
-lambdas = [0, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1];
-[B,FitInfo] = lassoglm(X,Y,'normal','Lambda',lambdas);
-
-%%
-
-k = [0 1 10 100 1000 10000];
-B = ridge(Y,X,k,1);
+cd('C:\Users\Wool\Documents\GitHub\rastermap\matlab')
+csv = neuralData.cellResps';
+[isort1, isort2, Sm] = mapTmap(csv);
 
 %%
 
@@ -83,7 +92,7 @@ Adiff_sub = double(Adiff) - Adiff_bar;
 
 %% single cluster of cells (manual)
 figure;
-cellRange = 2700:2957;
+cellRange = 300:550;
 Yz = zscore(nanmean(neuralData.cellResps(:,isort1(cellRange)),2));
 pixWeights = (Yz'*Asub)/size(neuralData.cellResps,1);
 pixMap = reshape(pixWeights,[size(ds,1) size(ds,2)]);
@@ -118,7 +127,7 @@ ht = line;
 hb = line;
 meanTrialActivity = squeeze(nanmean(neuralData.eta.alignedResps{1}(plotTrials,:,sortIdx),1))';
 meanPopActivity = squeeze(nanmean(neuralData.eta.alignedResps{1}(plotTrials,:,sortIdx),3))';
-imagesc(eventWindow,1:length(normPSTH),meanTrialActivity);
+imagesc(eventWindow,1:size(neuralData.cellResps,2),meanTrialActivity);
 colormap(ax,flipud(gray));
 hold on;
 line([0 0],[1 size(ROI_morph,3)],'LineStyle','--','Color','k')
@@ -165,21 +174,28 @@ while t <= max_t
 end
 
 %%
-clim = 150;
-stds = [-3 -2 -1 0 1 2 3];
+close all
+cellRange = 300:500;
+Yz = zscore(nanmean(neuralData.cellResps(:,isort1(cellRange)),2));
+pixWeights = (Yz'*Asub)/size(neuralData.cellResps,1);
+pixMap = reshape(pixWeights,[size(ds,1) size(ds,2)]);
+clim = 120;
+stds = [-3 -1 0 1 3];
 meanMap = reshape(Abar,[size(ds,1) size(ds,2)]);
 figure;
+cmp = colormapThruWhite([0 0 1],[1 0 0],100,.5);
+set(gcf,'position',[640 1280 350 208])
 imagesc(imgaussfilt(pixMap,1));
-colormap(BlueWhiteRed);
+colormap(cmp);
 caxis([-4 4]);
 axis off
 axis equal
 % title(strcat({'face ROI (cell nos. '},num2str(cellRange(1)),'–',num2str(cellRange(end)),')'))
-title('face ROI')
+% title('face ROI')
 
 
 figure;
-set(gcf,'position',[860 1280 2000 208])
+set(gcf,'position',[860 1280 1832 208])
 for s = 1:length(stds)
     subplot(1,length(stds),s);
     
@@ -189,5 +205,5 @@ caxis([-clim clim]);
 axis off
 axis tight
 axis equal
-title(strcat({'z = '},num2str(stds(s))))
+% title(strcat({'z = '},num2str(stds(s))))
 end

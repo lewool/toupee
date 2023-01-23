@@ -1,18 +1,24 @@
 
 %% Predict the block ID (1,0) from neural activity
-% This takes a 1D vector of neural activity at a particular epoch and uses
+% This takes a 1D vector of neural activity at a particular epoch (X) and uses
 % this in lasso logistic regression to try and predict the block that the 
-% animal is currently in. 
+% animal is currently in (Y). 
 
-% After determining the accuracy of the real model, it repeats the 
-% training/fitting for a set number of pseudosessions and reports the accuracy 
-% of those pseudomodels.
+% After determining the accuracy of the true model, it repeats the 
+% fitting for np (typically = 1000) pseudogenerated blocks (same X, pseudo Y) 
+% and reports the accuracy of those pseudomodels.
 
-% Finally, this plots the real model accuracy against the distribution of
-% pseudomodel accuracies to test whether it is significantly better (or
-% worse?)
+% Finally, this plots the true model accuracy against the distribution of
+% pseudomodel accuracies to test whether it is significantly better than
+% chance
 
+% 'good fit' means the lamba selected by cvglmnet for the true model 
+% falls safely within the range and not at the edge of the range of preselected lambdas. 
+% 'P% good' reports the % of pseudo models with a safe lambda (defined as above)
 
+parpool();
+
+%%
 for m = 1:length(mouseList)
     
     mouseName = char(mouseList{m});
@@ -24,145 +30,153 @@ for m = 1:length(mouseList)
     [behavioralData, expInfo, neuralData] = data.loadDataset(mouseName, expDate, expNum);
     [baselineResps, stimResps, pmovResps, movResps, rewResps, preCueResps] = getEpochResps(neuralData.eta);
     
-    if hemisphere < 0
-        [~, iBlockTrials0] = selectCondition(expInfo, 0, behavioralData, ...
-            initTrialConditions('highRewardSide','left'));
-        [~, cBlockTrials0] = selectCondition(expInfo, 0, behavioralData, ...
-            initTrialConditions('highRewardSide','right'));
-        meanContraChoice = mean(expInfo.block.events.responseValues(cBlockTrials0) == 1);
-        meanIpsiChoice = mean(expInfo.block.events.responseValues(iBlockTrials0) == 1);
-    else
-        [~, cBlockTrials0] = selectCondition(expInfo, 0, behavioralData, ...
-            initTrialConditions('highRewardSide','left'));
-        [~, iBlockTrials0] = selectCondition(expInfo, 0, behavioralData, ...
-            initTrialConditions('highRewardSide','right'));
-        meanContraChoice = mean(expInfo.block.events.responseValues(cBlockTrials0) == -1);
-        meanIpsiChoice = mean(expInfo.block.events.responseValues(iBlockTrials0) == -1);
-    end
-    
-    blockBias(m) = meanContraChoice - meanIpsiChoice;
-    
     nt = length(behavioralData.eventTimes(1).daqTime);
-    halfway = floor(nt/2);
     
-    for p = 1:1000
-        b=zeros(1,nt);
-        switches = cumsum(125+randi(100,1,10));
+    %% generate pseudosessions
+    trimLength = 0;
+    np = 1000;
+    blockStart = 'fixed';
+    for p = 1:np
+        if strcmp(blockStart,'fixed')
+            firstSide = expInfo.block.paramsValues(1).firstHighSide;
+        elseif strcmp(blockStart,'rand')
+            firstSide = randsample([-1, 1],1,true);
+        end
+        b=nan(1,nt);
+        switches = cumsum(125+randi(100,1,20));
         for s = 1:length(switches)
             if s == 1
-                b(1:switches(s)-1) = -1;
+                b((1+trimLength):switches(s)-1) = firstSide;
             elseif mod(s,2) == 1
-                b(switches(s-1):switches(s)-1) = -1;
+                b((switches(s-1)+trimLength):switches(s)-1) = firstSide;
             elseif mod(s,2) == 0
-                b(switches(s-1):switches(s)-1) = 1;
+                b((switches(s-1)+trimLength):switches(s)-1) = -firstSide;
             end
         end
-        b = b(1:nt);
-        flip = randsample([-1, 1],1,true);
-        b = flip*b;
-        Y_pseudo(:,p) = b;
+        y_pseudo(:,p) = b(1:nt);
     end
     
+    %%
     %set up binomial Y outcome vector (block L vs R)
     if hemisphere > 0
-        Y_all = double(expInfo.block.events.highRewardSideValues(1:nt) == -1)';
-        Y_pseudo = Y_pseudo == -1;
+        y = double(expInfo.block.events.highRewardSideValues(1:nt) == -1)';
+        y_pseudo = y_pseudo == -1;
     else
-        Y_all = double(expInfo.block.events.highRewardSideValues(1:nt) == 1)';
-        Y_pseudo = Y_pseudo == 1;
+        y = double(expInfo.block.events.highRewardSideValues(1:nt) == 1)';
+        y_pseudo = y_pseudo == 1;
     end
     
-    %%%%%%% CHOICE %%%%%%%%%%%%%%
+    %set up predictor matrix and choose which observations to use for X and Y
+    whichEpoch = 'move';
+    if strcmp(whichEpoch,'stim')
+        [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+        initTrialConditions('responseType','all','movementTime','all','specificRTs',[0.5 Inf]));
+        X = stimResps(whichTrials,:);
+        Y = y(whichTrials);
+        Y_pseudo = y_pseudo(whichTrials,:);
+    elseif strcmp(whichEpoch,'baseline')
+        [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+        initTrialConditions('responseType','all'));
+        X = baselineResps(whichTrials,:);
+        Y = y(whichTrials);
+        Y_pseudo = y_pseudo(whichTrials,:);
+    elseif strcmp(whichEpoch,'move')
+        [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+        initTrialConditions('responseType','all'));
+        X = movResps(whichTrials,:);
+        Y = y(whichTrials);
+        Y_pseudo = y_pseudo(whichTrials,:);
+        [i, ~]= ind2sub(size(X),find(isnan(X)));
+        X(unique(i),:) = [];
+        Y(unique(i)) = [];
+        Y_pseudo(unique(i),:) = [];
+    end
     
-%     propLeft = sum(behavioralData.wheelMoves.epochs(5).moveDir == -1)/nt;
-%     
-%     for p = 1:1000
-%         Y_pseudo(:,p) = randsample([-1, 1],nt,true,[propLeft 1-propLeft]);
-%     end
-%     
-%      %set up binomial Y outcome vector (choice L vs R)
-%     if hemisphere > 0
-%         Y_all = double((behavioralData.wheelMoves.epochs(5).moveDir == -1)');
-%         Y_pseudo = Y_pseudo == -1;
-%     else
-%         Y_all = double((behavioralData.wheelMoves.epochs(5).moveDir == 1)');
-%         Y_pseudo = Y_pseudo == 1;
-%     end
-%     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   
-    Y=Y_all;
-
-    %split into test/train for simple CV
-    Ytest = Y(2:2:end,:);
-    Ytrain = Y(1:2:end,:);
-    Yfirst = Y(1:halfway,:);
-    Ylast = Y(halfway+1:end,:);
+    %% fitting 
     
-    Y_pseudo_test = Y_pseudo(2:2:end,:);
-    Y_pseudo_train = Y_pseudo(1:2:end,:);
-    Y_pseudo_first = Y_pseudo(1:halfway,:);
-    Y_pseudo_last = Y_pseudo(halfway+1:end,:);
-
-     %set up some lambdas
-%     lambdas = [0, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2, 1];
-    lambdas = 1e-2;
-
-    %retrieve the activity of each cell on every trial, at timebin t
-%     X = squeeze(neuralData.eta.alignedResps{2}(lateTrials,timerange(t),:));
-    X = baselineResps;
-        
-    %split into test/train for simple CV
-    Xtest = X(2:2:end,:);
-    Xtrain = X(1:2:end,:);
-    Xfirst = X(1:halfway,:);
-    Xlast = X(halfway+1:end,:);
+    %set up some fitting options
+    options.alpha = 0.9;
+    options.nlambda = 20;
+    options.standardize = 'false';
+    family = 'binomial';
     
+    %fit true block
     fprintf('fitting...')
-    [B,FitInfo] = lassoglm(Xfirst,Yfirst,'binomial','Lambda',lambdas,'Alpha',1,'Standardize',false);
-    propWeights(m,:) = sum(B>0)/size(Xfirst,1);
-    Y_hat = glmval([FitInfo.Intercept;B],Xlast,'logit');
-    acc_true = sum((Y_hat>0.5) == Ylast)/length(Ylast);
-    [~, bestIdx] = max(acc_true);
-    accuracy_true(m) = acc_true(bestIdx);
-
-    lambda_match = lambdas(bestIdx);
+    fitTrue = cvglmnet(X,Y,family, options,'deviance',5,[],true);
+    bestLambda_true(m) = fitTrue.lambda_1se;
+    bestIdx = find(fitTrue.glmnet_fit.lambda == fitTrue.lambda_1se);
+    if bestLambda_true(m) == min(fitTrue.lambda)
+        fitFlag_true{m} = 'smallest';
+    elseif bestLambda_true(m) == max(fitTrue.lambda)
+        fitFlag_true{m} = 'largest';
+    else
+        fitFlag_true{m} = 'inRange';
+    end
+    Y_hat = cvglmnetPredict(fitTrue, X,[],'response');
+    accuracy_true(m) = sum((Y_hat>0.5) == Y)/length(Y);
+    binDev_true(m) = fitTrue.cvm(bestIdx);
+    dev_true(m) = fitTrue.glmnet_fit.dev(bestIdx);
+    
+    %% fit pseudoblocks
     prog = 0;
     fprintf(1,'now fitting perms: %3d%%\n',prog);
-
+        
     for p = 1:1000
-        [B,FitInfo] = lassoglm(Xfirst,Y_pseudo_first(:,p),'binomial','Lambda',lambdas,'Alpha',1,'Standardize',false);
-        Y_hat = glmval([FitInfo.Intercept;B],Xlast,'logit');
-        acc_pseudo = sum((Y_hat>0.5) == Y_pseudo_last(:,p))/length(Y_pseudo_last(:,p));
-        [~, bestIdx] = max(acc_pseudo);
-        accuracy_pseudo(p,m) = acc_pseudo(bestIdx);
-        prog = ( 100*(p/1000) );
+        fitPseudo = cvglmnet(X,Y_pseudo(:,p),family, options,'deviance',5,[],true);
+        bestLambda_pseudo(p,m) = fitPseudo.lambda_1se;
+        bestIdx(p) = find(fitPseudo.glmnet_fit.lambda == fitPseudo.lambda_1se);
+        if bestLambda_pseudo(p,m) == min(fitPseudo.lambda)
+            fitFlag_pseudo{p,m} = 'smallest';
+        elseif bestLambda_pseudo(p,m) == max(fitPseudo.lambda)
+            fitFlag_pseudo{p,m} = 'largest';
+        else
+            fitFlag_pseudo{p,m} = 'inRange';
+        end
+        Y_hat = cvglmnetPredict(fitPseudo, X,[],'response');
+        accuracy_pseudo(p,m) = sum((Y_hat>0.5) == Y_pseudo(:,p))/length(Y_pseudo(:,p));
+        binDev_pseudo(p,m) = fitPseudo.cvm(bestIdx(p));
+        dev_pseudo(p,m) = fitPseudo.glmnet_fit.dev(bestIdx(p));
+        prog = ( 100*(p/np) );
         fprintf(1,'\b\b\b\b%3.0f%%',prog);
     end
     fprintf('\n');
-
-    clearvars -except mouseList expList hemList accuracy_true acc_pseudo accuracy_pseudo propWeights blockBias
+    
+    %% clear and restart for next session
+    
+    clearvars -except mouseList expList hemList accuracy_true acc_pseudo accuracy_pseudo propWeights blockBias badFitFlag_true badFitFlag_pseudo
 end
 
 %% plot true model accuracy against dist. of pseudosessions
 subDims = ceil(sqrt(length(mouseList)));
 figure;
-set(gcf,'position',[32 80 2560 1556]);
+set(gcf,'position',[32 80 2054 1250]);
 for sp = 1:length(mouseList)
     mouseName = char(mouseList{sp});
     expDate = char(expList{sp}{1});
     expNum = expList{sp}{2};
     [expRef, ~] = data.constructExpRef(mouseName,expDate,expNum);
     subplot(subDims,subDims,sp)
-    histogram(accuracy_pseudo(:,sp),linspace(0,1,41),'FaceColor',[.5 .5 .5])
+    h = histogram(accuracy_pseudo(:,sp),linspace(0.5,1,41),'FaceColor',[.5 .5 .5]);
+    maxy = max(h.Values);
     hold on
-    line([accuracy_true(sp) accuracy_true(sp)],[0 160],'LineWidth',2,'LineStyle','-','Color','r');
+    if accuracy_true(sp) > prctile(accuracy_pseudo(:,sp),95)
+        line([accuracy_true(sp) accuracy_true(sp)],[0 maxy],'LineWidth',2,'LineStyle','-','Color','r');
+    else
+        line([accuracy_true(sp) accuracy_true(sp)],[0 maxy],'LineWidth',2,'LineStyle','-','Color','k');
+    end
     box off
     set(gca,'tickdir','out')
     title(expRef,'Interpreter','none')
     if sp == 31
         xlabel('Model accuracy')
         ylabel('\it n')
+    end
+    xlim([.5 1])
+    ylim([0 maxy*1.05])
+    if strcmp(fitFlag_true{sp},'smallest')
+        text(.51,maxy,strcat('poor fit (',num2str(100*1-(length(find(strcmp(fitFlag_pseudo(:,sp),'smallest')))/np)),'% good)'))
+    else
+        text(.51,maxy,strcat('good fit (',num2str(100*1-(length(find(strcmp(fitFlag_pseudo(:,sp),'smallest')))/np)),'% good)'))
     end
 end
 

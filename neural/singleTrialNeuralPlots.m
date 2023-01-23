@@ -16,7 +16,7 @@ eventWindow = neuralData.eta.eventWindow;
 contrasts = getUniqueContrasts(expInfo);
 
 [~, whichTrials] = selectCondition(...
-    expInfo, contrasts(8:9), behavioralData, initTrialConditions('movementTime','late','movementDir','all'));
+    expInfo, contrasts, behavioralData, initTrialConditions('movementTime','late','movementDir','all'));
 evenTrials = whichTrials(2:2:end);
 oddTrials = whichTrials(1:2:end);
 
@@ -74,17 +74,17 @@ for ETA = [1 2 3]
     if ETA == 1
         fig1 = figure;
         xLimit = [-.5 2];
-        set(fig1,'position',[160 80 330 1550])
+        set(fig1,'position',[160 -225 330 1550])
         set(fig1,'color','w');
     elseif ETA == 2
         fig2 = figure;
         xLimit = [-2 2];
-        set(fig2,'position',[495 80 330 1550])
+        set(fig2,'position',[495 -225 330 1550])
         set(fig2,'color','w');
     elseif ETA == 3
         fig4 = figure;
         xLimit = [-2 2];
-        set(fig4,'position',[830 80 330 1550])
+        set(fig4,'position',[830 -225 330 1550])
         set(fig4,'color','w');
     end
     
@@ -121,9 +121,16 @@ for ETA = [1 2 3]
 
     
     for t = 1:length(plotTrials)
-        tmp1 = read(eyeData.veye,[alignedFrames_int{ETA}(plotTrials(t),21)]);
-        tmp2 = read(eyeData.veye,[alignedFrames_int{ETA}(plotTrials(t),21)+1]);
-        meanFrame(:,:,t) = read(eyeData.veye,[alignedFrames_int{ETA}(plotTrials(t),21)]);
+        try
+            tmp1 = read(eyeData.veye,[alignedFrames_int{ETA}(plotTrials(t),21)]);
+            tmp2 = read(eyeData.veye,[alignedFrames_int{ETA}(plotTrials(t),21)+1]);
+            meanFrame(:,:,t) = read(eyeData.veye,[alignedFrames_int{ETA}(plotTrials(t),21)]);
+        catch
+            tmp1 = nan;
+            tmp2 = nan;
+            meanFrame(:,:,t) = nan;
+        end
+        
         meanMove(:,:, t) = abs(tmp2 - tmp1);
     end
     
@@ -204,7 +211,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fig = figure;
-set(fig,'position',[1165 80 330 1550])
+set(fig,'position',[1165 -225 330 1550])
 set(fig,'color','w');
 
 % t = 349;
@@ -259,7 +266,7 @@ while t <= max_t && i <= max_i
     caxis([0 100]);
     axis off
 %     axis equal
-    title(strcat({'Contrast: '},num2str(trialContrasts(t)),{'; Choice: '},num2str(trialChoices(t))))
+    title(strcat({'Trial: '},num2str(whichTrials(t)),{'; Contrast: '},num2str(trialContrasts(t)),{'; Choice: '},num2str(trialChoices(t))))
     
     faceActivity = squeeze(eyeData.eta.alignedFace{1}(whichTrials(t),:,:))';
     for f = 1:size(faceActivity,1)
@@ -433,12 +440,12 @@ fig2 = figure;
 set(fig2,'position',[106 476 2408 1150])
 for c = 1: length(con)
     [~, whichTrials] = selectCondition(expInfo, con(c), behavioralData, initTrialConditions('movementTime','late','responseType','correct'));
-    meanTrialActivity = squeeze(nanmean(neuralData.eta.alignedResps{1}(whichTrials,:,sortIdx),1))';
+    meanTrialActivity = flipud(squeeze(nanmean(neuralData.eta.alignedResps{1}(whichTrials,:,isort1),1))');
     subplot(1,length(con),c)
-    imagesc(eventWindow,1:length(normPSTH),smoothdata(meanTrialActivity));
+    imagesc(eventWindow,1:size(neuralData.eta.alignedResps{1},3),smoothdata(meanTrialActivity));
     colormap(flipud(gray));
     hold on;
-    line([0 0],[0 length(normPSTH)],'LineStyle','--','Color','k');
+    line([0 0],[0 size(neuralData.eta.alignedResps{1},3)],'LineStyle','--','Color','k');
     xlim([-.5 2]);
     caxis([-0 .5])
     if c == 1

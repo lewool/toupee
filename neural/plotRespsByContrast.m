@@ -45,8 +45,8 @@ dirColors = [0 .4 1; 1 0 0];
 %% plot responses to contrast x block
 
 % whichNeuron = 41;
-whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'stim')) > 0);
-% whichNeuron = 1:length(neuralData(1).stats.bfcH);
+% whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'stim')) > 0);
+whichNeuron = 1:length(neuralData(1).stats.bfcH);
 cellResps = nanmean(neuralData.eta.alignedResps{1}(:,:,whichNeuron),3);
 
 trialTypes = getTrialTypes(expInfo, behavioralData, 'late');
@@ -110,10 +110,10 @@ xlim([-1.1 1.1]);
 
 %% plot responses to contrast x movement x block
 
-% whichNeuron = 41;
-whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'stim')) > 0);
+whichNeuron = 623;
+% whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'leftMov')) > 0);
 % whichNeuron = 1:length(neuralData(1).stats.bfcH);
-cellResps = nanmean(neuralData.eta.alignedResps{1}(:,:,whichNeuron),3);
+cellResps = nanmean(neuralData.eta.alignedResps{2}(:,:,whichNeuron),3);
 
 trialTypes = getTrialTypes(expInfo, behavioralData, 'late');
 whichTrials = trialTypes.intVar.all.contrast_direction_block;
@@ -162,9 +162,23 @@ for c = 1:size(whichTrials,1)
     ylim([minY maxY]);
     xlim([-1 1]);
 end
-
+% 
+% for c = 3:size(whichTrials,1)-2
+%     subplot(1,length(contrasts)-4,c-2)
+%     plot(eventWindow, R_mLhL(c,:), 'Color',[0 .4 1],'LineStyle','-','LineWidth',2);
+%     hold on
+%     plot(eventWindow, R_mLhR(c,:), 'Color',[0 .4 1],'LineStyle',':','LineWidth',2);
+%     plot(eventWindow, R_mRhL(c,:), 'Color','r','LineStyle','-','LineWidth',2);
+%     plot(eventWindow, R_mRhR(c,:), 'Color','r','LineStyle',':','LineWidth',2);
+%     line([0 0],[minY maxY],'Color',[.5 .5 .5],'LineStyle','--')
+%     ylim([minY maxY]);
+%     xlim([-1 1]);
+%     prettyPlot(gca)
+%     title(num2str(contrasts(c)))
+% end
+%     
 %% plot responses to contrast x movement
-
+plotCells = 1:length(neuralData(1).stats.bfcH);
 fig = figure;
 set(gcf,'position',[120 560 1580 180])
 
@@ -185,10 +199,12 @@ while k <= max_k
     
    
     
-whichNeuron = plotCells(k);
+% whichNeuron = plotCells(k);
 % whichNeuron = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'stim')) > 0);
-% whichNeuron = 1:length(neuralData(1).stats.bfcH);
-cellResps = nanmean(neuralData(1).eta.alignedResps{1}(:,:,whichNeuron),3);
+whichNeuron = 1:length(neuralData(1).stats.hTest);
+% whichNeuron = plotCells;
+% whichNeuron = 41;
+% cellResps = nanmedian(neuralData(1).eta.alignedResps{1}(:,:,whichNeuron),3);
 
 % for iT = 1:size(neuralData.eta.alignedResps{ 2},1)
 %     relResps(iT,:,:) = neuralData.eta.alignedResps{1}(iT,:,whichNeuron)-reshape(repmat(baselineResps(iT,whichNeuron),41,1),[1 41 sum(whichNeuron)]);
@@ -196,6 +212,8 @@ cellResps = nanmean(neuralData(1).eta.alignedResps{1}(:,:,whichNeuron),3);
 % cellResps = nanmean(relResps,3);
 trialTypes = getTrialTypes(expInfo(1), behavioralData(1), 'late');
 whichTrials = trialTypes.intVar.all.contrast_direction;
+% whichTrials = trialTypes.intVar.cb2D.contrast_direction;
+
 clear R_mL R_mR vel_mR vel_mL
 
  %clear subplots
@@ -208,8 +226,8 @@ for c = 1:size(whichTrials,1)
     mL = whichTrials{c,1};
     mR = whichTrials{c,2};
     
-    R_mL(c,:) = nanmean(cellResps(mL,:),1);
-    R_mR(c,:) = nanmean(cellResps(mR,:),1);
+    R_mL(c,:) = nanmean(nanmean(neuralData(1).eta.alignedResps{1}(mL,:,whichNeuron),1),3);
+    R_mR(c,:) = nanmean(nanmean(neuralData(1).eta.alignedResps{1}(mR,:,whichNeuron),1),3);
     vel_mL(c,:) = nanmean(behavioralData(1).wheelMoves.epochs(5).peakVel(mL));
     vel_mR(c,:) = nanmean(behavioralData(1).wheelMoves.epochs(5).peakVel(mR));
     
@@ -218,16 +236,18 @@ end
 
 
 maxY = max(max([R_mL; R_mR]))*1.1;
-minY = min(min([R_mL; R_mR]))*2;
+minY = min(min([R_mL; R_mR]));
+maxY = max(max([vel_mL; vel_mR]))*1.1;
+minY = min(min([vel_mL; vel_mR]));
 
 for c = 1:size(whichTrials,1)
     subplot(1,length(contrasts),c)
     line([0 0],[-.25 10],'Color',[.5 .5 .5],'LineStyle',':');
-    plot(eventWindow, R_mL(c,:), 'Color',colors(c,:),'LineStyle','-','LineWidth',2);
+    plot(eventWindow, vel_mL(c,:), 'Color',colors(c,:),'LineStyle','-','LineWidth',2);
     hold on
-    plot(eventWindow, R_mR(c,:), 'Color',colors(c,:),'LineStyle',':','LineWidth',2);
+    plot(eventWindow, vel_mR(c,:), 'Color',colors(c,:),'LineStyle',':','LineWidth',2);
     ylim([minY maxY]);
-    xlim([-.5 2]);
+    xlim([-2 2]);
     title(num2str(contrasts(c)*100),'Color',colors(c,:));
     if c == ceil(length(contrasts)/2)
         xlabel('Time – stimOn (s)')
@@ -268,8 +288,8 @@ end
 %% plot responses to contrast x movement x previous choice
 
 % whichNeuron = 9;
-whichNeuron = neuralData(1).stats.bfcH(:,5) == 1;
-% whichNeuron = 1:length(neuralData(1).stats.bfcH);
+% whichNeuron = neuralData(1).stats.bfcH(:,5) == 1;
+whichNeuron = 1:length(neuralData(1).stats.bfcH);
 cellResps = nanmean(neuralData.eta.alignedResps{2}(:,:,whichNeuron),3);
 
 trialTypes = getTrialTypes(expInfo, behavioralData, 'late');
@@ -326,11 +346,11 @@ end
 
 %% plot responses to contrast
 
-whichNeuron = 41;
+whichNeuron = 768;
 % whichNeuron = neuralData(1).stats.bfcH(:,2) == 1 ;
 % whichNeuron = 1:length(neuralData(1).stats.bfcH);
 cellResps = nanmean(neuralData(1).eta.alignedResps{1}(:,:,whichNeuron),3);
-
+clear R_m vel_m
 % for iT = 1:size(neuralData.eta.alignedResps{ 2},1)
 %     relResps(iT,:,:) = neuralData.eta.alignedResps{1}(iT,:,whichNeuron)-reshape(repmat(baselineResps(iT,whichNeuron),41,1),[1 41 sum(whichNeuron)]);
 % end
@@ -375,6 +395,91 @@ for c = 1:size(whichTrials,1)
     
 end
 
+%% plot responses to contrast x reward amount
+
+whichNeuron = 773;
+% whichNeuron = neuralData(1).stats.bfcH(:,8) == 1 ;
+% whichNeuron = 1:length(neuralData(1).stats.bfcH);
+ETA = 2;
+
+cellResps = nanmean(neuralData(1).eta.alignedResps{ETA}(:,:,whichNeuron),3);
+
+trialTypes = getTrialTypes(expInfo(1), behavioralData(1), 'late');
+whichTrials = trialTypes.singleVar.contrast;
+contrasts = getUniqueContrasts(expInfo);
+clear R_m vel_m
+for c = 1:size(whichTrials,1)
+    for r = 1:3
+        m = intersect(whichTrials{c,1},trialTypes.singleVar.reward{r});
+        R_m(c,r,:) = nanmean(cellResps(m,:),1);
+        vel_m(c,r,:) = nanmean(behavioralData(1).eta.alignedVels{ETA}(m,:));
+    end
+    
+end   
+
+figure;
+set(gcf,'position',[120 560 1580 180])
+for sp = 1:length(contrasts)
+    subplot(1,length(contrasts),sp)
+    hold on
+    box off
+    set(gca,'tickdir','out')
+end
+
+maxY = max(max(max([R_m])))*1.1;
+minY = min(min(min([R_m])))*1.1;
+rcol = [0 .5 0; .5 1 .5; .7 0.1 0];
+
+for c = 1:size(whichTrials,1)
+    subplot(1,length(contrasts),c)
+    line([0 0],[-.25 10],'Color',[.5 .5 .5],'LineStyle',':');
+    plot(eventWindow, squeeze(R_m(c,1,:)), 'Color',rcol(1,:),'LineStyle','-','LineWidth',2);
+    hold on
+    plot(eventWindow, squeeze(R_m(c,2,:)), 'Color',rcol(2,:),'LineStyle','-','LineWidth',2);
+    plot(eventWindow, squeeze(R_m(c,3,:)), 'Color',rcol(3,:),'LineStyle','-','LineWidth',2);
+    ylim([minY maxY]);
+    xlim([-1 1]);
+    title(num2str(contrasts(c)*100),'Color','k');
+    if c == ceil(length(contrasts)/2)
+        xlabel('Time – stimOn (s)')
+    end
+    if c == 1
+        ylabel('Activity')
+    end
+    
+end
+
+figure;
+set(gcf,'position',[120 560 1580 180])
+for sp = 1:length(contrasts)
+    subplot(1,length(contrasts),sp)
+    hold on
+    box off
+    set(gca,'tickdir','out')
+end
+
+maxY = max(max(max([abs(vel_m)])))*1.1;
+minY = min(min(min([abs(vel_m)])))*1.1;
+rcol = [0 .5 0; .5 1 .5; .7 0.1 0];
+
+for c = 1:size(whichTrials,1)
+    subplot(1,length(contrasts),c)
+    line([0 0],[-.25 100],'Color',[.5 .5 .5],'LineStyle',':');
+    plot(behavioralData.eta.eventWindow, squeeze(abs(vel_m(c,1,:))), 'Color',rcol(1,:),'LineStyle','-','LineWidth',2);
+    hold on
+    plot(behavioralData.eta.eventWindow, squeeze(abs(vel_m(c,2,:))), 'Color',rcol(2,:),'LineStyle','-','LineWidth',2);
+    plot(behavioralData.eta.eventWindow, squeeze(abs(vel_m(c,3,:))), 'Color',rcol(3,:),'LineStyle','-','LineWidth',2);
+    ylim([minY maxY]);
+    xlim([-1 1]);
+    title(num2str(contrasts(c)*100),'Color','k');
+    if c == ceil(length(contrasts)/2)
+        xlabel('Time – stimOn (s)')
+    end
+    if c == 1
+        ylabel('Activity')
+    end
+    
+end
 
 % for c = 1:size(whichTrials,1)
 %     mL = whichTrials{c,1};

@@ -1,9 +1,10 @@
 function plotWheelPseudorasters(expInfo, behavioralData, neuralData, moveTime)
 
+nt = numel(expInfo.block.events.endTrialValues);
 stimOnTimes = behavioralData.eventTimes(1).daqTime;
 feedbackTimes = behavioralData.eventTimes(5).daqTime;
-choiceDir = expInfo.block.events.responseValues;
-contrasts = expInfo.block.events.contrastValues(1:end-1);
+choiceDir = expInfo.block.events.responseValues(1:nt);
+contrasts = expInfo.block.events.contrastValues(1:nt);
 uniqueContrasts = getUniqueContrasts(expInfo);
 
 feedbackLatencies = behavioralData.eventTimes(5).daqTime - behavioralData.eventTimes(1).daqTime;
@@ -82,7 +83,7 @@ for c = 1:length(uniqueContrasts)
     imagesc(plotWindow, 1:length(leftSortIdx), -leftVels(leftSortIdx,:),'AlphaData',~isnan(leftVels));
     hold on;
     line([0 0],[0 100],'LineStyle','--','Color',[.5 .5 .5])
-    caxis([-.25 .25]);
+    caxis([-.15 .15]);
     xlim([-.5 2])
     ylabel(num2str(uniqueContrasts(c)))
     set(gca,'tickdir','out')
@@ -218,23 +219,23 @@ end
 
 % close(fig)
 %%
-
-whichCells = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'rightMov')) > 0);
-
-for c = 1:length(uniqueContrasts)
-    [whichTrials] = selectCondition(expInfo, uniqueContrasts(c), behavioralData, trialConditions{T});
-    popResp = squeeze(nanmean(neuralData.eta.alignedResps{1}((choiceDir == 1 & whichTrials == 1),:,whichCells),1));
-    meanPopResp(c,:) = nanmean(popResp,2);
-end
-
-trimmedIdx = find(plotWindow >= -.5 & plotWindow <=2);
-trimWindow = plotWindow(trimmedIdx);
-trimTraj = meanTrajectoryRight(:,trimmedIdx);
-trimmedNeurIdx = find(neuralData.eta.eventWindow >= -.5 & neuralData.eta.eventWindow <=2);
-trimNeurWindow = neuralData.eta.eventWindow(trimmedNeurIdx);
-trimNeur = meanPopResp(:,trimmedNeurIdx);
-
-for c = 1:length(uniqueContrasts)
-    meanPopResp_int(c,:) = interp1(trimNeurWindow,trimNeur(c,:),trimWindow,'linear');
-end
+% 
+% whichCells = find(neuralData.stats.bfcH(:,strcmp(neuralData.stats.labels,'rightMov')) > 0);
+% 
+% for c = 1:length(uniqueContrasts)
+%     [whichTrials] = selectCondition(expInfo, uniqueContrasts(c), behavioralData, trialConditions{T});
+%     popResp = squeeze(nanmean(neuralData.eta.alignedResps{1}((choiceDir == 1 & whichTrials == 1),:,whichCells),1));
+%     meanPopResp(c,:) = nanmean(popResp,2);
+% end
+% 
+% trimmedIdx = find(plotWindow >= -.5 & plotWindow <=2);
+% trimWindow = plotWindow(trimmedIdx);
+% trimTraj = meanTrajectoryRight(:,trimmedIdx);
+% trimmedNeurIdx = find(neuralData.eta.eventWindow >= -.5 & neuralData.eta.eventWindow <=2);
+% trimNeurWindow = neuralData.eta.eventWindow(trimmedNeurIdx);
+% trimNeur = meanPopResp(:,trimmedNeurIdx);
+% 
+% for c = 1:length(uniqueContrasts)
+%     meanPopResp_int(c,:) = interp1(trimNeurWindow,trimNeur(c,:),trimWindow,'linear');
+% end
 

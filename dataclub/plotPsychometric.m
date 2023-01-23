@@ -318,7 +318,7 @@ if length(unique(allRewardSideValues)) < 2
     ax3.TickDir = 'out'; 
 
 % B2AFC EXPERIMENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-elseif length(unique(allRewardSideValues)) == 2 && ~options.choiceHistory
+elseif length(unique(allRewardSideValues)) == 2 && ~exist('options')
     % plot trials with high reward on the left
     lineColor = colors(1,:);
     cc = unique(allContrastValues);

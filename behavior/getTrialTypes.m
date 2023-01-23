@@ -83,6 +83,12 @@ for a = 1:length(am)
     am_di{a,2} = intersect(am{a},di{2});
 end
 
+%split trials as BLOCK x DIRECTION (nBlocks x nDirs)    
+for a = 1:length(bl)
+    bl_di{a,1} = intersect(bl{a},di{1});
+    bl_di{a,2} = intersect(bl{a},di{2});
+end
+
 %split trials as CONTRAST x DIRECTION (nContrasts x nDirs)       
 for d = 1:length(dirs)
     for c = 1:length(contrasts)
@@ -119,9 +125,9 @@ end
 for d = 1:length(blocks)
     for c = 1:length(contrasts)
         if strcmp(movementTime,'>0.5')
-            [~, co_bl{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'responseType','correct','movementTime','all','specificRTs',[.5 Inf],'highRewardSide',blocks{d}));
+            [~, co_bl{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime','all','specificRTs',[.5 Inf],'highRewardSide',blocks{d}));
         else
-            [~, co_bl{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'responseType','correct','movementTime',movementTime,'highRewardSide',blocks{d}));
+            [~, co_bl{c,d}] = selectCondition(expInfo, contrasts(c), behavioralData, initTrialConditions('repeatType', 'random', 'movementTime',movementTime,'highRewardSide',blocks{d}));
         end
     end
 end
@@ -131,7 +137,7 @@ for d = 1:size(co_di,2)
     si_bl{3,d} = cat(2, co_bl{contrasts>0,d});
 end
 
-%split as OUTCOME x DIRECTION (counterbalanced)
+%split as OUTCOME x DIRECTION
 for d = 1:size(di,1)
     ou_di{1,d} = intersect(di{d,:},find(~isnan(behavioralData.eventTimes(4).daqTime)));
     ou_di{2,d} = intersect(di{d,:},find(isnan(behavioralData.eventTimes(4).daqTime)));
@@ -167,7 +173,8 @@ trialTypes.intVar.all = struct(...
     'side_block',{si_bl},...
     'side_direction_block',{si_di_bl},...
     'outcome_direction',{ou_di},...
-    'reward_direction',{am_di}...
+    'reward_direction',{am_di},...
+    'block_direction',{bl_di}...
     );
 
 %%%%%%% INTERACTIONS (3-WAY COUNTERBALANCED) %%%%%%%%%%%%%%%%%%%
@@ -302,15 +309,17 @@ for c = 1:size(co_di_2,1)
 end
 
 %split as SIDE ONLY (counterbalanced)
-si_2{1,1} = cat(2, co_2{contrasts<0});
-si_2{2,1} = cat(2, co_2{contrasts==0});
-si_2{3,1} = cat(2, co_2{contrasts>0});
+hasTrials = logical(true - cellfun(@isempty,co_2'));
+si_2{1,1} = cat(2, co_2{logical(hasTrials .* (contrasts<0))});
+si_2{2,1} = cat(2, co_2{logical(hasTrials .*(contrasts==0))});
+si_2{3,1} = cat(2, co_2{logical(hasTrials .* (contrasts>0))});
 
 %split as SIDE x DIRECTION (counterbalanced)
 for d = 1:size(co_di_2,2)
-    si_di_2{1,d} = cat(2, co_di_2{contrasts<0,d});
-    si_di_2{2,d} = cat(2, co_di_2{contrasts==0,d});
-    si_di_2{3,d} = cat(2, co_di_2{contrasts>0,d});
+    hasTrials = logical(true - cellfun(@isempty,co_di_2'));
+    si_di_2{1,d} = cat(2, co_di_2{logical(hasTrials(d,:) .* (contrasts<0)),d});
+    si_di_2{2,d} = cat(2, co_di_2{logical(hasTrials(d,:) .*(contrasts==0)),d});
+    si_di_2{3,d} = cat(2, co_di_2{logical(hasTrials(d,:) .* (contrasts>0))});
 end
 
 %split as DIRECTION ONLY (counterbalanced)

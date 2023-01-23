@@ -30,10 +30,10 @@ contrasts = getUniqueContrasts(expInfo);
 allContrasts = getAllContrasts(expInfo);
 
 %set up trial conditions for hi-L and hi-R blocks
-trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','early');
-trialConditions{2} = initTrialConditions('movementDir','ccw','movementTime','early');
-trialConditions{3} = initTrialConditions('movementDir','cw','movementTime','late');
-trialConditions{4} = initTrialConditions('movementDir','ccw','movementTime','late');
+trialConditions{1} = initTrialConditions('movementDir','cw','movementTime','early','preStimMovement','quiescent','specificRTs',[0 .8]);
+trialConditions{2} = initTrialConditions('movementDir','ccw','movementTime','early','preStimMovement','quiescent','specificRTs',[0 .8]);
+trialConditions{3} = initTrialConditions('movementDir','cw','movementTime','late','preStimMovement','quiescent','specificRTs',[.8 Inf]);
+trialConditions{4} = initTrialConditions('movementDir','ccw','movementTime','late','preStimMovement','quiescent','specificRTs',[.8 Inf]);
 
 trialLabels{1} = 'leftEarly_';
 trialLabels{2} = 'rightEarly_';

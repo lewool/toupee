@@ -29,8 +29,8 @@ for ex = 1:length(expInfo)
     rawPos = rawPos./(rotaryEncoderResolution)*2*pi*wheelRadius; % convert to mm
 
     % %compute wheel velocity
-    [vel, ~] = wheel.computeVelocity2(pos, 1, Fs);
-
+    [vel, ~] = wheel.computeVelocity2(pos, .1, Fs);
+    
     %% trial-by-trial traces
 
     % event times
@@ -62,12 +62,23 @@ for ex = 1:length(expInfo)
         % record the traces/times
         wheelTraceTimes{i} = trialWheelTimes;
         wheelTraceValues{i} = pos(trialIdx) - mean(pos(idxPre));
+        wheelTraceVelValues{i} = vel(trialIdx);
 
     end
 
     %% find wheel moves
 
-    [inMove, moveOnsets, moveOffsets, moveAmps, peakVelTimes] = wheel.findWheelMoves3(pos, t, Fs);
+     try
+        [inMove, moveOnsets, moveOffsets, moveAmps, peakVelTimes] = ...
+        wheel.findWheelMoves3(pos, t, Fs, ...
+        expInfo.wheelParams.Names{1}, expInfo.wheelParams.Values{1},...
+        expInfo.wheelParams.Names{2}, expInfo.wheelParams.Values{2},...
+        expInfo.wheelParams.Names{3}, expInfo.wheelParams.Values{3},...
+        expInfo.wheelParams.Names{4}, expInfo.wheelParams.Values{4},...
+        expInfo.wheelParams.Names{5}, expInfo.wheelParams.Values{5});
+    catch
+        [inMove, moveOnsets, moveOffsets, moveAmps, peakVelTimes] = wheel.findWheelMoves3(pos, t, Fs);
+    end
     peakVelTimes = interp1(t,t,peakVelTimes,'nearest','extrap');
 
     %% record movement in each epoch of each trial 
@@ -271,6 +282,7 @@ for ex = 1:length(expInfo)
 
      wheelMoves.traces.pos = wheelTraceValues;
      wheelMoves.traces.time = wheelTraceTimes;
+     wheelMoves.traces.vel = wheelTraceVelValues;
      
      allWheelMoves{ex} = wheelMoves;
      clearvars -except ex expInfo allWheelMoves allEventTimes

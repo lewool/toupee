@@ -1,4 +1,4 @@
-function plotPsychometric(varargin)
+function [cc, ppl, ppr, pcil, pcir] = plotPsychometric(varargin)
 % 15 Nov 2019: LEW adapted to take inputs from either 2AFC or B2AFC experiments
 
 % This function takes a list of mice/exps and generates a psychometric
@@ -69,7 +69,7 @@ elseif nargin == 2
             mouseList = repelem(mouseList,length(expList));
         end
 
-        expInfo.mouseName = mouseList{d}{:};
+        expInfo.mouseName = mouseList{d};
         expInfo.expDate = expList{d}{1};
         expInfo.expNum = expList{d}{2};
 
@@ -118,7 +118,7 @@ elseif nargin > 2
             mouseList = repelem(mouseList,length(expList));
         end
 
-        expInfo.mouseName = mouseList{d}{:};
+        expInfo.mouseName = mouseList{d};
         expInfo.expDate = expList{d}{1};
         expInfo.expNum = expList{d}{2};
 
@@ -270,7 +270,9 @@ else
 
     % plot
     if size(cc,2) >= 2
-
+        cc = cc(2:end-1);
+        pp = pp(2:end-1);
+        nn = nn(2:end-1);
         % fit and plot a psychometric curve (asymmetric lapse rate)
         parstart = [mean(cc), 3, 0.05, 0.05 ]; %threshold, slope, gamma1, gamma2
         parmin = [min(cc) 0 0 0];
@@ -294,6 +296,9 @@ else
             disp('Error: Not enough contrasts to plot performance')
 
     end
+    
+    ppl = pp;
+    pcil = pci;
 
     % plot trials with high reward on the right
     lineColor = colors(2,:);
@@ -324,7 +329,9 @@ else
 
     % plot
     if size(cc,2) >= 2
-
+        cc = cc(2:end-1);
+        pp = pp(2:end-1);
+        nn = nn(2:end-1);
         % fit and plot a psychometric curve (asymmetric lapse rate)
         parstart = [mean(cc), 3, 0.05, 0.05 ]; %threshold, slope, gamma1, gamma2
         parmin = [min(cc) 0 0 0];
@@ -344,6 +351,9 @@ else
     else
         disp('Error: Not enough contrasts to plot performance')
     end
+    
+    ppr = pp;
+    pcir = pci;
     
     axis([cc(1)*1.05 cc(end)*1.05 -0.05 1.05])
     set(gca, 'XTick', [-100, -50, -25, 0, 25, 50, 100])

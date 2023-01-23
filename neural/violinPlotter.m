@@ -2,7 +2,7 @@ function violinPlotter(xCategories, yValues,randRange,bandwidth,width,color,plot
 
 for ix = 1:length(xCategories)
     xRand = randi([-10 10],1,length(yValues{ix}))*(randRange*.1);
-    plotScatter = scatter(xCategories(ix)+xRand,yValues{ix},10,'go');
+    plotScatter = scatter(xCategories(ix)+xRand,yValues{ix},15,'go');
     set(plotScatter,'MarkerFaceColor',color,'MarkerEdgeColor','none','MarkerFaceAlpha',.3)
     hold on
     

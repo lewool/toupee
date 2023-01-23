@@ -26,7 +26,7 @@ toEnd = plotWindow(end)*1000;
 for t = 1:length(behavioralData.wheelMoves.traces.time)
     traceTime = behavioralData.wheelMoves.traces.time{1,t}  - timeCorrect(t);
     velTime = traceTime;
-    vel = behavioralData.wheelMoves.traces.pos{1,t};
+    vel = behavioralData.wheelMoves.traces.vel{1,t};
 %     zeroIdx = find(velTime == 0);
     [~, zeroIdx] = min(abs(velTime - 0));
     startIdx = zeroIdx + fromStart;

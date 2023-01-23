@@ -13,7 +13,7 @@ for ex = 1:length(expInfo)
 
 mouseName = expInfo(ex).mouseName;
 expDate = expInfo(ex).expDate;
-expSeries = expInfo(ex).expSeries;
+expSeries = expInfo(ex).expNum;
 
 %% 
 seriesFolder = strrep(num2str(expSeries),'  ',' ');

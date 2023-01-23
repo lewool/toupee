@@ -23,6 +23,7 @@ fprintf('done\n')
 %% get event times
 
 fprintf('(3/6) extracting events/wheel...')
+
 for iX = 1:length(expInfo)
     try %task
         try %old tl

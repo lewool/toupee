@@ -27,6 +27,7 @@ pastMovementTime = trialConditions.pastMovementTime;
 pastResponseType = trialConditions.pastResponseType;
 trialsBack = trialConditions.trialsBack;
 switchBlocks = trialConditions.switchBlocks;
+trimBlocks = trialConditions.trimBlocks;
 whichTrials = trialConditions.whichTrials;
 specificRTs = trialConditions.specificRTs;
 
@@ -292,6 +293,25 @@ for iExp = 1:numExps
         otherwise
             error('Choose a valid switchType: "before", "after", or "all"');
     end
+    
+    if isnumeric(trimBlocks)
+        idxTrim = false(1,nt);
+        switchPoints = find(diff(b.events.highRewardSideValues) ~= 0);
+        for s = 1:length(switchPoints)
+            if s == 1
+                idxTrim(trimBlocks+1:switchPoints(s)) = true;
+            elseif s < length(switchPoints)
+            	idxTrim(switchPoints(s-1)+trimBlocks+1:switchPoints(s)) = true;
+            elseif s == length(switchPoints)
+                idxTrim(switchPoints(s-1)+trimBlocks+1:switchPoints(s)) = true;
+                idxTrim(switchPoints(s)+trimBlocks+1:nt) = true;
+            end
+        end
+    elseif ~isnumeric(trimBlocks) && strcmp(trimBlocks,'all')
+        idxTrim = true(1,nt);
+    else
+        error('Choose a scalar value, or "all"');
+    end
 
     if isnumeric(whichTrials)
         idxWhich = false(1,nt);
@@ -329,6 +349,7 @@ for iExp = 1:numExps
         idxPastMovement .* ...
         idxPastCorrect .* ...
         idxSwitch .* ...
+        idxTrim .* ...
         idxWhich .* ...
         idxRT;
     

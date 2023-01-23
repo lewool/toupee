@@ -100,7 +100,7 @@ for s = 1:length(whichScreen)
     line([0 0],[.05 .16],'LineStyle','--','Color','k');
     plotCol = fliplr(colors{s});
     hold on;
-    ylim([0.05 .16])
+    ylim([0.05 .13])
     xlim([-0.5 1.5])
     xlabel('time (s)')
     if s == 1
@@ -125,7 +125,7 @@ for s = 1:length(whichScreen)
     subplot(2,3,s+3)
     plotCol = fliplr(colors{s});
     hold on;
-    ylim([0.05 .135])
+    ylim([0.05 .13])
     xlim([-0.05 1.05])
     xlabel('contrast')
     if s == 1
