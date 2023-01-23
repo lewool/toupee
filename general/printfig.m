@@ -15,6 +15,8 @@ end
 
 % set the renderer
 set(gcf,'renderer','Painters');
+set(gcf, 'InvertHardCopy', 'off');
+set(gcf, 'Color', 'w');
 
 % go to the fig folder
 cd('C:\Users\Wool\Desktop\tempFigs');
