@@ -1,38 +1,30 @@
-function [gof, gof_pseudo, mi, mip] = neuralDecoder(expInfo, behavioralData, neuralData, Ytype, ETA)
+function [fits, mutual_info, allX, allY, allD] = neuralDecoder(expInfo, behavioralData, neuralData, Ytype, ETA)
 
 %% Predict a task variable from neural activity
-% This takes a 1D vector of neural activity at a particular trial timepoint (X) and uses
-% this in lasso logistic regression to try and predict a Y outcome variable
-% on that trial. A model is fitted for every timepoint (n = 41)
+% This takes a 2D vector of neural activity at a particular trial timepoint (X) and uses
+% this in lasso logistic regression to try and predict a 1D Y outcome
+% variable. A model is fitted for every timepoint (n = 16)
 
-% Data is split into thirds. 2/3 goes into the cvglmnet protocol to train & pick the
-% lambda, then the other 1/3 is held back to evaluate the model.
+try
+    parpool();
+catch
+end
 
-
-
-
-%%
-    
+%% Collect task data for Y vectors containing true data
 nt = length(behavioralData.eventTimes(1).daqTime);
 
-%% generate Y outcome vector
-
 % extract stimulus, choice, feedback, value, and block values
-
 trueStimuli = expInfo.block.events.contrastValues(1:nt);
 trialCorrectChoice = expInfo.block.events.correctResponseValues(1:nt);
 trueBlocks = expInfo.block.events.highRewardSideValues(1:nt);
 trueChoices = expInfo.block.events.responseValues(1:nt);
-allFeedback = double(expInfo.block.events.feedbackValues(1:nt));
-feedbackIdx = find(trueStimuli == 0);
-trueFeedback = allFeedback(feedbackIdx);
+trueFeedback = double(expInfo.block.events.feedbackValues(1:nt));
 
 % assign the 0% stimuli as either 'left' or 'right' depending on the
 % preassigned correct choice (not the mouse's choice)
 trueStimuli(trueStimuli == 0) = eps;
 trueStimuli(abs(trueStimuli) < .05) = ...
     trueStimuli(abs(trueStimuli) < .05).* trialCorrectChoice(abs(trueStimuli) < .05);
-
 trueSide = trueStimuli > 0;
 
 % low rewards are possible on sign-mismatched block and stimulus
@@ -41,12 +33,18 @@ trueSide = trueStimuli > 0;
 trueValue(trueBlocks.*sign(trueStimuli) == -1) = 0;
 trueValue(trueBlocks.*sign(trueStimuli) == 1) = 1;
 
-% fetch RT and maxVel
-
+% fetch RT, impulsive trials, and maxVel
 trueVel = abs(behavioralData.wheelMoves.epochs(5).peakVel(1:nt));
 trueRT = behavioralData.wheelMoves.epochs(5).onsetTimes(1:nt) - behavioralData.eventTimes(1).daqTime(1:nt);
+[~, impTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+    initTrialConditions('responseType','all','movementTime','early','specificRTs',[0.1 .8]));     
+trueImp = false(1,nt);
+trueImp(impTrials) = true;
 
-%% generate pseudo Y vectors
+%% Generate Y vectors containing pseudo data
+%shuffle method for independent vars like stim
+%pseudo-generated from task code for block and value
+%these go into Y.pseudo, below
 np = 100;
 
 %generate randomly shuffled stims
@@ -61,40 +59,7 @@ for p = 1:np
     pseudoSide(p,:) = randsample(trueSide,length(trueSide));
 end
 
-%generate linear-shifted choices
-% trimLength = 20;
-% for l = 1:trimLength*2+1
-%     ss = l;
-%     es = length(trueChoices) - (trimLength*2-l+1);
-%     shifts(l,:) = trueChoices(ss:es);
-% end
-% pseudoChoices = shifts([1:trimLength,trimLength+2:trimLength*2+1],:);
-
-%generate randomly shuffled feedbacks (only 0% contrast)
-pseudoFeedback = nan(np,length(trueFeedback));
-for p = 1:np
-    pseudoFeedback(p,:) = randsample(trueFeedback,length(trueFeedback));
-end
-
-%generate linear-shifted RTs
-trimLength = 20;
-for l = 1:trimLength*2+1
-    ss = l;
-    es = length(trueRT) - (trimLength*2-l+1);
-    rt_shifts(l,:) = trueRT(ss:es);
-end
-pseudoRT = rt_shifts([1:trimLength,trimLength+2:trimLength*2+1],:);
-
-%generate linear-shifted maxVels
-trimLength = 20;
-for l = 1:trimLength*2+1
-    ss = l;
-    es = length(trueVel) - (trimLength*2-l+1);
-    vel_shifts(l,:) = trueVel(ss:es);
-end
-pseudoVel = vel_shifts([1:trimLength,trimLength+2:trimLength*2+1],:);
-
-% generate pseudoblocks
+%generate pseudoblocks
 pseudoBlocks = nan(np,nt);
 pseudoValue = nan(np,nt);
 trimLength = 0;
@@ -119,16 +84,13 @@ for p = 1:np
     pseudoBlocks(p,:) = b(1:nt);
 end
 
-% generate pseudo high/low trials based on the pseudoblocks + true stim
+%generate pseudo high/low trials based on the pseudoblocks + true stim
 for p = 1:np
     pseudoValue(p,pseudoBlocks(p,:).*sign(trueStimuli) == -1) = 0;
     pseudoValue(p,pseudoBlocks(p,:).*sign(trueStimuli) == 1) = 1;
-%     pseudoValue(p,trueFeedback==0) = nan;
-%     pseudoValue(p,isnan(pseudoBlocks(p,:))) = nan;
 end
 
-
-%% convert to contra/ipsi
+%% Convert to contra/ipsi
 
 if expInfo.hemisphere > 0
     trueStimuli = -trueStimuli;
@@ -144,7 +106,8 @@ else
     pseudoBlocks = pseudoBlocks == 1;
 end
 
-%% generate stimulus one-hot encoding matrix
+%% Generate one-hot encoders
+%this becomes the design matrix D, below
 
 contrasts = getUniqueContrasts(expInfo);
 contrasts(contrasts==0) = [];
@@ -164,632 +127,383 @@ for c=1:length(trueChoices)
     end
 end
 
-% choiceOneHot = zeros(length(trueChoices),2);
-% for c=1:length(trueChoices)
-%     if trueChoices(c) == 1
-%         choiceOneHot(c,1) = 1;
-%     elseif trueChoices(c) == 0
-%         choiceOneHot(c,2) = 1;
-%     end
-% end
-%% fit type
+%% Generate other Y vectors containing pseudo data
+%use linear-shift for non-independent vars with unknown distribution
+%these go into Y.pseudo, below
+trimLength = 20;
 
-timeRange = 6:2:36;
+switch Ytype
+    case {'RT' 'velocity' 'impulsive'}
+        [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+            initTrialConditions('repeatType','random','specificRTs',[.1 3]));
+        for l = 1:trimLength*2+1
+            ss = l;
+            es = length(mostTrials) - (trimLength*2-l+1);
+            shiftVel(l,:) = trueVel(mostTrials(ss:es));
+            shiftRT(l,:) = trueRT(mostTrials(ss:es));
+            shiftImp(l,:) = trueImp(mostTrials(ss:es));
+        end
+        shiftVel(trimLength+1,:) = [];
+        shiftRT(trimLength+1,:) = [];
+        shiftImp(trimLength+1,:) = [];
 
-for t = 1:length(timeRange)
-    switch Ytype
-        case 'side'
-            % generally filter trials (e.g., only patient ones)
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            testTrials = whichTrials(1:3:end);
-            trainTrials = whichTrials;
-            trainTrials(ismember(whichTrials,testTrials)) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials,timeRange(t),:));
-    
-            Y(t).true.train = trueSide(trainTrials);
-            Y(t).true.test = trueSide(testTrials);
-            Y(t).true.dumb = ones(1,length(testTrials))*mean(trueSide(trainTrials));
-            Y(t).pseudo.train = pseudoSide(:,trainTrials);
-            Y(t).pseudo.test = pseudoSide(:,testTrials);
-            Y(t).pseudo.dumb = ones(1,length(testTrials)).*mean(pseudoSide(:,trainTrials),2);
-            family = 'binomial';
-            
-        case 'stimulus'
-            % generally filter trials (e.g., only patient ones)
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            testTrials = whichTrials(1:3:end);
-            trainTrials = whichTrials;
-            trainTrials(ismember(whichTrials,testTrials)) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials,timeRange(t),:));
-    
-            Y(t).true.train = trueStimuli(trainTrials);
-            Y(t).true.test = trueStimuli(testTrials);
-            Y(t).true.dumb = ones(1,length(testTrials))*mean(trueStimuli(trainTrials));
-            Y(t).pseudo.train = pseudoStimuli(:,trainTrials);
-            Y(t).pseudo.test = pseudoStimuli(:,testTrials);
-            Y(t).pseudo.dumb = ones(1,length(testTrials)).*mean(pseudoStimuli(:,trainTrials),2);
-            family = 'gaussian';
-            
-        case 'choice'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            whichChoices = trueChoices(whichTrials);
-            %generate linear-shifted choices
-            trimLength = 20;
-            for l = 1:trimLength*2+1
-                ss = l;
-                es = length(whichChoices) - (trimLength*2-l+1);
-                shifts(l,:) = whichChoices(ss:es);
-            end
-            pseudoChoices = shifts([1:trimLength,trimLength+2:trimLength*2+1],:);
-            testTrials = whichTrials(trimLength+1:3:end-trimLength);
-            trainTrials = whichTrials(trimLength+1:end-trimLength);
-            trainTrials(ismember(whichTrials(trimLength+1:end-trimLength),testTrials)) = [];
-            trimLength = 20;
-            truncIdx = trimLength+1:nt-trimLength;
-            ptestTrials = 1:3:length(pseudoChoices);
-            ptrainTrials = 1:length(pseudoChoices);
-            ptrainTrials(ptestTrials) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials,timeRange(t),:));
-            
-            Y(t).true.train = trueChoices(trainTrials);
-            Y(t).true.test = trueChoices(testTrials);
-            Y(t).true.dumb = ones(1,length(testTrials))*mean(trueChoices(trainTrials));
-            Y(t).pseudo.train = pseudoChoices(:,ptrainTrials);
-            Y(t).pseudo.test = pseudoChoices(:,ptestTrials);
-            Y(t).pseudo.dumb = ones(1,length(ptestTrials)).*mean(pseudoChoices(:,ptrainTrials),2);
-            family = 'binomial';
-        
-        case 'prevChoice'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            whichChoices = trueChoices(whichTrials);
-            %generate linear-shifted choices
-            trimLength = 20;
-            for l = 1:trimLength*2+1
-                ss = l;
-                es = length(whichChoices) - (trimLength*2-l+1);
-                shifts(l,:) = whichChoices(ss:es);
-            end
-            pseudoChoices = shifts([1:trimLength,trimLength+2:trimLength*2+1],:);
-            testTrials = whichTrials(trimLength+1:3:end-trimLength);
-            trainTrials = whichTrials(trimLength+1:end-trimLength);
-            trainTrials(ismember(whichTrials(trimLength+1:end-trimLength),testTrials)) = [];
-            trimLength = 20;
-            truncIdx = trimLength+1:nt-trimLength;
-            ptestTrials = 1:3:length(pseudoChoices);
-            ptrainTrials = 1:length(pseudoChoices);
-            ptrainTrials(ptestTrials) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials+1,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials+1,timeRange(t),:));
-            
-            Y(t).true.train = trueChoices(trainTrials);
-            Y(t).true.test = trueChoices(testTrials);
-            Y(t).pseudo.train = pseudoChoices(:,ptrainTrials);
-            Y(t).pseudo.test = pseudoChoices(:,ptestTrials);
-            family = 'binomial';
-        
-        case 'choiceIndStim'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            whichChoices = trueChoices(whichTrials);
-            whichStimOneHot = stimOneHot(whichTrials,:);
-            %generate linear-shifted choices
-            trimLength = 20;
-            for l = 1:trimLength*2+1
-                ss = l;
-                es = length(whichChoices) - (trimLength*2-l+1);
-                shifts(l,:) = whichChoices(ss:es);
-            end
-            
-            %generate linear-shifted stim one-hot-encoding matrix
-            for l = 1:trimLength*2+1
-                ss = l;
-                es = length(whichStimOneHot) - (trimLength*2-l+1);
-                sohShifts(l,:,:) = whichStimOneHot(ss:es,:);
-            end
-            
-            pseudoChoices = shifts([1:trimLength,trimLength+2:trimLength*2+1],:);
-            pseudoStimOneHot = sohShifts([1:trimLength,trimLength+2:trimLength*2+1],:,:);
-            testTrials = whichTrials(trimLength+1:3:end-trimLength);
-            trainTrials = whichTrials(trimLength+1:end-trimLength);
-            trainTrials(ismember(whichTrials(trimLength+1:end-trimLength),testTrials)) = [];
-
-            truncIdx = trimLength+1:nt-trimLength;
-            ptestTrials = 1:3:length(pseudoChoices);
-            ptrainTrials = 1:length(pseudoChoices);
-            ptrainTrials(ptestTrials) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials,timeRange(t),:));
-            
-            OneHot(t).true.train = stimOneHot(trainTrials,:);
-            OneHot(t).true.test = stimOneHot(testTrials,:);
-            OneHot(t).pseudo.train = pseudoStimOneHot(:,ptrainTrials,:);
-            OneHot(t).pseudo.test = pseudoStimOneHot(:,ptestTrials,:);
-            
-            Y(t).true.train = trueChoices(trainTrials);
-            Y(t).true.test = trueChoices(testTrials);
-            Y(t).pseudo.train = pseudoChoices(:,ptrainTrials);
-            Y(t).pseudo.test = pseudoChoices(:,ptestTrials);
-            
-            family = 'binomial';
-            
-        case 'stimIndChoice'
-            [~, whichTrials] = selectCondition(expInfo, contrasts, behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            whichStim = trueSide(whichTrials);
-            whichChoiceOneHot = choiceOneHot(whichTrials,:);
-            %generate linear-shifted stim
-            trimLength = 20;
-            for l = 1:trimLength*2+1
-                ss = l;
-                es = length(whichStim) - (trimLength*2-l+1);
-                shifts(l,:) = whichStim(ss:es);
-            end
-            
-            %generate linear-shifted choice one-hot-encoding matrix
-            for l = 1:trimLength*2+1
-                ss = l;
-                es = length(whichChoiceOneHot) - (trimLength*2-l+1);
-                cohShifts(l,:,:) = whichChoiceOneHot(ss:es,:);
-            end
-            
-            pseudoSide = shifts([1:trimLength,trimLength+2:trimLength*2+1],:);
-            pseudoChoiceOneHot = cohShifts([1:trimLength,trimLength+2:trimLength*2+1],:,:);
-            testTrials = whichTrials(trimLength+1:3:end-trimLength);
-            trainTrials = whichTrials(trimLength+1:end-trimLength);
-            trainTrials(ismember(whichTrials(trimLength+1:end-trimLength),testTrials)) = [];
-
-            truncIdx = trimLength+1:nt-trimLength;
-            ptestTrials = 1:3:length(pseudoSide);
-            ptrainTrials = 1:length(pseudoSide);
-            ptrainTrials(ptestTrials) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials,timeRange(t),:));
-            
-            OneHot(t).true.train = choiceOneHot(trainTrials,:);
-            OneHot(t).true.test = choiceOneHot(testTrials,:);
-            OneHot(t).pseudo.train = pseudoChoiceOneHot(:,ptrainTrials,:);
-            OneHot(t).pseudo.test = pseudoChoiceOneHot(:,ptestTrials,:);
-            
-            Y(t).true.train = trueSide(trainTrials);
-            Y(t).true.test = trueSide(testTrials);
-            Y(t).pseudo.train = pseudoSide(:,ptrainTrials);
-            Y(t).pseudo.test = pseudoSide(:,ptestTrials);
-            
-            family = 'binomial';
-            
-        case 'allFeedback'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            whichFeedback = allFeedback(whichTrials);
-            %generate linear-shifted choices
-            trimLength = 20;
-            for l = 1:trimLength*2+1
-                ss = l;
-                es = length(whichFeedback) - (trimLength*2-l+1);
-                shifts(l,:) = whichFeedback(ss:es);
-            end
-            pseudoFeedback = shifts([1:trimLength,trimLength+2:trimLength*2+1],:);
-            testTrials = whichTrials(trimLength+1:3:end-trimLength);
-            trainTrials = whichTrials(trimLength+1:end-trimLength);
-            trainTrials(ismember(whichTrials(trimLength+1:end-trimLength),testTrials)) = [];
-            trimLength = 20;
-            truncIdx = trimLength+1:nt-trimLength;
-            ptestTrials = 1:3:length(pseudoFeedback);
-            ptrainTrials = 1:length(pseudoFeedback);
-            ptrainTrials(ptestTrials) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials,timeRange(t),:));
-            
-            Y(t).true.train = allFeedback(trainTrials);
-            Y(t).true.test = allFeedback(testTrials);
-            Y(t).true.dumb = ones(1,length(testTrials))*mean(allFeedback(trainTrials));
-            Y(t).pseudo.train = pseudoFeedback(:,ptrainTrials);
-            Y(t).pseudo.test = pseudoFeedback(:,ptestTrials);
-            Y(t).pseudo.dumb = ones(1,length(ptestTrials)).*mean(pseudoFeedback(:,ptrainTrials),2);
-            family = 'binomial';
-            
-        case 'velocity'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            testTrials = whichTrials(1:3:end);
-            trainTrials = whichTrials;
-            trainTrials(ismember(whichTrials,testTrials)) = [];
-            trimLength = 20;
-            truncIdx = trimLength+1:nt-trimLength;
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(intersect(truncIdx,trainTrials),timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(intersect(truncIdx,testTrials),timeRange(t),:));
-            
-            Y(t).true.train = trueVel(intersect(truncIdx,trainTrials));
-            Y(t).true.test = trueVel(intersect(truncIdx,testTrials));
-            Y(t).pseudo.train = pseudoVel(:,intersect(truncIdx,trainTrials)-trimLength);
-            Y(t).pseudo.test = pseudoVel(:,intersect(truncIdx,testTrials)-trimLength);
-            family = 'gaussian';
-        
-        case 'RT'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','all','specificRTs',[.1 3]));
-            testTrials = whichTrials(1:3:end);
-            trainTrials = whichTrials;
-            trainTrials(ismember(whichTrials,testTrials)) = [];
-            trimLength = 20;
-            truncIdx = trimLength+1:nt-trimLength;
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(intersect(truncIdx,trainTrials),timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(intersect(truncIdx,testTrials),timeRange(t),:));
-            
-            Y(t).true.train = trueRT(intersect(truncIdx,trainTrials));
-            Y(t).true.test = trueRT(intersect(truncIdx,testTrials));
-            Y(t).pseudo.train = pseudoRT(:,intersect(truncIdx,trainTrials)-trimLength);
-            Y(t).pseudo.test = pseudoRT(:,intersect(truncIdx,testTrials)-trimLength);
-            family = 'gaussian';
-            
-        case 'feedback'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            testTrials = whichTrials(1:3:end);
-            trainTrials = whichTrials;
-            trainTrials(ismember(whichTrials,testTrials)) = [];
-            
-            [~,iTrain] = intersect(feedbackIdx,trainTrials);
-            [~,iTest] = intersect(feedbackIdx,testTrials);
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(intersect(feedbackIdx,trainTrials),timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(intersect(feedbackIdx,testTrials),timeRange(t),:));
-            
-            Y(t).true.train = trueFeedback(iTrain);
-            Y(t).true.test = trueFeedback(iTest);
-            Y(t).pseudo.train = pseudoFeedback(:,iTrain);
-            Y(t).pseudo.test = pseudoFeedback(:,iTest);
-            family = 'binomial';
-            
-        case 'block'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            testTrials = whichTrials(1:3:end);
-            trainTrials = whichTrials;
-            trainTrials(ismember(whichTrials,testTrials)) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials,timeRange(t),:));
-            
-            Y(t).true.train = trueBlocks(trainTrials);
-            Y(t).true.test = trueBlocks(testTrials);
-            Y(t).true.dumb = ones(1,length(testTrials))*mean(trueBlocks(trainTrials));
-            Y(t).pseudo.train = pseudoBlocks(:,trainTrials);
-            Y(t).pseudo.test = pseudoBlocks(:,testTrials);
-            Y(t).pseudo.dumb = ones(1,length(testTrials)).*mean(pseudoBlocks(:,trainTrials),2);
-            family = 'binomial';
-            
-        case 'value'
-            [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
-                    initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
-            testTrials = whichTrials(1:3:end);
-            trainTrials = whichTrials;
-            trainTrials(ismember(whichTrials,testTrials)) = [];
-            
-            X(t).train = squeeze(neuralData.eta.alignedResps{ETA}(trainTrials,timeRange(t),:));
-            X(t).test = squeeze(neuralData.eta.alignedResps{ETA}(testTrials,timeRange(t),:));
-            
-            Y(t).true.train = trueValue(trainTrials);
-            Y(t).true.test = trueValue(testTrials);
-            Y(t).true.dumb = ones(1,length(testTrials))*mean(trueValue(trainTrials));
-            Y(t).pseudo.train = pseudoValue(:,trainTrials);
-            Y(t).pseudo.test = pseudoValue(:,testTrials);
-            Y(t).pseudo.dumb = ones(1,length(testTrials)).*mean(pseudoValue(:,trainTrials),2);
-            family = 'binomial';
-    end
+    otherwise
+        [~, whichTrials] = selectCondition(expInfo, getUniqueContrasts(expInfo), behavioralData, ...
+            initTrialConditions('repeatType','random','movementTime','late','specificRTs',[.8 3]));
+        for l = 1:trimLength*2+1
+            ss = l;
+            es = length(whichTrials) - (trimLength*2-l+1);
+            shiftChoices(l,:) = trueChoices(whichTrials(ss:es));
+            shiftSide(l,:) = trueSide(whichTrials(ss:es));
+            shiftFeedback(l,:) = trueFeedback(whichTrials(ss:es));
+            sohShifts(l,:,:) = stimOneHot(whichTrials(ss:es),:);
+            cohShifts(l,:,:) = choiceOneHot(whichTrials(ss:es),:);
+        end
+        shiftChoices(trimLength+1,:) = [];
+        shiftSide(trimLength+1,:) = [];
+        shiftFeedback(trimLength+1,:) = [];
+        sohShifts(trimLength+1,:,:) = [];
+        cohShifts(trimLength+1,:,:) = [];
 end
 
-%% fit options
+truncIdx = trimLength+1:length(whichTrials)-trimLength;
 
-options.alpha = 1;
-options.nlambda = 20;
-options.standardize = 'false';
-% options.exclude;
-nf = 3;
+%% Set up X, Y, and D arrays for fitting
 
-try
-    parpool();
-catch
+%subsample time range to save time
+st = -1.5;
+et = 3;
+[~,si] = min(abs(neuralData.eta.eventWindow - st));
+[~,ei] = min(abs(neuralData.eta.eventWindow - et));
+timeRange = si:2:ei;  
+% timeRange = 6:2:36;
+
+%collect neural activity into the X matrix
+% X: neural predictor matrix (trials x neurons x timepoints)
+switch Ytype 
+    case {'side' 'stimulus' 'block' 'value'}
+        X = nan(length(whichTrials),size(neuralData.eta.alignedResps{ETA},3),length(timeRange));
+        for t = 1:length(timeRange)
+            X(:,:,t) = squeeze(neuralData.eta.alignedResps{ETA}(whichTrials,timeRange(t),:));
+        end
+    otherwise
+        X = nan(length(truncIdx),size(neuralData.eta.alignedResps{ETA},3),length(timeRange));
+        for t = 1:length(timeRange)
+            X(:,:,t) = squeeze(neuralData.eta.alignedResps{ETA}(whichTrials(truncIdx),timeRange(t),:));
+        end
 end
 
-% %% DEV: FIT TRUE
-% 
-% if strcmp(Ytype,'choiceIndStim') || strcmp(Ytype,'stimIndChoice') %append the one-hot to the neural matrix
-%     prog = 0;
-%     fprintf(1,'fitting true: %3d%%\n',prog);
-%     %neurons are always subject to a penalty (ones), but the one-hot matrix is never
-%     %subject to a penalty (zeros)
-%     options.penalty_factor = [ones(1,size(X(t).train,2)) zeros(1,size(OneHot(t).true.train,2))];
-%     for t = 1:length(timeRange)
-%         training_set = [X(t).train OneHot(t).true.train];
-%         test_set = [X(t).test OneHot(t).true.test];
-%         
-%         %for the smart model, we don't exclude any predictors - we want
-%         %both neural and one-hot columns to contribute
-%         options.exclude = [];
-%         fit.true{t} = cvglmnet(training_set, Y(t).true.train', family, options, 'deviance',nf,[],true);
-%         Y(t).true.hat = cvglmnetPredict(fit.true{t}, test_set,'lambda_min','response')';
-%         
-%         %for the dumb model, we exclude the neural data and see how we get
-%         %with just the one-hot columns
-%         options.exclude = [1:size(X(t).train,2)]';
-%         fit.dumb{t} = glmnet(training_set, Y(t).true.train', family, options);
-%         tmp_fits = glmnetPredict(fit.dumb{t}, test_set,[],'response');
-%         Y(t).true.dumb = tmp_fits(:,end)';
-%         prog = ( 100*(t/length(timeRange)));
-%         fprintf(1,'\b\b\b\b%3.0f%%',prog);
-%     end
-% else
-% end
-% 
-% 
-% 
-% if strcmp(Ytype,'choiceIndStim') || strcmp(Ytype,'stimIndChoice') %append the one-hot to the neural matrix
-%     prog = 0;
-%     fprintf(1,'fitting true: %3d%%\n',prog);
-%     for t = 1:length(timeRange)
-%         fit.true{t} = cvglmnet([X(t).train OneHot(t).true.train],Y(t).true.train,family,options,'deviance',nf,[],true);
-%         fit.dumb{t} = cvglmnet([OneHot(t).true.train],Y(t).true.train,family,options,'deviance',nf,[],true);
-%         Y(t).true.hat = cvglmnetPredict(fit.true{t},[X(t).test OneHot(t).true.test],'lambda_min','response')';
-%         Y(t).true.dumb = cvglmnetPredict(fit.dumb{t},[OneHot(t).true.test],'lambda_min','response')';
-%         prog = ( 100*(t/length(timeRange)));
-%         fprintf(1,'\b\b\b\b%3.0f%%',prog);
-%     end
-%     fprintf('\n');
-% else
-% end
-%  for p = 1:np
-%     for t = 1:length(timeRange)
-%         fit.pseudo{p,t} = cvglmnet([X(t).train squeeze(OneHot(t).pseudo.train(p,:,:))],Y(t).pseudo.train(p,:),family,options,'deviance',nf,[],true);
-%         Y(t).pseudo.hat(p,:) = cvglmnetPredict(fit.pseudo{p,t},[X(t).test squeeze(OneHot(t).pseudo.test(p,:,:))],'lambda_min','response')';
-%         Y(t).pseudo.dumb = repmat(Y(t).true.dumb,[np 1]);
-%         prog = ( 100*(p/np) );
-%         fprintf(1,'\b\b\b\b%3.0f%%',prog);
-%     end
-% end
-%% fit true
+%collect values for the Y matrices (and D arrays, if using)
+% D: design matrix with task info, sometimes appended to X
+% Y.true: outcome variable containing actual trial values
+% Y.naive: predicted outcomes for a naive model. This contains a single
+%     constant that equals the proportion of binary trials across the session
+%     (e.g., prop right choices, mean RT, prop. correct trials, etc.)
+% Y.pseudo: pseudo-generated outcomes (methods vary depending on the stats
+%     of the variable)
+% Y.pseudo_naive: predicted outcomes for a naive model using pseudo data
+%     (same method as for Y.naive)
 
-% fit
-if strcmp(Ytype,'choiceIndStim') || strcmp(Ytype,'stimIndChoice') %append the one-hot to the neural matrix
-    prog = 0;
-    fprintf(1,'fitting true: %3d%%\n',prog);
-    %neurons are always subject to a penalty (ones), but the one-hot matrix is never
-    %subject to a penalty (zeros)
-    options.penalty_factor = [ones(1,size(X(t).train,2)) zeros(1,size(OneHot(t).true.train,2))];
-    for t = 1:length(timeRange)
-        training_set = [X(t).train OneHot(t).true.train];
-        test_set = [X(t).test OneHot(t).true.test];
-        
-        %for the smart model, we don't exclude any predictors - we want
-        %both neural and one-hot columns to contribute
+switch Ytype
+    case 'side'
+        Y.true = trueSide(whichTrials); 
+        Y.naive = ones(1,length(whichTrials))*mean(trueSide(whichTrials));
+        Y.pseudo = pseudoSide(:,whichTrials);
+        Y.pseudo_naive = ones(1,length(whichTrials)).*mean(pseudoSide(:,whichTrials),2);
+        family = 'binomial';
+
+    case 'stimulus'
+        Y.true = trueStimuli(whichTrials);
+        Y.naive = ones(1,length(whichTrials))*mean(trueStimuli(whichTrials));
+        Y.pseudo = pseudoStimuli(:,whichTrials);
+        Y.pseudo_naive = ones(1,length(whichTrials)).*mean(pseudoStimuli(:,whichTrials),2);
+        family = 'gaussian';
+
+    case 'choice'
+        Y.true = trueChoices(whichTrials(truncIdx));
+        Y.naive = ones(1,length(truncIdx))*mean(trueChoices(whichTrials(truncIdx)));
+        Y.pseudo = shiftChoices;
+        Y.pseudo_naive = ones(1,length(truncIdx)).*mean(shiftChoices,2);
+        family = 'binomial';
+
+    case 'choiceGivenStim'
+        Y.true = trueChoices(whichTrials(truncIdx));
+        Y.pseudo = shiftChoices;
+        D.true = stimOneHot(whichTrials(truncIdx),:);
+        D.pseudo = sohShifts;
+        family = 'binomial';
+
+    case 'sideGivenChoice'
+        Y.true = trueSide(whichTrials(truncIdx));
+        Y.pseudo = shiftSide;
+        D.true = choiceOneHot(whichTrials(truncIdx),:);
+        D.pseudo = cohShifts;
+        family = 'binomial';
+
+    case 'feedback'
+        Y.true = trueFeedback(whichTrials(truncIdx));
+        Y.naive = ones(1,length(truncIdx))*mean(trueFeedback(whichTrials(truncIdx)));
+        Y.pseudo = shiftFeedback;
+        Y.pseudo_naive = ones(1,length(truncIdx)).*mean(shiftFeedback,2);
+        family = 'binomial';
+
+    case 'velocity'
+        Y.true = trueVel(whichTrials(truncIdx));
+        Y.naive = ones(1,length(truncIdx))*mean(trueVel(whichTrials(truncIdx)));
+        Y.pseudo = shiftVel;
+        Y.pseudo_naive = ones(1,length(truncIdx)).*mean(shiftVel,2);
+        family = 'gaussian';
+
+    case 'RT'
+        Y.true = trueRT(whichTrials(truncIdx));
+        Y.naive = ones(1,length(truncIdx))*mean(trueRT(whichTrials(truncIdx)));
+        Y.pseudo = shiftRT;
+        Y.pseudo_naive = ones(1,length(truncIdx)).*mean(shiftRT,2);
+        family = 'gaussian';
+
+    case 'impulsive'
+        Y.true = trueImp(whichTrials(truncIdx));
+        Y.naive = ones(1,length(truncIdx))*mean(trueImp(whichTrials(truncIdx)));
+        Y.pseudo = shiftImp;
+        Y.pseudo_naive = ones(1,length(truncIdx)).*mean(shiftImp,2);
+        family = 'binomial';
+
+    case 'block'
+        Y.true = trueBlocks(whichTrials);
+        Y.naive = ones(1,length(whichTrials))*mean(trueBlocks(whichTrials));
+        Y.pseudo = pseudoBlocks(:,whichTrials);
+        Y.pseudo_naive = ones(1,length(whichTrials)).*mean(pseudoBlocks(:,whichTrials),2);
+        family = 'binomial';
+
+    case 'value'
+        Y.true = trueValue(whichTrials);
+        Y.naive = ones(1,length(whichTrials))*mean(trueValue(whichTrials));
+        Y.pseudo = pseudoValue(:,whichTrials);
+        Y.pseudo_naive = ones(1,length(whichTrials)).*mean(pseudoValue(:,whichTrials),2);
+        family = 'binomial';
+end
+
+%% Predict the true data: full model vs naive model
+
+switch Ytype
+    case {'choiceGivenStim' 'sideGivenChoice'}
+    %For these two Ytypes, we compare a full model that uses X (neural
+    %data) and D (one-hot encoder holding trial stimulus or choice
+    %identity), against a naive model that ONLY uses D. 
+
+        %Both models are trying to predict true Y data
+        clear options
+        options.alpha = 1;
+        options.nlambda = 20;
+        options.standardize = 'false';
+        nf = 3;
+
+        %X is always subject to a penalty (ones), but D is never
+        %subject to a penalty (zeros)
+        options.penalty_factor = [ones(1,size(X,2)) zeros(1,size(D.true,2))];
+
+        %For the full model, we don't exclude any predictors. We want to
+        %use both X and D
         options.exclude = [];
-        fit.true{t} = cvglmnet(training_set, Y(t).true.train', family, options, 'deviance',nf,[],true);
-        Y(t).true.hat = cvglmnetPredict(fit.true{t}, test_set,'lambda_min','response')';
-        
-        %for the dumb model, we exclude the neural data and see how we get
-        %with just the one-hot columns
-        options.exclude = [1:size(X(t).train,2)]';
-        options.lambda = [0.00000001 0.00000001 0.00000001];
-        fit.dumb{t} = cvglmnet(training_set, Y(t).true.train', family, options, 'deviance',nf,[],true);
-        tmp_fits = cvglmnetPredict(fit.dumb{t}, test_set,'lambda_min','response')';
-        Y(t).true.dumb = tmp_fits(:,end)';
-        prog = ( 100*(t/length(timeRange)));
-        fprintf(1,'\b\b\b\b%3.0f%%',prog);
-    end
-else
-    prog = 0;
-    fprintf(1,'fitting true: %3d%%\n',prog);
-    for t = 1:length(timeRange)
-        fit.true{t} = cvglmnet(X(t).train,Y(t).true.train,family,options,'deviance',nf,[],true);
-    %     fit.true{t} = cvglmnet(X(t).train,Y(t).true.train,'multinomial',options,'deviance',5,[],true);
-        Y(t).true.hat = cvglmnetPredict(fit.true{t},X(t).test,'lambda_min','response')';
-        prog = ( 100*(t/length(timeRange)));
-        fprintf(1,'\b\b\b\b%3.0f%%',prog);
-    end
-    fprintf('\n');
-end
-
-%goodness of fit
-%(gof = MSE for continuous (stimulus) or gof = LL for binomial)
-gof = nan(1,t);
-if strcmp(family,'gaussian') %|| strcmp(family,'binomial')
-    for t = 1:length(timeRange)
-        gof(t) = sum((Y(t).true.test - (Y(t).true.hat)).^2)/length(Y(t).true.test);
-    end
-else
-    for t = 1:length(timeRange)
-        term1 = Y(t).true.test.*log(Y(t).true.hat);
-        term2 = (1-Y(t).true.test).*log(1-Y(t).true.hat);
-        ll(t) = sum(term1 + term2);
-        gof(t) = exp(ll(t)/size(Y(t).true.hat,2));
-    end
-    
-    for t = 1:length(timeRange)
-        term1 = Y(t).true.test.*log(Y(t).true.dumb);
-        term2 = (1-Y(t).true.test).*log(1-Y(t).true.dumb);
-        lld(t) = sum(term1 + term2);
-    end
-end
-
-info_hat = ll./size(Y(1).true.hat,2)./log(2);
-info_dumb = lld./size(Y(1).true.dumb,2)./log(2);
-mi = info_hat - info_dumb;
-
-%% fit pseudos
-
-np = size(Y(1).pseudo.train,1);
-
-%fit
-if strcmp(Ytype,'choiceIndStim') || strcmp(Ytype,'stimIndChoice')
-    prog = 0;
-    fprintf(1,'fitting pseudos: %3d%%\n',prog);
-    %neurons are always subject to a penalty (ones), but the one-hot matrix is never
-    %subject to a penalty (zeros)
-    options.penalty_factor = [ones(1,size(X(t).train,2)) zeros(1,size(OneHot(t).true.train,2))];
-    for p = 1:np
+        prog = 0;
+        fprintf(1,'fitting true (full model): %3d%%\n',prog);
         for t = 1:length(timeRange)
-            try
-                training_set = [X(t).train squeeze(OneHot(t).pseudo.train(p,:,:))];
-                test_set = [X(t).test squeeze(OneHot(t).pseudo.test(p,:,:))];
-            catch
-                training_set = [X(t).train squeeze(OneHot(t).pseudo.train(p,:,:))'];
-                test_set = [X(t).test squeeze(OneHot(t).pseudo.test(p,:,:))'];
-            end
-            %for the smart model, we don't exclude any predictors - we want
-            %both neural and one-hot columns to contribute
+            preds = [X(:,:,t) D.true];
+            fit.full{t} = cvglmnet(preds, Y.true', family, options, 'deviance',nf,[],false);
+            info_full(t) = fit.full{t}.cvm(fit.full{t}.lambda == fit.full{t}.lambda_min)  / (-2 * log(2));
+            prog = ( 100*(t/length(timeRange)));
+            fprintf(1,'\b\b\b\b%3.0f%%',prog);
+        end
+        fprintf(1,'\n')
+        
+        %For the naive model, we exclude X and see how we do with D alone
+        options.exclude = [1:size(X,2)]';
+        options.lambda = ones(1,options.nlambda); %generate some meaningless lambdas to avoid glmnet bug
+        prog = 0;
+        fprintf(1,'fitting true (naive model): %3d%%\n',prog);
+        preds = [X(:,:,1) D.true];
+        fit.naive{1} = cvglmnet(preds, Y.true', family, options, 'deviance',nf,[],false);
+        in = fit.naive{1}.cvm(1) / (-2 * log(2));
+        info_naive = repmat(in, [1 length(timeRange)]);
+        prog = ( 100*(t/length(timeRange)));
+        fprintf(1,'\b\b\b\b%3.0f%%',prog);
+        fprintf('\n');   
+
+    otherwise
+    %for all other Ytypes, we compare a full model that uses X to
+    %predict true Y values, versus a naive model that uses a single
+    %constant for all values of Y.
+        clear options
+        options.alpha = 1;
+        options.nlambda = 20;
+        options.standardize = 'false';
+        nf = 3;
+        
+        %the full model uses X data and true Y data
+        prog = 0;
+        fprintf(1,'fitting true: %3d%%\n',prog);
+        for t = 1:length(timeRange)
+            fit.full{t} = cvglmnet(X(:,:,t),Y.true',family,options,'deviance',nf,[],true);
+            Y.full(t,:) = cvglmnetPredict(fit.full{t},X(:,:,t),'lambda_min','response')';
+            prog = ( 100*(t/length(timeRange)));
+            fprintf(1,'\b\b\b\b%3.0f%%',prog);
+        end
+        fprintf('\n');      
+        
+        %compute LL for true vs full model
+        for t = 1:length(timeRange)
+            term1 = Y.true.*log(Y.full(t,:));
+            term2 = (1-Y.true).*log(1-Y.full(t,:));
+            ll_full(t) = sum(term1 + term2);
+        end
+        
+        %we generated the naive model outcomes earlier
+        %so compute LL for true vs naive model
+        for t = 1:length(timeRange)
+            term1 = Y.true.*log(Y.naive);
+            term2 = (1-Y.true).*log(1-Y.naive);
+            ll_naive(t) = sum(term1 + term2);
+        end
+        info_full = ll_full./size(Y.full,2)./log(2);
+        info_naive = ll_naive./size(Y.naive,2)./log(2);
+end
+
+%% Predict the pseudo data: full model vs naive model
+
+np = size(Y.pseudo,1);
+
+switch Ytype
+    case {'choiceGivenStim' 'sideGivenChoice'}
+    %For these two Ytypes, we compare a full model that uses X (neural
+    %data) and D (one-hot encoder holding trial stimulus or choice
+    %identity), against a naive model that ONLY uses D.
+
+    %But now both models are trying to predict pseudo Y data
+        clear options
+        options.alpha = 1;
+        options.nlambda = 20;
+        options.standardize = 'false';
+        nf = 3;
+
+        %X is always subject to a penalty (ones), but D is never
+        %subject to a penalty (zeros)
+        options.penalty_factor = [ones(1,size(X,2)) zeros(1,size(D.pseudo,3))];
+        prog = 0;
+        fprintf(1,'fitting pseudos: %3d%%\n',prog);
+        for p = 1:np
+
+            %For the full model, we don't exclude any predictors. We want to
+            %use both X and D
             options.exclude = [];
-            fit.pseudo{p,t} = cvglmnet(training_set,Y(t).pseudo.train(p,:),family,options,'deviance',nf,[],true);
-            Y(t).pseudo.hat(p,:) = cvglmnetPredict(fit.pseudo{p,t},test_set,'lambda_min','response')';
-            
-            %for the dumb model, we exclude the neural data and see how we get
-            %with just the one-hot columns
-            options.exclude = [1:size(X(t).train,2)]';
-            Y(t).pseudo.dumb = repmat(Y(t).true.dumb,[np 1]);
-            prog = ( 100*(p/np) );
+            for t = 1:length(timeRange)
+                try
+                    preds = [X(:,:,t) squeeze(D.pseudo(p,:,:))];
+                catch
+                    preds = [X(:,:,t) squeeze(D.pseudo(p,:,:))'];
+                end
+                fit.pseudo{p,t} = cvglmnet(preds,Y.pseudo(p,:),family,options,'deviance',nf,[],false);
+                info_pfull(p,t) = fit.pseudo{p,t}.cvm(fit.pseudo{p,t}.lambda == fit.pseudo{p,t}.lambda_min)  / (-2 * log(2));    
+            end
+            prog = (100*(p/np));
             fprintf(1,'\b\b\b\b%3.0f%%',prog);
         end
-    end
-    fprintf('\n');
-else
-    prog = 0;
-    fprintf(1,'fitting pseudos: %3d%%\n',prog);
-    for p = 1:np
-        for t = 1:length(timeRange)
-            fit.pseudo{p,t} = cvglmnet(X(t).train,Y(t).pseudo.train(p,:),family,options,'deviance',nf,[],true);
-            Y(t).pseudo.hat(p,:) = cvglmnetPredict(fit.pseudo{p,t},X(t).test,'lambda_min','response')';
-            prog = ( 100*(p/np) );
-            fprintf(1,'\b\b\b\b%3.0f%%',prog);
-        end
-    end
-    fprintf('\n');
-end
-
-% goodness of fit
-gof_pseudo = nan(np,t);
-if strcmp(family,'gaussian')
-    for p = 1:np
-        for t = 1:length(timeRange)
-            gof_pseudo(p,t) = sum((Y(t).pseudo.test(p,:) - (Y(t).pseudo.hat(p,:))).^2)/length(Y(t).pseudo.test(p,:));
-        end
-    end
-else
-    for p = 1:np
-        for t = 1:length(timeRange)
-            term1 = Y(t).pseudo.test(p,:).*log(Y(t).pseudo.hat(p,:));
-            term2 = (1-Y(t).pseudo.test(p,:)).*log(1-Y(t).pseudo.hat(p,:));
-            ll(p,t) = sum(term1 + term2);
-            gof_pseudo(p,t) = exp(ll(p,t)/size(Y(t).pseudo.hat(p,:),2));
-        end
+        fprintf('\n');
         
-        for t = 1:length(timeRange)
-            term1 = Y(t).pseudo.test(p,:).*log(Y(t).pseudo.dumb(p,:));
-            term2 = (1-Y(t).pseudo.test(p,:)).*log(1-Y(t).pseudo.dumb(p,:));
-            lld(p,t) = sum(term1 + term2);
+        %For the naive model, we exclude X and see how we do with D alone.
+        %This is identical to the naive model we used on true data since D and Y arrays
+        %don't shift against each other during pseudo-data generation
+        info_pnaive = repmat(info_naive,[np 1]);
+        
+    otherwise
+    %for all other Ytypes, we compare a full model that uses X to
+    %predict pseudo Y values, versus a naive model that uses a single
+    %constant for all values of Y.
+        clear options
+        options.alpha = 1;
+        options.nlambda = 20;
+        options.standardize = 'false';
+        nf = 3;
+        
+        %the full model uses X data and pseudo Y data
+        prog = 0;
+        fprintf(1,'fitting pseudo: %3d%%\n',prog);
+        for p = 1:np
+            for t = 1:length(timeRange)
+                fit.pseudo{p,t} = cvglmnet(X(:,:,t),Y.pseudo(p,:),family,options,'deviance',nf,[],true);
+                Y.pseudo_full(t,p,:) = cvglmnetPredict(fit.pseudo{p,t},X(:,:,t),'lambda_min','response')';
+            end
+            prog = (100*(p/np));
+            fprintf(1,'\b\b\b\b%3.0f%%',prog);
         end
-    end
+        fprintf('\n');                
+        
+        for p = 1:np
+            %compute LL for pseudo vs full model
+            for t = 1:length(timeRange)
+                term1 = Y.pseudo(p,:).*log(squeeze(Y.pseudo_full(t,p,:))');
+                term2 = (1-Y.pseudo(p,:)).*log(1-squeeze(Y.pseudo_full(t,p,:))');
+                llf(p,t) = sum(term1 + term2);
+            end
+            
+            %we generated the naive model outcomes earlier
+            %so compute LL for pseudo vs naive model
+            for t = 1:length(timeRange)
+                term1 = Y.pseudo(p,:).*log(Y.pseudo_naive(p,:));
+                term2 = (1-Y.pseudo(p,:)).*log(1-Y.pseudo_naive(p,:));
+                lln(p,t) = sum(term1 + term2);
+            end
+        end
+
+        info_pfull = llf./size(Y.pseudo_full,3)./log(2);
+        info_pnaive = lln./size(Y(1).pseudo_naive,2)./log(2);     
+        
 end
 
-info_phat = ll./size(Y(1).pseudo.hat,2)./log(2);
-info_pdumb = lld./size(Y(1).pseudo.dumb,2)./log(2);
-mip = info_phat - info_pdumb;
+%% save
 
-    
-%% plot
+allX = X;
+allY = Y;
+try
+    allD = D;
+catch
+    allD = [];
+end
+
+fits.true.full = fit.full;
+try
+    fits.true.naive = fit.naive;
+catch
+    fits.true.naive = 'constant model';
+end
+mutual_info.true = info_full - info_naive;
+
+fits.pseudo.full = fit.pseudo;
+try
+    fits.pseudo.naive = fit.naive;
+catch
+    fits.pseudo.naive = 'constant model';
+end
+mutual_info.pseudo = info_pfull - info_pnaive;
+
+%%
 % 
-% ew = neuralData.eta.eventWindow(timeRange);
+% figure;
+% ew = neuralData.eta.eventWindow(timeRange); 
+% plot(ew,mutual_info_pseudo','Color',[.6 .6 .6])
+% hold on 
+% plot(ew,mutual_info_true,'k','LineWidth',2)
+% line([0 0],[-.1 1.5],'Color',[.5 .5 .5],'LineStyle','--')
+% ylim([-.05 1])
+% xlim([ew(1) ew(end)])
+% prettyPlot(gca)
+% xlabel('Time from go cue (s)')
+% ylabel('Mutual information')
+% title(Ytype)
+% %%
 % 
-% try %true vs pseudos
-%     gof_UB = prctile(gof_pseudo,97.5);
-%     gof_LB = prctile(gof_pseudo,2.5);
-%     expRef = strcat(expInfo.mouseName,'_',expInfo.expDate);
-%     maxy = max(max(max([gof_LB; gof; gof_UB])));
-%     miny = min(min(min([gof_LB; gof; gof_UB])));
-%     buffer = 0.1*abs((maxy-miny));
-%     figure;
-%     plotSignal(ew,gof,gof_UB,gof_LB,[0 0 0],'-');
-%     prettyPlot(gca);
-%     line([0 0],[miny-buffer maxy+buffer],'LineStyle','--','Color',[.5 .5 .5]);
-%     xlim([-.5 2]);
-%     ylim([miny-buffer maxy+buffer]);
-%     xlabel('Time from go cue (s)')
-%     ylabel('1/error')
-%     title(strcat(expRef,{': Neural decoding of '},Ytype),'Interpreter','none')
-% catch %just true
-%     expRef = strcat(expInfo.mouseName,'_',expInfo.expDate);
-%     maxy = max(max(max([gof])));
-%     miny = min(min(min([gof])));
-%     buffer = 0.1*abs((maxy-miny));
-%     figure;
-%     plot(neuralData.eta.eventWindow,gof,'Color',[0 0 0],'LineWidth',2,'LineStyle','-');
-%     prettyPlot(gca);
-%     line([0 0],[0-buffer maxy+buffer],'LineStyle','--','Color',[.5 .5 .5]);
-%     xlim([-.5 2]);
-%     ylim([0.4 1]);
-%     xlabel('Time from stimulus onset (s)')
-%     ylabel('ll')
-%     title(strcat(expRef,{': Neural decoding of '},Ytype),'Interpreter','none')
-% end
 
 
-%% print and save
 
-% printfig(gcf, char(strcat(expRef,{' neural decoding of '},Ytype)));
 
-% sessDir = fullfile('G:\Workspaces',expInfo.mouseName,expInfo.expDate,num2str(expInfo.expNum));
-% cd(sessDir)
-% 
-% clearvars -except family fit gof gof_UB gof_LB gof_pseudo options testTrials whichTrials trainTrials X Y Ytype
-% 
-% if strcmp(Ytype,'stimulus')
-%     save stimulusDecoderFits.mat -v7.3
-% elseif strcmp(Ytype,'choice')
-%     save choiceDecoderFits.mat -v7.3
-% elseif strcmp(Ytype,'block')
-%     save blockDecoderFits.mat -v7.3
-% elseif strcmp(Ytype,'feedback')
-%     save feedbackDecoderFits.mat -v7.3
-% elseif strcmp(Ytype,'value')
-%     save valueDecoderFits.mat -v7.3
-% end
 
-%% WORKBENCH
 
-% function fharrell
-%     % this is from a blog post by Frank Harrell, which proposes the following R2 
-%     % as a way to expressed explained outcome variance in probability models
-%     % https://www.fharrell.com/post/addvalue
-%     for t = 1:size(neuralData.eta.alignedResps{1},2)
-%         %variance of the model, (Phat probability that Y = 1)
-%         term1 = var(Y(t).true.hat); 
-% 
-%         %variance of 'the rest' (1-Phat)
-%         term2 = sum((Y(t).true.hat).*(1-Y(t).true.hat))/size(Y(t).true.hat,2);
-% 
-%         %proportion
-%         R2(t) = term1/(term1+term2);
-%     end
-% end
-            
-            
-end            
-            
-            
-            
-            
-            

@@ -1,10 +1,10 @@
 
 
-C = sum(importdata('2020-08-13_LEW040_window.tif'),3)/255;
+C = sum(importdata('2021-06-18_LEW047_window.tif'),3)/255;
 % C = fliplr(C);
 %%
 
-FOV = importdata('2020-09-23_LEW040_FOV_1.7x.jpg');
+FOV = importdata('2021-09-22_LEW047_FOV_1.7x.jpg');
 figure;imagesc(FOV);
 axis equal
 axis off

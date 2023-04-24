@@ -1,8 +1,19 @@
 function neuralData = getSingleCellStats(expInfo, behavioralData, neuralData)
 
-labels = {'stimOnset' 'leftStim' 'rightStim' 'moveOnset' 'choice' 'outcome' 'block' 'value'};
+% labels = {'stimOnset' 'leftStim' 'rightStim' 'moveOnset' 'choice' 'outcome' 'block' 'value'};
+labels = {...
+    'stimOnset'
+    'cueOnset'
+    'moveOnset'
+    'stimSide'
+    'choice'
+    'outcome'
+    'block'
+    'value'...
+    };
+    
 
- %%   
+%% get trials
 et = behavioralData;
 contrasts = getUniqueContrasts(expInfo);
 nt = length(et.eventTimes(1).daqTime);
@@ -22,7 +33,6 @@ trueBlock = expInfo.block.events.highRewardSideValues(1:nt);
 trueValue(trueBlock .* sign(trueStimuli) > 0) = 2;
 trueValue(trueBlock .* sign(trueStimuli) < 0) = 1;
 
-
 [~, stimTrials] = selectCondition(expInfo, contrasts, et, ...
         initTrialConditions('preStimMovement','quiescent','movementTime','late','specificRTs',[.8 Inf]));
 [~, zeroStimTrials] = selectCondition(expInfo, 0, et, ...
@@ -30,12 +40,15 @@ trueValue(trueBlock .* sign(trueStimuli) < 0) = 1;
 [~, correctTrials] = selectCondition(expInfo, 0, et, initTrialConditions('responseType','correct'));
 [~, incorrectTrials] = selectCondition(expInfo, 0, et, initTrialConditions('responseType','incorrect'));
 [~, zeroTrials] = selectCondition(expInfo, 0, et, initTrialConditions('movementTime','all'));
+[~, lateTrials] = selectCondition(expInfo, contrasts, et, ...
+        initTrialConditions('movementTime','late','specificRTs',[.8 Inf]));
+
 nonnanTrials = find(~isnan(trueChoices));
 
 %get responses
-[baselineResps, stimResps, pmovResps, movResps, rewResps, preCueResps] = getEpochResps(neuralData.eta);
+[baselineResps, stimResps, pmovResps, movResps, rewResps, preCueResps, postCueResps] = getEpochResps(neuralData.eta);
 
-%% stimulus
+%% signranks for epoch activity
 
 %stim onset (general)
 for c = 1:length(movResps)
@@ -43,25 +56,35 @@ for c = 1:length(movResps)
     hTest(c,1) = double(h);
 end
 
-% stimulus side
-for c = 1:size(baselineResps,2)
-    [~, hL] = ranksum(stimResps(leftStimTrials,c),stimResps(zeroStimTrials,c),'tail','right');
-    [~, hR] = ranksum(stimResps(rightStimTrials,c),stimResps(zeroStimTrials,c),'tail','right');
-    hTest(c,2) = double(hL);
-    hTest(c,3) = double(hR);
+whichTrials = intersect(nonnanTrials,lateTrials);
+%cue onset
+for c = 1:length(movResps)
+    [~,h] = signrank(postCueResps(whichTrials,c),preCueResps(whichTrials,c));
+    hTest(c,2) = double(h);
 end
-
-%% movement & choice
-
-whichTrials = intersect(nonnanTrials,zeroTrials);
 
 % movement
 for c = 1:length(movResps)
     [~,h] = signrank(movResps(whichTrials,c),pmovResps(whichTrials,c));
-    hTest(c,4) = double(h);
+    hTest(c,3) = double(h);
+end
+
+%% directional tests
+% stimulus side
+for c = 1:size(baselineResps,2)
+    [~, hL] = ranksum(stimResps(leftStimTrials,c),stimResps(zeroStimTrials,c),'tail','right');
+    [~, hR] = ranksum(stimResps(rightStimTrials,c),stimResps(zeroStimTrials,c),'tail','right');
+    if hL == 1 && hR == 0
+        hTest(c,4) = -double(hL);
+    elseif hL == 0 && hR == 1
+        hTest(c,4) = double(hR);
+    elseif hL == 1 && hR == 1
+        hTest(c,4) = 0;
+    end
 end
 
 % choice
+whichTrials = intersect(nonnanTrials,lateTrials);
 trueChoices_0 = trueChoices(whichTrials);
 movResps_0 = movResps(whichTrials,:);
 
@@ -78,8 +101,11 @@ for c = 1:length(movResps)
     
     trueVal = shiftDiff(trueIdx);
     pseudoVals = shiftDiff([1:trimLength,trimLength+2:trimLength*2+1]);
-    [~,h] = ranksum(trueVal,pseudoVals,'method','exact','tail','both');
-    
+    try
+        [~,h] = ranksum(trueVal,pseudoVals,'method','exact','tail','both');
+    catch
+        h=0;
+    end
     if trueVal < median(pseudoVals)
         hTest(c,5) = double(-h);
     else
@@ -87,7 +113,7 @@ for c = 1:length(movResps)
     end
 end
 
-%% reward
+% reward
 for c = 1:size(baselineResps,2)
     [~,h] = ranksum(rewResps(correctTrials,c),rewResps(incorrectTrials,c),'tail','both');
     if mean(rewResps(correctTrials,c)) > mean(rewResps(incorrectTrials,c))
@@ -97,9 +123,7 @@ for c = 1:size(baselineResps,2)
     end
 end
 
-%% block & value
-
-whichTrials = intersect(stimTrials,nonnanTrials);
+whichTrials = intersect(lateTrials,nonnanTrials);
 whichIdx = false(1,nt);
 whichIdx(whichTrials) = true;
 whichResps = pmovResps;
@@ -132,7 +156,6 @@ for c = 1:length(baselineResps)
 end
 
 % value
-
 
 hvTrials = intersect(whichTrials, find(trueValue == 2));
 lvTrials = intersect(whichTrials, find(trueValue == 1));
@@ -200,6 +223,12 @@ end
 %         hTest(c,11) = double(-hQrel);
 %     end
 % end
+
+%% correct for hemisphere
+
+if expInfo.hemisphere == 1
+    hTest(:,[4 5 7]) = -hTest(:,[4 5 7]);
+end
 
 %%
 neuralData.stats = [];

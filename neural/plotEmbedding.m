@@ -208,8 +208,8 @@ end
     
     axis xy
 %%
-ca = [-.15 .15];
-gamma = .7;
+ca = [-.20 .20];
+gamma = .5;
 et = behavioralData;
 contrasts = getUniqueContrasts(expInfo);    
 
@@ -254,9 +254,12 @@ xlim([-.5 2]);
 xticks([0 .8])
 % set(gca, 'XTickLabels', {'' '' ''})
 
-ax5 = subplot(1,6,3);
-leftTrials = cat(2,trialTypes.intVar.cb3D.direction_block{1,1},trialTypes.intVar.cb3D.direction_block{2,1});
-rightTrials = cat(2,trialTypes.intVar.cb3D.direction_block{1,2},trialTypes.intVar.cb3D.direction_block{2,2});
+ax5 = subplot(1,6,5);
+% leftTrials = cat(2,trialTypes.intVar.cb3D.direction_block{1,1},trialTypes.intVar.cb3D.direction_block{2,1});
+% rightTrials = cat(2,trialTypes.intVar.cb3D.direction_block{1,2},trialTypes.intVar.cb3D.direction_block{2,2});
+leftTrials = trialTypes.singleVar.block{1,1};
+rightTrials = trialTypes.singleVar.block{2,1};
+
 meanTrialActivity = (squeeze(nanmean(neuralData.eta.alignedResps{1}(leftTrials,:,isort1),1))') - (squeeze(nanmean(neuralData.eta.alignedResps{1}(rightTrials,:,isort1),1))');
 imagesc(neuralData.eta.eventWindow,1:size(neuralData.eta.alignedResps{1},3),smoothdata(meanTrialActivity));
 hold on;
@@ -266,14 +269,16 @@ axis xy
 caxis(ca)
 prettyPlot(gca) %0.1 .7 .1; 1 .6 0
 cm5 = colormapThruWhite([1 .6 0],[.1 .7 .1],100,gamma);
+cm5 = colormapThruWhite([1 0 0],[0 .0 1],100,gamma);
+
 ax5.YColor = 'w';
 xlim([-.5 2]);
 xticks([0 .8])
 % set(gca, 'XTickLabels', {'' '' ''})
 
-ax6 = subplot(1,6,4);
+ax6 = subplot(1,6,6);
 [~, hiVal] = find(trueValue == 1);
-[~, lowVal] = find(trueValue == 0);
+[~, lowVal] = find(trueValue == -1);
 meanTrialActivity = (squeeze(nanmean(neuralData.eta.alignedResps{1}(hiVal,:,isort1),1))') - (squeeze(nanmean(neuralData.eta.alignedResps{1}(lowVal,:,isort1),1))');
 imagesc(neuralData.eta.eventWindow,1:size(neuralData.eta.alignedResps{1},3),smoothdata(meanTrialActivity));
 hold on;
@@ -283,12 +288,14 @@ axis xy
 caxis(ca)
 prettyPlot(gca) %0.1 .7 .1; 1 .6 0
 cm6 = colormapThruWhite([1 0 1],[0 .75 0],100,gamma);
+cm6 = colormapThruWhite([1 0 0],[0 .0 1],100,gamma);
+
 ax6.YColor = 'w';
 xlim([-.5 2]);
 xticks([0 .8])
 % set(gca, 'XTickLabels', {'' '' ''})
 
-ax3 = subplot(1,6,5);
+ax3 = subplot(1,6,3);
 [~, leftStimTrials] = selectCondition(expInfo, contrasts, et, initTrialConditions('movementTime','late','responseType','all','movementDir','cw'));
 [~, rightStimTrials] = selectCondition(expInfo, contrasts, et, initTrialConditions('movementTime','late','responseType','all','movementDir','ccw'));
 meanTrialActivity = (squeeze(nanmean(neuralData.eta.alignedResps{1}(leftStimTrials,:,isort1),1))') - (squeeze(nanmean(neuralData.eta.alignedResps{1}(rightStimTrials,:,isort1),1))');
@@ -300,15 +307,17 @@ axis xy
 caxis(ca)
 prettyPlot(gca)
 cm3 = colormapThruWhite([1 0 .5],[.5 0 1],100,gamma);
+cm3 = colormapThruWhite([1 0 0],[0 .0 1],100,gamma);
+
 ax3.YColor = 'w';
 xlim([-.5 2]);
 xticks([0 .8])
 % set(gca, 'XTickLabels', {'' '' ''})
 
-ax4 = subplot(1,6,6);
-[~, leftStimTrials] = selectCondition(expInfo, contrasts, et, initTrialConditions('movementTime','late','responseType','correct','movementDir','all'));
-[~, rightStimTrials] = selectCondition(expInfo, contrasts, et, initTrialConditions('movementTime','late','responseType','incorrect','movementDir','all'));
-meanTrialActivity = (squeeze(nanmean(neuralData.eta.alignedResps{1}(leftStimTrials,:,isort1),1))') - (squeeze(nanmean(neuralData.eta.alignedResps{1}(rightStimTrials,:,isort1),1))');
+ax4 = subplot(1,6,4);
+[~, corrTrials] = selectCondition(expInfo, contrasts, et, initTrialConditions('movementTime','late','responseType','correct','movementDir','all'));
+[~, errTrials] = selectCondition(expInfo, contrasts, et, initTrialConditions('movementTime','late','responseType','incorrect','movementDir','all'));
+meanTrialActivity = (squeeze(nanmean(neuralData.eta.alignedResps{1}(corrTrials,:,isort1),1))') - (squeeze(nanmean(neuralData.eta.alignedResps{1}(errTrials,:,isort1),1))');
 imagesc(neuralData.eta.eventWindow,1:size(neuralData.eta.alignedResps{1},3),smoothdata(meanTrialActivity));
 hold on;
 line([0 0],[0 size(neuralData.eta.alignedResps{1},3)],'LineStyle','--','Color','k');
@@ -317,6 +326,8 @@ axis xy
 caxis(ca)
 prettyPlot(gca)
 cm4 = colormapThruWhite([.7 0 .1],[0 0.5 0],100,gamma);
+cm4 = colormapThruWhite([1 0 0],[0 .0 1],100,gamma);
+
 ax4.YColor = 'w';
 xlim([-.5 2]);
 xticks([0 .8])

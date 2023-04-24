@@ -33,20 +33,24 @@ nComp = size(X,2);
 maxEV = zeros(size(Y,2),1);
 optR = zeros(size(Y,2),1);
 kernelFunctions = zeros(nComp,size(Y,2));
+intercepts = zeros(1,size(Y,2));
 
+fprintf('Fitting all kernels... \n')
 parfor c = 1:size(Y,2)
     
     %full-rank fit (nComp = [])
-    [~, weightsK, explVarAll] = rrFit(X,Y(:,c),B,[],nFold,0);
+    [~, weightsK, intercept, explVarAll] = rrFit(X,Y(:,c),B,[],nFold,0);
 
     %determine the rank with the highest EV
     [maxEV(c,:), optR(c,:)] = max(explVarAll);
 
     %generate the kernels based on this rank
     kernelFunctions(:,c) = B(:,1:optR(c,:))*weightsK(:,1:optR(c,:))';
+    intercepts(c) = intercept;
+    
 end
 
-predictedActivity = X*kernelFunctions;
+predictedActivity = X*kernelFunctions + intercepts;
 
 
 %% determine feature selectivity for each neuron
@@ -84,16 +88,17 @@ for f = 1:length(features)
     [B_without,~,~] = kFactorize(X_without, Y);
     [B_foi,~,~] = kFactorize(X_foi, Y);
     
+    fprintf('Fitting individual kernels (%s)...\n',features{f})
     parfor c = 1:size(Y,2) 
                 
         %fit without
-        [Yhat_without, ~, ~] = rrFit(X_without, Y(:,c), B_without, optR(c), nFold, 0);
+        [Yhat_without, ~, ~, ~] = rrFit(X_without, Y(:,c), B_without, optR(c), nFold, 0);
 
         %collect the residuals between true data and fitted
         residualRate = Y(:,c) - Yhat_without;
 
         %fit again using the residuals as Y
-        [~, ~, EV_foi] = rrFit(X_foi, residualRate, B_foi, optR(c), nFold, 0);
+        [~, ~, ~, EV_foi] = rrFit(X_foi, residualRate, B_foi, optR(c), nFold, 0);
 
         %collect the explained variance for this foi
         cellFeatureStrength(c,f) = EV_foi;

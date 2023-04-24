@@ -1,4 +1,4 @@
-function [cc, ppl, ppr, pcil, pcir] = getPsychometric(expInfo, behavioralData, trialList, cc)
+function [cc, ppl, ppr, ppt, pcil, pcir, pcit] = getPsychometric(expInfo, behavioralData, trialList, cc)
 
 block = expInfo.block;
 et = behavioralData.eventTimes;
@@ -14,6 +14,8 @@ ppl = nan(size(cc));
 nnl = nan(size(cc));
 ppr = nan(size(cc));
 nnr = nan(size(cc));
+ppt = nan(size(cc));
+nnt = nan(size(cc));
 alpha = 0.1; % 90% CIs - optional argument? 
 
 
@@ -58,3 +60,25 @@ end
     
 % compute CIs
 [~, pcir] = binofit(round(ppr.*nnr), nnr, alpha); % get CIs of the binomial distribution
+
+% BOTH BLOCKS
+for cont = 1:length(cc)
+    contIdxs = [];
+
+    %determine which trials had contrast = cc(cont)
+    contIdxs = (allContrastValues == cc(cont)) & (allRepeatValues == 1);
+
+    %number of trials with contrast = cc(cont)
+    nnt(cont) = sum(contIdxs); 
+    try
+        ppt(cont) = sum(allChoiceValues(contIdxs) == 1)/sum(contIdxs);
+    catch
+        if nnt(cont) == 0
+             ppt(cont) = 0;
+        end
+    end 
+end
+    
+% compute CIs
+[~, pcit] = binofit(round(ppt.*nnt), nnt, alpha); % get CIs of the binomial distribution
+

@@ -1,4 +1,4 @@
-function [Y_hat, weightsK, EV] = rrFit(X,Y,B,nComp,nFold,useCV)
+function [Y_hat, weightsK, intercept, EV] = rrFit(X,Y,B,nComp,nFold,useCV)
 
 % [B,~,~] = kFactorize(X, Y);
 
@@ -7,9 +7,7 @@ function [Y_hat, weightsK, EV] = rrFit(X,Y,B,nComp,nFold,useCV)
 % catch
 % end
 
-options.alpha = 0.5;
-options.nlambda = 20;
-options.standardize = true;
+
 
 % partition for CV
 cvp = cvpartition(size(X,1),'Kfold',nFold);
@@ -30,6 +28,10 @@ for i = 1:nFold
     Y_train = Y(trainIdx,:);
 
     if useCV
+        options.alpha = 0.5;
+        options.nlambda = 20;
+        options.standardize = true;
+        
         % fit X*B (RR basis functions) to Y using the training set
         fit = cvglmnet(X(trainIdx,:)*B,Y_train,'gaussian',options,'deviance',3,[],true);
 
@@ -38,20 +40,27 @@ for i = 1:nFold
         
         %get rid of the intercept
         weightsK = coefs(2:end)';
+        intercept = coefs(1);
     else 
+        options.alpha = 0.5;
+        options.nlambda = 20;
+%         options.lambda = .005;
+        options.standardize = true;
+        
         fit = glmnet(X(trainIdx,:)*B,Y_train,'gaussian',options);
         coefs = glmnetCoef(fit,[]); 
         weightsK = coefs(2:end,end)';
+        intercept = coefs(1,end);
     end
     
     
     if isempty(nComp)
         %for a number of 'ranks' (from 1 to nc), evaluate X*B for the test set
         for nc = 1:size(B,2)
-            Y_hat(testIdx,nc) = X(testIdx,:)*(B(:,1:nc)*weightsK(:,1:nc)');
+            Y_hat(testIdx,nc) = X(testIdx,:)*(B(:,1:nc)*weightsK(:,1:nc)')+intercept;
         end
     else
-        Y_hat(testIdx,:) = X(testIdx,:)*(B(:,1:nComp)*weightsK(:,1:nComp)');
+        Y_hat(testIdx,:) = X(testIdx,:)*(B(:,1:nComp)*weightsK(:,1:nComp)')+intercept;
     end
 end
 

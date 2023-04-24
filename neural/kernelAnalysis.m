@@ -1,6 +1,6 @@
 function kernelAnalysis
 %%
-for m = 25:length(mouseList)
+for m = 7:length(mouseList)
     
     %load data
     mouseName = char(mouseList{m});
@@ -44,14 +44,14 @@ for m = 25:length(mouseList)
         
     sessDir = fullfile('G:\Workspaces',mouseName,expDate,num2str(expNum));
     cd(sessDir)
-    save('kernelAnalysis.mat','kernelAnalysis', '-v7.3')
+    save('kernelAnalysis_new.mat','kernelAnalysis', '-v7.3')
 
     clearvars -except mouseList expList hemList fovList
 end
 
 %% plot kernels
-
-cellno = 17;
+clear colors
+cellno = 669;
 Fs = 0.1;
 
 for f = 1:length(kernelAnalysis.features)
@@ -159,6 +159,8 @@ rc = logical((trueChoices > 0) .* whichTrials);
 
 hv = logical((trueValue == 2) .* whichTrials);
 lv = logical((trueValue == 1) .* whichTrials);
+lb = logical((trueBlock == 1) .* whichTrials);
+rb = logical((trueBlock == -1) .* whichTrials);
 
 [co, ~] = selectCondition(expInfo, contrasts, et, initTrialConditions('responseType','correct','movementTime','late'));
 [io, ~] = selectCondition(expInfo, contrasts, et, initTrialConditions('responseType','incorrect','movementTime','late'));
@@ -180,6 +182,8 @@ r_hv = neuralData.eta.alignedResps{1}(hv,:,cellno);
 r_lv = neuralData.eta.alignedResps{1}(lv,:,cellno);
 r_co = neuralData.eta.alignedResps{3}(co,:,cellno);
 r_io = neuralData.eta.alignedResps{3}(io,:,cellno);
+r_lb = neuralData.eta.alignedResps{1}(lb,:,cellno);
+r_rb = neuralData.eta.alignedResps{1}(rb,:,cellno);
 
 m_hls = kernelAnalysis.eta.alignedResps{1}(hls,:,cellno);
 m_lls = kernelAnalysis.eta.alignedResps{1}(lls,:,cellno);
@@ -194,12 +198,14 @@ m_hv = kernelAnalysis.eta.alignedResps{1}(hv,:,cellno);
 m_lv = kernelAnalysis.eta.alignedResps{1}(lv,:,cellno);
 m_co = kernelAnalysis.eta.alignedResps{3}(co,:,cellno);
 m_io = kernelAnalysis.eta.alignedResps{3}(io,:,cellno);
+m_lb = kernelAnalysis.eta.alignedResps{1}(lb,:,cellno);
+m_rb = kernelAnalysis.eta.alignedResps{1}(rb,:,cellno);
 
 % psth vs model
 figure;
 set(gcf,'position',[1165 950 1220 270])
 nlim = 1.1*max(abs([nanmean(r_ls) nanmean(r_rs) nanmean(r_hv) nanmean(r_lv) nanmean(r_rc) nanmean(r_lc) nanmean(r_co) nanmean(r_io)]));
-subplot(1,4,1)
+subplot(1,5,1)
 hold on
 plotSignal(neuralData.eta.eventWindow,nanmean(r_ls,1),nanmean(r_ls,1)+nanstd(r_ls)/sqrt(size(r_ls,1)),nanmean(r_ls,1)-nanstd(r_ls)/sqrt(size(r_ls,1)),[0 .4 1],'-');
 plotSignal(neuralData.eta.eventWindow,nanmean(r_rs,1),nanmean(r_rs,1)+nanstd(r_rs)/sqrt(size(r_rs,1)),nanmean(r_rs,1)-nanstd(r_rs)/sqrt(size(r_rs,1)),[1 0 0],'-');
@@ -211,7 +217,19 @@ ylim([-.05 nlim])
 xlabel('Time from stimulus (s)')
 prettyPlot(gca)
 
-subplot(1,4,2)
+subplot(1,5,2)
+hold on
+plotSignal(neuralData.eta.eventWindow,nanmean(r_lb,1),nanmean(r_lb,1)+nanstd(r_lb)/sqrt(size(r_lb,1)),nanmean(r_lb,1)-nanstd(r_lb)/sqrt(size(r_lb,1)),[0.1 0.7 0.1],'-');
+plotSignal(neuralData.eta.eventWindow,nanmean(r_rb,1),nanmean(r_rb,1)+nanstd(r_rb)/sqrt(size(r_rb,1)),nanmean(r_rb,1)-nanstd(r_rb)/sqrt(size(r_rb,1)),[1 .6 0],'-');
+plot(neuralData.eta.eventWindow,nanmean(m_lb,1),'Color',[0.1 0.7 0.1],'LineWidth',2,'LineStyle','-')
+plot(neuralData.eta.eventWindow,nanmean(m_rb,1),'Color',[1 .6 0],'LineWidth',2,'LineStyle','-')
+line([0 0],[-nlim nlim],'Color',[.5 .5 .5],'LineStyle','--')
+xlim([-.5 .9])
+ylim([-.05 nlim])
+xlabel('Time from stimulus (s)')
+prettyPlot(gca)
+
+subplot(1,5,3)
 hold on
 plotSignal(neuralData.eta.eventWindow,nanmean(r_hv,1),nanmean(r_hv,1)+nanstd(r_hv)/sqrt(size(r_hv,1)),nanmean(r_hv,1)-nanstd(r_hv)/sqrt(size(r_hv,1)),[0 0 1],'-');
 plotSignal(neuralData.eta.eventWindow,nanmean(r_lv,1),nanmean(r_lv,1)+nanstd(r_lv)/sqrt(size(r_lv,1)),nanmean(r_lv,1)-nanstd(r_lv)/sqrt(size(r_lv,1)),[0 .5 1],'-');
@@ -223,7 +241,7 @@ ylim([-.05 nlim])
 xlabel('Time from stimulus (s)')
 prettyPlot(gca)
 
-subplot(1,4,3)
+subplot(1,5,4)
 hold on
 plotSignal(neuralData.eta.eventWindow,nanmean(r_lc,1),nanmean(r_lc,1)+nanstd(r_lc)/sqrt(size(r_lc,1)),nanmean(r_lc,1)-nanstd(r_lc)/sqrt(size(r_lc,1)),[.5 0 1],'-');
 plotSignal(neuralData.eta.eventWindow,nanmean(r_rc,1),nanmean(r_rc,1)+nanstd(r_rc)/sqrt(size(r_rc,1)),nanmean(r_rc,1)-nanstd(r_rc)/sqrt(size(r_rc,1)),[1 0 .5],'-');
@@ -235,7 +253,7 @@ ylim([-.05 nlim])
 xlabel('Time from move (s)')
 prettyPlot(gca)
 
-subplot(1,4,4)
+subplot(1,5,5)
 hold on
 plotSignal(neuralData.eta.eventWindow,nanmean(r_co,1),nanmean(r_co,1)+nanstd(r_co)/sqrt(size(r_co,1)),nanmean(r_co,1)-nanstd(r_co)/sqrt(size(r_co,1)),[0 .5 0],'-');
 plotSignal(neuralData.eta.eventWindow,nanmean(r_io,1),nanmean(r_io,1)+nanstd(r_io)/sqrt(size(r_io,1)),nanmean(r_io,1)-nanstd(r_io)/sqrt(size(r_io,1)),[.7 .1 0],'-');
@@ -359,7 +377,7 @@ for m = 1:length(mouseList)
     
 end
 
-%%
+%% collect all sessions
 allStrengths = {};
 for m = 1:length(mouseList)
     
@@ -372,32 +390,87 @@ for m = 1:length(mouseList)
     sessDir = fullfile('G:\Workspaces',mouseName,expDate,num2str(expNum));
     cd(sessDir)
 %     load('dataset.mat')
-    load('kernelAnalysis.mat')
-
+    load('kernelAnalysis_new.mat')
+    allMaxEV{m,1} = kernelAnalysis.maxEV;
     propFeatures(m,:) = sum(kernelAnalysis.cellFeatureStrength(kernelAnalysis.maxEV > .01,:) > .01)./(sum(kernelAnalysis.maxEV > .01))*100;
     allStrengths{m,1} = kernelAnalysis.cellFeatureStrength(kernelAnalysis.maxEV > .01,:) > .01;
 end
 
-%%
+%% bar chart
+[~,i] = sort(mean(propFeatures),'descend');
+lbls = {'Stimulus','Block','Value','Action','Choice','Outcome'};
+
 figure;
 cm = parula(6);
-b = bar(mean(propFeatures),'FaceColor','flat');
-for i=1:size(propFeatures,2)
-    b.CData(i,:) = cm(i,:);
+b = bar(mean(propFeatures(:,i)),'FaceColor','flat');
+xtips1 = b(1).XEndPoints;
+ytips1 = mean(propFeatures(:,i)) + std(propFeatures(:,i))/sqrt(length(propFeatures(:,i)));
+vals = string(round(b(1).YData,2));
+text(xtips1,ytips1,vals,'HorizontalAlignment','center',...
+    'VerticalAlignment','bottom')
+for j=1:size(propFeatures,2)
+    b.CData(j,:) = cm(j,:);
 end
 hold on
-errorbar(mean(propFeatures),std(propFeatures)/sqrt(length(propFeatures)),'LineStyle','none','Color','k')
+errorbar(mean(propFeatures(:,i)),std(propFeatures(:,i))/sqrt(length(propFeatures(:,i))),'LineStyle','none','Color','k')
 prettyPlot(gca)
-set(gca, 'XTickLabels', {'stimulus','block','value','action','choice','outcome'})
+set(gca, 'XTickLabels', lbls(i))
 xlabel('Task feature')
-ylabel('Number of cells (%)')
+ylabel('Percentage of cells')
 
-%%
+%% venn diagram
+%http://bioinformatics.psb.ugent.be/webtools/Venn/
+as = cat(1,allStrengths{:});
+as = as(:,[1 4 5 6]);
 
-intKernels = cellfun(@sum,kernelAnalysis.fitKernels);
-[u,s,v] = svd(intKernels,'econ');
+for f = 1:size(as,2)
+    list{f} = find(as(:,f) == 1);
+end
 
-figure;
+%% leave-one-out plotting
+%select features
+features = {'stimulus' 'value' 'block' 'action' 'choice' 'outcome'};
 
+% design matrix
+[predictors, windows] = getPredictors(...
+    expInfo, ...
+    behavioralData, ...
+    features, ...
+    0.1);
+
+% set up regression matrices
+X = makeToeplitz(neuralData.respTimes, predictors, windows);
+LOO_kernelFunctions = kernelAnalysis.kernelFunctions;
+LOO_kernelFunctions(1:15,:) = 0;
+predictedActivity = X*LOO_kernelFunctions;
+
+Fs = 0.1;
+timeBefore = 2;
+timeAfter = 2;
+events = {'stimulusOnTimes' 'firstMoveTimes' 'feedbackTimes' 'interactiveOnTimes'};
+
+nt = numel(expInfo.block.events.endTrialTimes);
+
+for ev = 1:length(events)
+
+    % get event time window for each trial
+    eventWindow = -timeBefore:Fs:timeAfter;
+    if strcmp(events(ev), 'firstMoveTimes')
+        firstMoveTimes = min([behavioralData.wheelMoves.epochs(2).onsetTimes; behavioralData.wheelMoves.epochs(3).onsetTimes]);
+        periEventTimes = bsxfun(@plus,firstMoveTimes',eventWindow);
+    else
+        periEventTimes = bsxfun(@plus,behavioralData.eventTimes(strcmp({behavioralData.eventTimes.event},events{ev})).daqTime',eventWindow);
+    end
+    periEventTimes = periEventTimes(1:nt,:);
+
+    %initialize alignedResp cell
+    loo_alignedResps{ev} = zeros(nt, length(eventWindow), size(predictedActivity,2));
+
+    %grab cell responses associated with the event time windows 
+    %(size is nTrials x windowLength x nCells)
+    for iCell = 1:size(kernelAnalysis.predictedActivity,2)        
+        loo_alignedResps{ev}(:,:,iCell) = interp1(neuralData.respTimes,predictedActivity(:,iCell),periEventTimes,'previous');
+    end
+end
 
 

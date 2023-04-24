@@ -1,4 +1,4 @@
-function [baselineResps, stimResps, pmovResps, movResps, rewResps, preCueResps] = getEpochResps(eta)
+function [baselineResps, stimResps, pmovResps, movResps, rewResps, preCueResps, postCueResps] = getEpochResps(eta)
 
 Fs = 0.1;
 try
@@ -44,7 +44,7 @@ mov_eventWindow = eventWindow;
 
 %designate a movement window
 mov_eventIdx = find(mov_eventWindow == 0);
-movTime = [-0.2 0.5] / Fs;
+movTime = [-0.2 0.7] / Fs;
 movIdx = mov_eventIdx + movTime(1) : mov_eventIdx + movTime(2);
 
 %compute the mean perimovement activity per cell, per trial (trials x neurons)
@@ -71,7 +71,7 @@ rew_eventWindow = eventWindow;
 
 %designate a movement window
 rew_eventIdx = find(rew_eventWindow == 0);
-rewTime = [0 0.5] / Fs;
+rewTime = [0 1] / Fs;
 rewIdx = rew_eventIdx + rewTime(1) : rew_eventIdx + rewTime(2);
 
 %compute the mean perireward activity per cell, per trial (trials x neurons)
@@ -80,18 +80,22 @@ rewResps = squeeze(mean(rew_alignedTraces(:,rewIdx,:),2));
 try
     %% compute precue activity
 
-% align traces to movement onset
+% align traces to cue onset
 event = 'interactiveOnTimes';
 cue_alignedTraces = alignedResps{strcmp(events,event)};
 cue_eventWindow = eventWindow;
 
 %designate a movement window
 cue_eventIdx = find(cue_eventWindow == 0);
-precueTime = [-0.6 -0.1] / Fs;
+precueTime = [-0.5 0] / Fs;
 precueIdx = cue_eventIdx + precueTime(1) : cue_eventIdx + precueTime(2);
+postcueTime = [0 .7] / Fs;
+postcueIdx = cue_eventIdx + postcueTime(1) : cue_eventIdx + postcueTime(2);
 
 %compute the mean perireward activity per cell, per trial (trials x neurons)
-preCueResps = squeeze(mean(cue_alignedTraces(:,rewIdx,:),2));
+preCueResps = squeeze(mean(cue_alignedTraces(:,precueIdx,:),2));
+postCueResps = squeeze(mean(cue_alignedTraces(:,postcueIdx,:),2));
 catch
     preCueResps = [];
+    postCueResps = [];
 end

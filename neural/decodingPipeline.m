@@ -6,31 +6,64 @@ for m = 1:length(mouseList)
     [expRef, ~] = data.constructExpRef(mouseName,expDate,expNum);
     fprintf('Loading %s...',expRef)
     [behavioralData, expInfo, neuralData] = data.loadDataset(mouseName, expDate, expNum);
-%     [neuralData] = alignResps(expInfo, neuralData, behavioralData, 5);
+    [neuralData] = alignResps(expInfo, neuralData, behavioralData, 5);
     expInfo.hemisphere = hemList(m);
-    
-    eta = 'gocue';
-    predictY = 'stimIndChoice';
-    
-    if strcmp(eta,'stim')
-        ETA = 1;
-    elseif strcmp(eta,'gocue')
-        ETA = 4;
-    elseif strcmp(eta,'move')
-        ETA = 2;
-    elseif strcmp(eta,'feedback')
-        ETA = 3;
+    fprintf('done\n')
+    sessDir = fullfile('G:\Workspaces',mouseName,expDate,num2str(expNum));
+    cd(sessDir);
+    if ~exist('decoderAnalysis')
+        fprintf('Loading decodingAnalysis.mat...');
+        try
+            load(fullfile(sessDir,'decodingAnalysis.mat'));
+            fprintf('done\n');
+        catch
+            fprintf('no decoder file (yet); will generate one after this run\n')
+        end
     end
     
-%     [gof, gof_pseudo, mi, mip] = neuralDecoder(expInfo, behavioralData, neuralData, predictY, ETA);
-    [mi, mip] = neuralDecoder_DEV(expInfo, behavioralData, neuralData, predictY, ETA);
+    eta = 'gocue';    
+    features = {'choice' 'side' 'feedback' 'block' 'value' ...
+                'choiceGivenStim' 'sideGivenChoice' ...
+                'choice_contrast' 'side_contrast' ...
+                'choice_0' 'side_0'};
+            
+    for f = 1:length(features)
+        predictY = features{f};
+        fprintf('Predicting %s...',predictY);        
+        if exist('decoderAnalysis') && ...
+            isfield(decoderAnalysis, predictY) && ...
+            isfield(decoderAnalysis.(matlab.lang.makeValidName(predictY)), eta)
+            fprintf('Analysis already done; skipping!\n')
+        else
+            if strcmp(eta,'stim')
+                ETA = 1;
+            elseif strcmp(eta,'gocue')
+                ETA = 4;
+            elseif strcmp(eta,'move')
+                ETA = 2;
+            elseif strcmp(eta,'feedback')
+                ETA = 3;
+            end
+
+            if strcmp(predictY,'side_contrast') || strcmp(predictY,'choice_contrast')  || strcmp(predictY,'feedback_contrast')
+                [fits, mutual_info, X, Y, D] = neuralDecoder_contrasts(expInfo, behavioralData, neuralData, predictY, ETA);
+            elseif strcmp(predictY,'side_0') || strcmp(predictY,'choice_0')
+                [fits, mutual_info, X, Y, D] = neuralDecoder_contrasts_easyModel(expInfo, behavioralData, neuralData, predictY, ETA);
+            else
+                [fits, mutual_info, X, Y, D] = neuralDecoder(expInfo, behavioralData, neuralData, predictY, ETA);
+            end
+
+            decoderAnalysis.(matlab.lang.makeValidName(predictY)).(matlab.lang.makeValidName(eta)).fits = fits;
+            decoderAnalysis.(matlab.lang.makeValidName(predictY)).(matlab.lang.makeValidName(eta)).mutual_info = mutual_info;
+            fprintf('done\n');
+        end
+    end
+    fprintf('Saving...')
+    save('decodingAnalysis.mat','decoderAnalysis', '-v7.3')
+    fprintf('done\n')
     
-%     predictions(m).(matlab.lang.makeValidName(predictY)).(matlab.lang.makeValidName(eta)).true = gof;
-%     predictions(m).(matlab.lang.makeValidName(predictY)).(matlab.lang.makeValidName(eta)).pseudo = gof_pseudo;
-    mutualInformation(m).(matlab.lang.makeValidName(predictY)).(matlab.lang.makeValidName(eta)).true = mi;
-    mutualInformation(m).(matlab.lang.makeValidName(predictY)).(matlab.lang.makeValidName(eta)).pseudo = mip;
+    clearvars -except mouseList expList hemList m
     
-    clearvars -except mouseList expList hemList m predictions figpos mutualInformation
 end
 
 %% plot
