@@ -1,3 +1,21 @@
+%% import data
+
+% import all metadata
+sessDir = fullfile('G:\Workspaces');
+cd(sessDir);
+mouseTable = readtable('MouseList.xls');
+
+mouseList = mouseTable.MouseName;
+
+for m = 1:length(mouseList)
+    expList{m} = {...
+        char(mouseTable.Date(m)) ...
+        mouseTable.Session(m)};
+end
+hemList = mouseTable.Hemisphere;
+coordsList = [mouseTable.FOVx mouseTable.FOVy];
+
+%%
 clearvars -except mouseList expList hemList
 trialTypes = 'all';
 contrasts = [-1 -.5 -.12 -.05 0 .05 .12 .5 1];
@@ -132,6 +150,105 @@ for m = 1:length(mouseList)
 
 end
 
+%% 
+umn = unique(mouseList);
+
+figure;
+alp = 0.5;
+for u = 1:length(umn)   
+    mn = umn{u};
+    
+    range = find(strcmp(mouseList,mn));
+    if isempty(range)
+        range = 1:length(mouseList);
+    end
+    meanPPL(u,:) = nanmean(ppl(:,:,range),3);
+    meanPPR(u,:) = nanmean(ppr(:,:,range),3);
+
+    colors = [0.1 0.7 0.1; 1 .6 0];
+    pc = cc*100;
+    %
+    for tp = 1:size(ppl,1)
+        subplot(1,size(ppl,1),tp)
+        hold on;
+        line([-105 105],[.5 .5],'Color',[.5 .5 .5],'LineStyle',':');
+        line([0 0],[-.05 1.05],'Color',[.5 .5 .5],'LineStyle',':')
+        ln1 = plot(pc,nanmean(ppr(tp,:,range),3));
+        ln1.Color = [1,.6,0,alp];
+        hold on
+        ln2 = plot(pc,nanmean(ppl(tp,:,range),3));
+        ln2.Color = [0.1,.7,0.1,alp];
+        prettyPlot(gca)
+        xlim([-110 110])
+        ylim([-.05 1.05])
+        xticks([-100 -50 -12 0 12 50 100])
+        set(gca, 'XTickLabels', {'-100' '-50' '-12' '0' '12' '50' '100'})
+        xlabel('Left contrast (%)                          Right contrast (%)')
+
+        yticks([0 .5 1])
+        
+        ylabel('Proportion of right choices')
+        prettyPlot(gca)
+
+    end
+end
+
+errorbar(pc,nanmean(meanPPR,1),nanstd(meanPPR,[],1)/sqrt(size(meanPPR,1)),...
+        'capsize',0,'Marker','o','MarkerSize',10,'MarkerFaceColor',[1 .6 0],'MarkerEdgeColor','w','Color',[1 .6 0],'LineWidth',2)
+errorbar(pc,nanmean(meanPPL,1),nanstd(meanPPL,[],1)/sqrt(size(meanPPL,1)),...
+        'capsize',0,'Marker','o','MarkerSize',10,'MarkerFaceColor',[0.1 0.7 0.1],'MarkerEdgeColor','w','Color',[0.1 0.7 0.1],'LineWidth',2)
+
+
+%%
+colors = [0 0 0; .5 .5 .5; .8 .8 .8];
+% pc = sqrt(abs(cc)).*sign(cc);
+pc = cc*100;
+
+for m = 1:length(mouseList)
+    ppl(:,:,m) = psychos(m).ppL;
+    ppr(:,:,m) = psychos(m).ppR;
+end
+
+clear meanDeltaPsycho
+umn = unique(mouseList);
+for u = 1:length(umn)   
+    for t = 1:length(trialList)
+        mn = umn{u};
+        range = find(strcmp(mouseList,mn));
+        meanDeltaPsycho(t,:,u) = nanmean(ppr(t,:,range),3) - nanmean(ppl(t,:,range),3);
+    end
+end
+
+% for m = 1:length(mouseList)
+%     for t = 1:length(trialList)
+%         meanDeltaPsycho(t,:,m) = nanmean(ppr(t,:,m),3) - nanmean(ppl(t,:,m),3);
+%     end
+% end
+
+figure;
+% set(gcf,'position',[1256 1298 425 327]);
+hold on;
+for u = 1:length(umn)
+    ln = plot(pc,meanDeltaPsycho(:,:,u),'k','LineWidth',.5);
+    ln.Color(4) = .2;
+end
+
+for t = 1:length(trialList)
+    errorbar(pc,nanmean(meanDeltaPsycho(t,:,:),3),nanstd(meanDeltaPsycho(t,:,:),[],3)/sqrt(length(umn)),...
+        'capsize',0,'Marker','o','MarkerSize',10,'MarkerFaceColor',colors(t,:),'MarkerEdgeColor','w','Color',colors(t,:),'LineWidth',2,'LineStyle','-')
+    hold on
+end
+line([-100 100],[0 0],'Color',[.25 .25 .25],'LineStyle',':')
+xlim([-107 107])
+prettyPlot(gca)
+xticks([-100 -50 -12 0 12 50 100])
+set(gca, 'XTickLabels', {'-100' '-50' '-12' '0' '12' '50' '100'})
+xlabel('Left contrast (%)                          Right contrast (%)')
+ylabel('\Delta Proportion right choices')
+% title(ttl)
+% legend(lg,'location','nw')
+% legend boxoff
+
 %%
 lapseIdx = [1 2 8 9];
 biasIdx = 4:6;
@@ -156,6 +273,56 @@ for u = 1:length(umn)
     semDB(u,:) = nanstd(deltaBias(range,:))/sqrt(length(range));
     semDL(u,:) = nanstd(deltaLapse(range,:))/sqrt(length(range));
 end
+
+fl= polyfit(deltaBias,deltaLapse,1);
+xfit = linspace(-.3,.5,2);
+yfit = fl(1)*xfit + fl(2);
+colors = [0 .447 .741; ...
+          .85 .325 .098; ...
+          .929 .694 .125; ...
+          .494 .184 .556; ...
+          .466 .674 .188; ...
+          .301 .745 .933];
+figure;
+for tp = 1:size(psychos(m).ppL,1)
+    subplot(1,size(psychos(m).ppL,1),tp)
+    lim1 = -.3;
+    lim2 = .5;
+    hold on;
+    line([0 0],[-1 1],'Color',[.25 .25 .25],'LineStyle',':')
+    line([-1 1],[0 0],'Color',[.25 .25 .25],'LineStyle',':')
+    line([xfit(1) xfit(end)],[yfit(1) yfit(end)],'Color',[.5 .5 .5],'LineStyle','--')
+%     scatter(deltaBias(:,tp),deltaLapse(:,tp),200,[.75 .75 .75],'.')
+    prettyPlot(gca)
+    for u = 1:length(umn)
+        mn = umn{u};
+        range = find(strcmp(mouseList,mn));
+        scatter(deltaBias(range,tp),deltaLapse(range,tp),20,[.75 .75 .75],'o','MarkerFaceColor',colors(u,:),'MarkerEdgeColor','none','MarkerFaceAlpha',.3)
+        errorbar(meanDB(u,tp),meanDL(u,tp),semDL(u,tp),semDL(u,tp),semDB(u,tp),semDB(u,tp),'Marker','.','MarkerEdgeColor',colors(u,:),'MarkerSize',20,'capsize',0,'color',colors(u,:))
+        hold on
+    end
+    xlim([lim1 lim2])
+    ylim([lim1 lim2])
+    xticks([lim1:.2:lim2])
+    yticks([lim1:.2:lim2])
+    axis square
+    xlabel('\Delta Bias')
+    ylabel('\Delta Lapse')
+    
+end
+
+%% delta ANOVA
+
+dp = squeeze(ppr - ppl)';
+abs_dp = [(dp(:,1:4) + fliplr(dp(:,6:9))/2) dp(:,5)];
+anmat = reshape(abs_dp,numel(abs_dp),1);
+anmat(:,2) = [ones(size(abs_dp,1),1);...
+    .5*ones(size(abs_dp,1),1);...
+    .12*ones(size(abs_dp,1),1);...
+    .05*ones(size(abs_dp,1),1);...
+    0*ones(size(abs_dp,1),1)];
+
+anovan(anmat(:,1),anmat(:,2))
 
 %% compare, split over blocks
 mn = 'all';
@@ -231,153 +398,6 @@ for tp = 1:size(ppt,1)
 
 end
 
-%%
-figure;
-alp = 0.5;
-for u = 1:length(umn)   
-    mn = umn{u};
-    
-    range = find(strcmp(mouseList,mn));
-    if isempty(range)
-        range = 1:length(mouseList);
-    end
-    meanPPL(u,:) = nanmean(ppl(:,:,range),3);
-    meanPPR(u,:) = nanmean(ppr(:,:,range),3);
-
-    colors = [0.1 0.7 0.1; 1 .6 0];
-    pc = cc*100;
-    %
-    for tp = 1:size(ppl,1)
-        subplot(1,size(ppl,1),tp)
-        hold on;
-        line([-105 105],[.5 .5],'Color',[.5 .5 .5],'LineStyle',':');
-        line([0 0],[-.05 1.05],'Color',[.5 .5 .5],'LineStyle',':')
-        ln1 = plot(pc,nanmean(ppr(tp,:,range),3));
-        ln1.Color = [1,.6,0,alp];
-        hold on
-        ln2 = plot(pc,nanmean(ppl(tp,:,range),3));
-        ln2.Color = [0.1,.7,0.1,alp];
-        prettyPlot(gca)
-        xlim([-110 110])
-        ylim([-.05 1.05])
-        xticks([-100 -50 -12 0 12 50 100])
-        set(gca, 'XTickLabels', {'-100' '-50' '-12' '0' '12' '50' '100'})
-        xlabel('Left contrast (%)                          Right contrast (%)')
-
-        yticks([0 .5 1])
-        
-        ylabel('Proportion of right choices')
-        prettyPlot(gca)
-
-    end
-end
-
-errorbar(pc,nanmean(meanPPR,1),nanstd(meanPPR,[],1)/sqrt(size(meanPPR,1)),...
-        'capsize',0,'Marker','o','MarkerSize',10,'MarkerFaceColor',[1 .6 0],'MarkerEdgeColor','w','Color',[1 .6 0],'LineWidth',2)
-errorbar(pc,nanmean(meanPPL,1),nanstd(meanPPL,[],1)/sqrt(size(meanPPL,1)),...
-        'capsize',0,'Marker','o','MarkerSize',10,'MarkerFaceColor',[0.1 0.7 0.1],'MarkerEdgeColor','w','Color',[0.1 0.7 0.1],'LineWidth',2)
-
-%%
-
-fl= polyfit(deltaBias,deltaLapse,1);
-xfit = linspace(-.3,.5,2);
-yfit = fl(1)*xfit + fl(2);
-colors = [0 .447 .741; ...
-          .85 .325 .098; ...
-          .929 .694 .125; ...
-          .494 .184 .556; ...
-          .466 .674 .188; ...
-          .301 .745 .933];
-figure;
-for tp = 1:size(psychos(m).ppL,1)
-    subplot(1,size(psychos(m).ppL,1),tp)
-    lim1 = -.3;
-    lim2 = .5;
-    hold on;
-    line([0 0],[-1 1],'Color',[.25 .25 .25],'LineStyle',':')
-    line([-1 1],[0 0],'Color',[.25 .25 .25],'LineStyle',':')
-    line([xfit(1) xfit(end)],[yfit(1) yfit(end)],'Color',[.5 .5 .5],'LineStyle','--')
-%     scatter(deltaBias(:,tp),deltaLapse(:,tp),200,[.75 .75 .75],'.')
-    prettyPlot(gca)
-    for u = 1:length(umn)
-        mn = umn{u};
-        range = find(strcmp(mouseList,mn));
-        scatter(deltaBias(range,tp),deltaLapse(range,tp),20,[.75 .75 .75],'o','MarkerFaceColor',colors(u,:),'MarkerEdgeColor','none','MarkerFaceAlpha',.3)
-        errorbar(meanDB(u,tp),meanDL(u,tp),semDL(u,tp),semDL(u,tp),semDB(u,tp),semDB(u,tp),'Marker','.','MarkerEdgeColor',colors(u,:),'MarkerSize',20,'capsize',0,'color',colors(u,:))
-        hold on
-    end
-    xlim([lim1 lim2])
-    ylim([lim1 lim2])
-    xticks([lim1:.2:lim2])
-    yticks([lim1:.2:lim2])
-    axis square
-    xlabel('\Delta Bias')
-    ylabel('\Delta Lapse')
-    
-end
-
-%%
-colors = [0 0 0; .5 .5 .5; .8 .8 .8];
-% pc = sqrt(abs(cc)).*sign(cc);
-pc = cc*100;
-
-for m = 1:length(mouseList)
-    ppl(:,:,m) = psychos(m).ppL;
-    ppr(:,:,m) = psychos(m).ppR;
-end
-
-clear meanDeltaPsycho
-umn = unique(mouseList);
-for u = 1:length(umn)   
-    for t = 1:length(trialList)
-        mn = umn{u};
-        range = find(strcmp(mouseList,mn));
-        meanDeltaPsycho(t,:,u) = nanmean(ppr(t,:,range),3) - nanmean(ppl(t,:,range),3);
-    end
-end
-
-% for m = 1:length(mouseList)
-%     for t = 1:length(trialList)
-%         meanDeltaPsycho(t,:,m) = nanmean(ppr(t,:,m),3) - nanmean(ppl(t,:,m),3);
-%     end
-% end
-
-figure;
-% set(gcf,'position',[1256 1298 425 327]);
-hold on;
-for u = 1:length(umn)
-    ln = plot(pc,meanDeltaPsycho(:,:,u),'k','LineWidth',.5);
-    ln.Color(4) = .2;
-end
-
-for t = 1:length(trialList)
-    errorbar(pc,nanmean(meanDeltaPsycho(t,:,:),3),nanstd(meanDeltaPsycho(t,:,:),[],3)/sqrt(length(umn)),...
-        'capsize',0,'Marker','o','MarkerSize',10,'MarkerFaceColor',colors(t,:),'MarkerEdgeColor','w','Color',colors(t,:),'LineWidth',2,'LineStyle','-')
-    hold on
-end
-line([-100 100],[0 0],'Color',[.25 .25 .25],'LineStyle',':')
-xlim([-107 107])
-prettyPlot(gca)
-xticks([-100 -50 -12 0 12 50 100])
-set(gca, 'XTickLabels', {'-100' '-50' '-12' '0' '12' '50' '100'})
-xlabel('Left contrast (%)                          Right contrast (%)')
-ylabel('\Delta Proportion right choices')
-% title(ttl)
-% legend(lg,'location','nw')
-% legend boxoff
-
-%% delta ANOVA
-
-dp = squeeze(ppr - ppl)';
-abs_dp = [(dp(:,1:4) + fliplr(dp(:,6:9))/2) dp(:,5)];
-anmat = reshape(abs_dp,numel(abs_dp),1);
-anmat(:,2) = [ones(size(abs_dp,1),1);...
-    .5*ones(size(abs_dp,1),1);...
-    .12*ones(size(abs_dp,1),1);...
-    .05*ones(size(abs_dp,1),1);...
-    0*ones(size(abs_dp,1),1)];
-
-anovan(anmat(:,1),anmat(:,2))
 %%
 
 mn = 'all';
